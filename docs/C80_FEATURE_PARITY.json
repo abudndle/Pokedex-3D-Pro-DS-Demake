@@ -88,7 +88,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/preview_stream.c",
-      "gap": "C86 privately stages 726 source-derived DS3M previews (14 provisional colored models neutralized) and 538 separately matched UV/geometry candidates; these are sampled faces, not complete native fidelity, and p730–p733 lack previews",
+      "gap": "C89 matches 3,712 source mesh descriptors to C7 OBJ export order and counts, finding p561 truncated/missing mesh groups and four missing source OBJ exports; source index topology, material selectors and visually faithful full-poly models are still unverified",
       "verified_end_to_end": false
     },
     {
@@ -96,7 +96,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "tools/c88_original_material_references.py",
-      "gap": "C88 validated 3,473 original materials with source shader indices and 4,592 source texture-reference slots across all 730 C5 records. Exact mesh face-to-material ranges, GPU sampler channel semantics, four missing archived source texture groups, and visually faithful DS render remain incomplete.",
+      "gap": "C88 resolved original material/shader/texture index references. C89 joined 3,712 C5 mesh descriptors to export group counts, but exact mesh material IDs and per-face P3MT ranges remain zero verified; authentic textured DS renders are unfinished.",
       "verified_end_to_end": false
     },
     {
