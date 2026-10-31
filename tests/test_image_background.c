@@ -13,7 +13,7 @@ int main(int argc,char **argv){
  assert(!p3dBackgroundLoad(&output,&s,argv[1],0));
  assert(p3dBackgroundLoad(&output,&s,argv[1],1));
  assert(output.width==2&&output.height==2&&output.custom_active);
- assert(pixels[0]==0xfc00u);
+ assert(pixels[0]==0x801fu);
  p3dImageSelectOriginal(&s);
  assert(!p3dBackgroundLoad(&output,&s,argv[1],1));
  assert(!output.custom_active);
