@@ -46,9 +46,16 @@ static void prepare_original_art(void){
     art_page=page;
     original_art_available=nitro_ready&&p3dOriginalUiPageLoad(page);
     if(original_art_available){
-        bgInitSub(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
-        bgShow(2);bgHide(3);
-        p3dOriginalUiPageDraw();showing_original_art=1;
+        /* Reuse the existing bitmap layer; changing pages must not reset VRAM
+         * that the console also uses. Keep the text console hidden only while
+         * the original full-screen artwork is active. */
+        if(!showing_original_art){
+            bgInitSub(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
+            bgHide(3);
+            bgShow(2);
+        }
+        p3dOriginalUiPageDraw();
+        showing_original_art=1;
     }else if(showing_original_art){
         bgHide(2);
         consoleInit(&bottom_console,3,BgType_Text4bpp,BgSize_T_256x256,31,0,false,true);
