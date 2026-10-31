@@ -11,6 +11,7 @@
 #include "challenge.h"
 #include "game_save_bridge.h"
 #include "preview_stream.h"
+#include "original_ui_page.h"
 #include "move_dex.h"
 #ifdef P3D_HAVE_FAT
 #include <fat.h>
@@ -34,6 +35,25 @@ static int progress_dirty=0;
 static int preview_ready=0;
 static int preview_found=0;
 static int move_catalog_ready=0;
+static int art_page=-1;
+static int showing_original_art=0;
+static int original_art_available=0;
+static void prepare_original_art(void){
+    int page=home?P3D_PAGE_HOME:(int)state.page;
+    if(page==art_page)return;
+    art_page=page;
+    original_art_available=p3dOriginalUiPageLoad(page);
+    if(original_art_available){
+        bgInitSub(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
+        bgShow(2);bgHide(3);
+        p3dOriginalUiPageDraw();showing_original_art=1;
+    }else if(showing_original_art){
+        bgHide(2);
+        consoleInit(&bottom_console,3,BgType_Text4bpp,BgSize_T_256x256,31,0,false,true);
+        showing_original_art=0;
+    }
+}
+
 static void reload_preview(void){preview_found=preview_ready&&previewStreamLoad(dex_index);}
 static int display_preview=0;
 static int model_yaw=0;
@@ -132,6 +152,8 @@ static void render(void) {
     else if(save_message==3)printf("Progress restored\n");
 
     }
+    prepare_original_art();
+    if(showing_original_art)return;
     consoleSelect(&bottom_console);
     consoleClear();
     printf("POKEDEX 3D PRO\n");
@@ -180,7 +202,7 @@ int main(void) {
     glEnable(GL_BLEND);
     glClearDepth(GL_MAX_DEPTH);
     glClearColor(4,4,8,31);
-    videoSetModeSub(MODE_0_2D);
+    videoSetModeSub(MODE_5_2D);
     vramSetBankA(VRAM_A_MAIN_BG);
     vramSetBankC(VRAM_C_SUB_BG);
     consoleInit(&top_console,3,BgType_Text4bpp,BgSize_T_256x256,
