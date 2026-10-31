@@ -36,7 +36,7 @@ check-host:
 		run_bmp_loader.sh run_image_background.sh \
 		run_settings_images.sh run_menu_navigation.sh \
 		run_game_save_bridge.sh run_c81_records_smoke.sh \
-		run_c82_dex_search.sh; do \
+		run_c82_dex_search.sh run_c83_search_touch.sh; do \
 		echo "Running $$test"; sh "tests/$$test"; \
 	done
 	@python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
