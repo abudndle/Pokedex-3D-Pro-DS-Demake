@@ -486,7 +486,8 @@ int main(void) {
                     if((down&KEY_DOWN) && album_selected+1<shown){album_selected++;redraw=1;}
                     /* Never request deletion while its confirmation is hidden
                      * beneath an original-art bitmap overlay. */
-                    if((down&KEY_X) && shown && !showing_original_art){
+                    if((down&KEY_X) && shown && !showing_original_art &&
+                       !(down&(KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN))){
                         album_confirm_delete=1;redraw=1;
                     }
                     int direction=(down&KEY_LEFT)?-1:((down&KEY_RIGHT)?1:0);
