@@ -281,6 +281,9 @@ int main(void) {
             if(save_progress())progress_dirty=0;
             redraw=1;
         }
+        /* Avoid a phantom save success from a previous write after the next
+         * gameplay modification; keep the dirty flag until persistence works. */
+        if(progress_dirty && save_message==1)save_message=0;
         if(home) {
             if((down&KEY_UP)&&highlighted>0){highlighted--;redraw=1;}
             if((down&KEY_DOWN)&&highlighted<count-1){highlighted++;redraw=1;}
