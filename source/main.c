@@ -152,6 +152,7 @@ static void render(void) {
                 printf("A: Start Unova quiz\n");
             }else if(quiz.stage==P3D_CHALLENGE_RESULTS){
                 printf("Quiz complete: %d / %d\n",quiz.score,P3D_CHALLENGE_QUESTIONS);
+                printf("Total correct: %d / %d\n",challenge_correct_total,challenge_answer_total);
                 printf("A: Try again\n");
             }else{
                 printf("Question %d / %d\n",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
