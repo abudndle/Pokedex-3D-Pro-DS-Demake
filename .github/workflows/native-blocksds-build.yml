@@ -84,7 +84,9 @@ jobs:
           raw=Path('emulator-window.xwd').read_bytes()
           h=struct.unpack_from('>25I',raw)
           header, width, height, bpl, colors=h[0],h[4],h[5],h[12],h[19]
-          assert h[3]==24 and h[11]==24 and h[17]==8, 'Unsupported XWD format'
+          assert h[3] in (24,32) and h[11] in (24,32), (
+              f'Unsupported XWD pixel format: depth={h[3]}, bits_per_pixel={h[11]}')
+          pixel_stride=h[11]//8
           offset=header+colors*12
           assert len(raw)>=offset+bpl*height, 'Truncated XWD capture'
           pixels=memoryview(raw)[offset:offset+bpl*height]
@@ -93,7 +95,7 @@ jobs:
           total=0
           for y in range(0,height,4):
               for x in range(0,width,4):
-                  p=y*bpl+4*x
+                  p=y*bpl+pixel_stride*x
                   colored+=max(pixels[p],pixels[p+1],pixels[p+2])>16
                   total+=1
           ratio=colored/total
