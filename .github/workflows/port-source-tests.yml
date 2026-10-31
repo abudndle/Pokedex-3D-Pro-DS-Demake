@@ -28,6 +28,11 @@ jobs:
       - name: Verify save persistence and backup slots
         run: sh tests/run_save_store_smoke.sh
 
+      - name: Verify corrupted and truncated save slot recovery
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -Isource tests/test_save_recovery.c source/save_store.c -o /tmp/p3d-save-recovery
+          /tmp/p3d-save-recovery
+
       - name: Verify regional challenge quiz rules
         run: sh tests/run_challenge_smoke.sh
 
