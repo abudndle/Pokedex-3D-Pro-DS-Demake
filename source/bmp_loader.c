@@ -21,7 +21,7 @@ int p3dBmpDecode24(const char *path,uint16_t *pixels,size_t capacity,int *out_wi
   if(fseek(f,position,SEEK_SET)!=0){fclose(f);return 0;}
   for(uint32_t x=0;x<w;x++){
    if(fread(bgr,1,3,f)!=3){fclose(f);return 0;}
-   pixels[(size_t)y*w+x]=(uint16_t)(0x8000u|((bgr[2]>>3)<<10)|((bgr[1]>>3)<<5)|(bgr[0]>>3));
+   pixels[(size_t)y*w+x]=(uint16_t)(0x8000u|(bgr[2]>>3)|((bgr[1]>>3)<<5)|((bgr[0]>>3)<<10));
   }
  }
  fclose(f);*out_width=(int)w;*out_height=height;return 1;
