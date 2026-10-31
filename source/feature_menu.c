@@ -49,5 +49,7 @@ static const Match table[]={
  X(ST,F,5),X(ST,W,5),X(ST,E,5),X(ST,I,20),X(ST,RO,20),X(ST,ST,5)
 };
 int p3dTypeEffect(int a,int d){if(a<0||a>=17||d<0||d>=17)return -1;for(size_t i=0;i<sizeof(table)/sizeof(table[0]);i++)if(table[i].a==a&&table[i].d==d)return table[i].m;return 10;}
-int p3dTypeEffectDual(int a,int d1,int d2){int p=p3dTypeEffect(a,d1);if(p<0)return -1;if(d2<0)return p*4/10;int q=p3dTypeEffect(a,d2);return q<0?-1:p*q/25;}
+int p3dTypeEffectDual(int a,int d1,int d2){int p=p3dTypeEffect(a,d1);if(p<0)return -1;if(d2<0)return p;
+ int q=p3dTypeEffect(a,d2);
+ return q<0?-1:p*q/10;}
 int p3dSearchNext(const char *const labels[],size_t count,int from,char initial,int dir){if(!labels||!count||!dir)return -1;if(initial>='a'&&initial<='z')initial=(char)(initial-('a'-'A'));for(size_t i=0;i<count;i++){int at=(int)(((long long)from+(long long)(i+1)*(dir>0?1:-1)+(long long)count*(count+2))%(long long)count);if(labels[at]){unsigned char c=(unsigned char)labels[at][0];if(c>='a'&&c<='z')c=(unsigned char)(c-('a'-'A'));if(c==(unsigned char)initial)return at;}}return -1;}
