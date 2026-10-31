@@ -40,6 +40,9 @@ jobs:
       - name: Validate bounded model material ranges
         run: sh tests/run_model_materials.sh
 
+      - name: Verify animation pause, resume and restart
+        run: sh tests/run_animation_playback.sh
+
       - name: Verify optional multi-clip animation discovery and switching
         run: sh tests/run_model_animation_library.sh
 
