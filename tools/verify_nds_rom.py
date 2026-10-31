@@ -13,14 +13,21 @@ def verify(path: Path):
     if len(data) < 0x200:
         return ["NDS image is smaller than the 512-byte minimum header"]
     errors = []
+    sections = []
     for name, offset_at in (("ARM9", 0x20), ("ARM7", 0x30)):
         offset, entry, ram, size = struct.unpack_from("<IIII", data, offset_at)
         if offset < 0x200 or size == 0 or offset + size > len(data):
             errors.append(f"{name} data points outside ROM or has zero size")
+        if offset >= 0x200 and size and size <= len(data) - offset:
+            sections.append((name, offset, offset + size))
+        if entry < ram or (size and entry - ram >= size):
+            errors.append(f"{name} entry point is outside loaded section")
         if not entry or not ram:
             errors.append(f"{name} has no entry point or RAM destination")
         if offset & 3:
             errors.append(f"{name} offset is not word-aligned")
+    if len(sections) == 2 and max(sections[0][1], sections[1][1]) < min(sections[0][2], sections[1][2]):
+        errors.append("ARM9 and ARM7 ROM sections overlap")
     return errors
 
 def main():
