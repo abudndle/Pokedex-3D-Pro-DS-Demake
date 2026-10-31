@@ -10,7 +10,8 @@ int previewStreamHasUv(void);
 int previewStreamTriangleCount(void);
 int previewStreamOriginalTriangleCount(void);
 /* With verified texture+UV only, use white vertices to avoid tinting RGB555. */
-void previewStreamDrawMode(int textured);
+/* Texture dimensions convert normalized 4.12 source UVs to DS texel-space 12.4. */
+void previewStreamDrawMode(int texture_width,int texture_height);
 void previewStreamDraw(void);
 #ifdef __cplusplus
 }
