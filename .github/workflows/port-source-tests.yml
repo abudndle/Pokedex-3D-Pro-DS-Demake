@@ -19,6 +19,9 @@ jobs:
       - name: Verify material-to-texture cross-references
         run: sh tests/run_model_material_texture.sh
 
+      - name: Verify VRAM-bounded multi-material texture rendering assets
+        run: sh tests/run_preview_texture_set.sh
+
       - name: Verify DS texture upload interface
         run: sh tests/run_ds_texture_upload.sh
 
