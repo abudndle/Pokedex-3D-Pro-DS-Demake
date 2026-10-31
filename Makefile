@@ -51,4 +51,5 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c78_texture_loader_host.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c79_private_texture_manifest_builder.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c85_private_release_assets.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
