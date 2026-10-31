@@ -13,9 +13,10 @@ CFILES := $(wildcard source/*.c)
 # BlocksDS supplies NitroFS in libnds (unlike devkitARM's libfilesystem).
 # Keep native smoke builds separate from original-asset release builds.
 OBJS := $(patsubst source/%.c,build/%.o,$(CFILES))
+DEPS := $(OBJS:.o=.d)
 ARCH := -mthumb -mcpu=arm946e-s+nofp
 SPECS := $(BLOCKSDS)/sys/crts/ds_arm9.specs
-CFLAGS := -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__ -Isource -I$(BLOCKSDS)/libs/libnds/include
+CFLAGS := -MMD -MP -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__ -Isource -I$(BLOCKSDS)/libs/libnds/include
 LDFLAGS := $(ARCH) -L$(BLOCKSDS)/libs/libnds/lib -Wl,-Map,build/$(NAME).map -Wl,--gc-sections -Wl,--start-group -lnds9 -lc -Wl,--end-group -specs=$(SPECS)
 .PHONY: rom verify-toolchain
 rom: verify-toolchain $(NAME).nds
@@ -24,7 +25,7 @@ verify-toolchain:
 	@test -f "$(SPECS)" || { echo "ERROR: BlocksDS ARM9 specs missing: $(SPECS)" >&2; exit 1; }
 	@test -f "$(BLOCKSDS)/libs/libnds/include/nds.h" || { echo "ERROR: BlocksDS libnds headers missing" >&2; exit 1; }
 	@test -x "$(BLOCKSDS)/tools/ndstool/ndstool" || { echo "ERROR: BlocksDS ndstool missing" >&2; exit 1; }
-build/%.o: source/%.c
+build/%.o: source/%.c | verify-toolchain
 	@mkdir -p build
 	$(CC) $(CFLAGS) -c -o $@ $<
 build/$(NAME).elf: $(OBJS)
@@ -35,3 +36,6 @@ $(NAME).nds: build/$(NAME).elf
 	  test -d "$(NITROFSDIR)" || { echo "ERROR: required NitroFS asset directory missing: $(NITROFSDIR)" >&2; exit 1; }; \
 	fi
 	$(BLOCKSDS)/tools/ndstool/ndstool -c $@ -7 $(ARM7ELF) -9 $< $(if $(strip $(NITROFSDIR)),-d $(NITROFSDIR),)
+
+# Recompile objects when included headers change, not just when .c files change.
+-include $(DEPS)
