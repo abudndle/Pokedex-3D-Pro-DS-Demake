@@ -55,4 +55,5 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c89_mesh_descriptor_join_audit.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c90_original_draw_material_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
