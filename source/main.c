@@ -381,6 +381,11 @@ int main(void) {
                 if(down&KEY_RIGHT){defend_type=(defend_type+1)%17;redraw=1;}
             }
             if(state.page==P3D_PAGE_FAVORITES){
+                /* Restored or recently shortened lists can leave the cursor
+                 * outside the current count. Clamp before any rendering or
+                 * left/right navigation. */
+                if(favorite_index<0 || favorite_index>=state.favorites_count)
+                    favorite_index=0;
                 if((down&KEY_LEFT)&&favorite_index>0){favorite_index--;redraw=1;}
                 if((down&KEY_RIGHT)&&favorite_index<state.favorites_count-1){favorite_index++;redraw=1;}
                 if((down&KEY_A)&&state.favorites_count>0){
