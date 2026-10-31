@@ -82,11 +82,15 @@ static void render_model(void){
 }
 
 #define P3D_SAVE_BASE "fat:/pokedex3d" 
-static void save_progress(void){
+static int save_progress(void){
     P3DSaveState record;
-    if(!storage_ready)return;
-    if(p3dGameSaveCapture(&record,&state,dex_index,move_index,0,0))
-        save_message=p3dSaveStore(P3D_SAVE_BASE,&record)?1:2;
+    if(!storage_ready)return 0;
+    if(!p3dGameSaveCapture(&record,&state,dex_index,move_index,0,0)){
+        save_message=2;
+        return 0;
+    }
+    save_message=p3dSaveStore(P3D_SAVE_BASE,&record)?1:2;
+    return save_message==1;
 }
 
 
@@ -267,7 +271,11 @@ int main(void) {
                 redraw=1;
             }
         } else {
-            if(down&KEY_B){if(progress_dirty){save_progress();progress_dirty=0;}home=1;redraw=1;}
+            if(down&KEY_B){
+                if(progress_dirty && save_progress())progress_dirty=0;
+                home=1;
+                redraw=1;
+            }
             if(state.page==P3D_PAGE_CHALLENGE){
                 if(quiz.stage==P3D_CHALLENGE_PICKER||quiz.stage==P3D_CHALLENGE_RESULTS){
                     if(down&KEY_A){p3dChallengeBegin(&quiz,0,1,0);redraw=1;}
