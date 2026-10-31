@@ -21,3 +21,6 @@ jobs:
 
       - name: Verify DS and DSi feature availability
         run: sh tests/run_dsi_feature_gating.sh
+
+      - name: Test recovered feature menu and type chart
+        run: sh tests/run_feature_menu_smoke.sh
