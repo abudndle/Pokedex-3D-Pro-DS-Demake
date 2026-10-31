@@ -41,5 +41,5 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 	@python3 tests/test_private_ui_packager.py
 	@tmp=$(mktemp); trap 'rm -f "$tmp"' EXIT; \
-		$(command -v cc) -std=c11 -Wall -Wextra -Werror -Isource \
+		cc -std=c11 -Wall -Wextra -Werror -Isource \
 		tests/test_save_recovery.c source/save_store.c -o "$tmp"; "$tmp"
