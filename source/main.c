@@ -28,6 +28,7 @@ static P3DChallenge quiz;
 static int favorite_index=0;
 static int storage_ready=0;
 static int save_message=0;
+static int progress_dirty=0;
 #define P3D_SAVE_BASE "fat:/pokedex3d" 
 static void save_progress(void){
     P3DSaveState record;
@@ -184,11 +185,11 @@ int main(void) {
                 }
             }
             if((down&KEY_A)&&highlighted>=0&&highlighted<count) {
-                if(p3dMenuEnter(&state,caps,pages[highlighted]))home=0;
+                if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);}
                 redraw=1;
             }
         } else {
-            if(down&KEY_B){home=1;redraw=1;}
+            if(down&KEY_B){if(progress_dirty){save_progress();progress_dirty=0;}home=1;redraw=1;}
             if(state.page==P3D_PAGE_CHALLENGE){
                 if(quiz.stage==P3D_CHALLENGE_PICKER||quiz.stage==P3D_CHALLENGE_RESULTS){
                     if(down&KEY_A){p3dChallengeBegin(&quiz,0,1,0);redraw=1;}
@@ -209,22 +210,22 @@ int main(void) {
                 if((down&KEY_RIGHT)&&favorite_index<state.favorites_count-1){favorite_index++;redraw=1;}
                 if((down&KEY_A)&&state.favorites_count>0){
                     p3dFavoriteToggle(&state,state.favorites[favorite_index]);
+                    progress_dirty=1;
                     if(favorite_index>=state.favorites_count)favorite_index=state.favorites_count?state.favorites_count-1:0;
                     redraw=1;
                 }
             }
             if(state.page==P3D_PAGE_DEX){
-                if(down&KEY_A){p3dFavoriteToggle(&state,dex_index);redraw=1;}
-                if((down&KEY_LEFT)&&dex_index>0){dex_index--;redraw=1;}
-                if((down&KEY_RIGHT)&&dex_index<648){dex_index++;redraw=1;}
+                if(down&KEY_A){if(p3dFavoriteToggle(&state,dex_index))progress_dirty=1;redraw=1;}
+                if((down&KEY_LEFT)&&dex_index>0){dex_index--;progress_dirty=1;redraw=1;}
+                if((down&KEY_RIGHT)&&dex_index<648){dex_index++;progress_dirty=1;redraw=1;}
             }
             if(state.page==P3D_PAGE_MOVES){
-                if((down&KEY_LEFT)&&move_index>0){move_index--;redraw=1;}
-                if((down&KEY_RIGHT)&&move_index<558){move_index++;redraw=1;}
+                if((down&KEY_LEFT)&&move_index>0){move_index--;progress_dirty=1;redraw=1;}
+                if((down&KEY_RIGHT)&&move_index<558){move_index++;progress_dirty=1;redraw=1;}
             }
         }
         if(redraw){
-            if(!home&&(state.page==P3D_PAGE_DEX||state.page==P3D_PAGE_MOVES||state.page==P3D_PAGE_FAVORITES))save_progress();
             render();
         }
     }
