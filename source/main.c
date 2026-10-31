@@ -382,26 +382,12 @@ int main(void) {
     reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
     render();
-    unsigned frame_counter=0;
     while(1) {
         swiWaitForVBlank();
-        ++frame_counter;
-        /* Keep a visible frame heartbeat while investigating emulator
-         * input after a page transition. If this changes but B/Right does
-         * not, the main loop is alive and key mapping is the issue. */
         challenge_seed+=0x9E3779B9u; /* Vary each game session's quiz sequence. */
         scanKeys();
         unsigned down=keysDown();
         unsigned held=keysHeld();
-        /* Temporary input probe: show raw button edges and held-state,
-         * not merely the frame heartbeat. This separates emulator keymap
-         * failures from page-routing failures in captured screenshots. */
-        if(!home && ((frame_counter%30)==0 || down)) {
-            consoleSelect(&top_console);
-            printf("\x1b[22;0HFrame:%lu K:%04lX H:%04lX  ",
-                   (unsigned long)frame_counter,
-                   (unsigned long)down,(unsigned long)held);
-        }
         int redraw=0;
         /* SELECT makes the text navigation available even with a full-screen
          * recovered UI image. Press SELECT again to restore original art. */
