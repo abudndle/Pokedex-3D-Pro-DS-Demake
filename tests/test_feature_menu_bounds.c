@@ -58,6 +58,7 @@ int main(void) {
     assert(p3dTypeEffectDual(3,2,8)==0);
     assert(p3dTypeEffectDual(1,4,6)==20);
     assert(p3dTypeEffectDual(1,4,-1)==20);
+    assert(p3dTypeEffectDual(1,4,-2)==-1);
     assert(p3dTypeEffectDual(-1,4,2)==-1);
     assert(p3dTypeEffectDual(1,4,17)==-1);
     return 0;
