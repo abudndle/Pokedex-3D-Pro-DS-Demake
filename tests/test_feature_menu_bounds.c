@@ -55,6 +55,16 @@ int main(void) {
     assert(p3dFavoriteToggle(&state,0)==-1);
     assert(p3dFavoriteToggle(&state,2)==-1);
     assert(state.favorites_count==0 && state.favorite_cursor==0);
+    /* Recover from a damaged persisted Favorites selection. */
+    p3dMenuReset(&state);
+    assert(p3dFavoriteToggle(&state,10)==1);
+    assert(p3dFavoriteToggle(&state,11)==1);
+    state.favorite_cursor=999;
+    assert(p3dFavoriteToggle(&state,12)==1);
+    assert(state.favorite_cursor==1);
+    state.favorite_cursor=-7;
+    assert(p3dFavoriteToggle(&state,12)==-1);
+    assert(state.favorite_cursor==0);
     /* Search origins can come from damaged save data. A very negative
      * position must wrap safely rather than index before the array. */
     const char *labels[]={"Alpha","Bravo","Charlie","Delta"};
