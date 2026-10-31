@@ -10,6 +10,7 @@
 #include "dsi_features.h"
 #include "challenge.h"
 #include "game_save_bridge.h"
+#include "preview_stream.h"
 #ifdef P3D_HAVE_FAT
 #include <fat.h>
 #endif
@@ -29,6 +30,9 @@ static int favorite_index=0;
 static int storage_ready=0;
 static int save_message=0;
 static int progress_dirty=0;
+static int preview_ready=0;
+static int preview_found=0;
+static void reload_preview(void){preview_found=preview_ready&&previewStreamLoad(dex_index);}
 #define P3D_SAVE_BASE "fat:/pokedex3d" 
 static void save_progress(void){
     P3DSaveState record;
@@ -53,7 +57,8 @@ static void render(void) {
         if(state.page==P3D_PAGE_DEX){
             printf("Pokemon entry: %03d / 649\n",dex_index+1);
             printf("LEFT/RIGHT: browse entries\n");
-            printf("Original models pending.\n");
+            if(preview_found)printf("Source mesh: %d tris\n",previewStreamTriangleCount());
+            else printf("Source mesh unavailable\n");
             printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
         } else if(state.page==P3D_PAGE_MOVES){
             printf("Move entry: %03d / 559\n",move_index+1);
@@ -164,6 +169,8 @@ int main(void) {
             save_message=3;
         }
     }
+    preview_ready=previewStreamInit();
+    reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
     render();
     while(1) {
@@ -217,8 +224,8 @@ int main(void) {
             }
             if(state.page==P3D_PAGE_DEX){
                 if(down&KEY_A){if(p3dFavoriteToggle(&state,dex_index))progress_dirty=1;redraw=1;}
-                if((down&KEY_LEFT)&&dex_index>0){dex_index--;progress_dirty=1;redraw=1;}
-                if((down&KEY_RIGHT)&&dex_index<648){dex_index++;progress_dirty=1;redraw=1;}
+                if((down&KEY_LEFT)&&dex_index>0){dex_index--;reload_preview();progress_dirty=1;redraw=1;}
+                if((down&KEY_RIGHT)&&dex_index<648){dex_index++;reload_preview();progress_dirty=1;redraw=1;}
             }
             if(state.page==P3D_PAGE_MOVES){
                 if((down&KEY_LEFT)&&move_index>0){move_index--;progress_dirty=1;redraw=1;}
