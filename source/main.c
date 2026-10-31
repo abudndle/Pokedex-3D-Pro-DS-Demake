@@ -450,10 +450,16 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_ALBUM && album_ready){
-                if((down&KEY_LEFT) && album_offset>=P3D_ALBUM_PAGE_MAX){
-                    album_offset-=P3D_ALBUM_PAGE_MAX;redraw=1;
+                int direction=(down&KEY_LEFT)?-1:((down&KEY_RIGHT)?1:0);
+                if((down&KEY_TOUCH) && !showing_original_art){
+                    touchPosition point;
+                    touchRead(&point);
+                    if(point.py>=150 && point.py<192)
+                        direction=point.px<64?-1:(point.px>=192?1:direction);
                 }
-                if(down&KEY_RIGHT){
+                if(direction<0 && album_offset>=P3D_ALBUM_PAGE_MAX){
+                    album_offset-=P3D_ALBUM_PAGE_MAX;redraw=1;
+                }else if(direction>0){
                     size_t total=0;
                     p3dPhotoAlbumPage(&photo_album,NULL,0,0,&total);
                     if(album_offset+P3D_ALBUM_PAGE_MAX<total){
