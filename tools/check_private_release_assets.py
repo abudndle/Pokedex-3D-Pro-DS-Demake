@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Audit privately staged original-derived DS game assets.
+
+Only --release is a gate. It deliberately rejects partial source assets and
+does not claim visual parity from the mere existence of files.
+"""
+import argparse
+import json
+import pathlib
+import struct
+import subprocess
+import sys
+import zipfile
+
+GUI_PAGES=("home","dex","search","moves","types","favorites","challenge","settings","album","ar")
+MODEL_IDS=tuple(i for i in range(734) if i not in (721,722,723,724))
+assert len(MODEL_IDS)==730
+
+class Assets:
+    def __init__(self,path):
+        self.path=path
+        self.archive=zipfile.ZipFile(path) if path.is_file() else None
+        if self.archive is None and not path.is_dir():
+            raise ValueError("asset root must be a directory or ZIP")
+        self.names=set(self.archive.namelist()) if self.archive else None
+    def exists(self,name):
+        return name in self.names if self.archive else (self.path/name).is_file()
+    def read(self,name):
+        return self.archive.read(name) if self.archive else (self.path/name).read_bytes()
+    def length(self,name):
+        return self.archive.getinfo(name).file_size if self.archive else (self.path/name).stat().st_size
+    def close(self):
+        if self.archive:self.archive.close()
+
+def audit(src):
+    invalid=[]
+    missing=[]
+    def check(name,predicate,reason):
+        if not src.exists(name):
+            missing.append(name)
+        elif not predicate(src,name):
+            invalid.append(name+": "+reason)
+    for i,name in enumerate(GUI_PAGES):
+        check(f"ui/pages/t0_{i:02d}_{name}.rgb555",
+              lambda a,p:a.length(p)==256*192*2,"not a full DS 256x192 16-bit page")
+    def dex(a,p):
+        if a.length(p)!=8+649*256:return False
+        return a.read(p)[:8]==struct.pack("<4sHH",b"P3DX",1,649)
+    check("data/dex_en.p3dx",dex,"P3DX 649-entry file invalid")
+    def moves(a,p):
+        if a.length(p)<8+4*560:return False
+        b=a.read(p)
+        if b[:8]!=struct.pack("<4sHH",b"P3DM",1,559):return False
+        indexes=struct.unpack_from("<560I",b,8)
+        return indexes[0]==8+4*560 and indexes[-1]==len(b) and all(
+            7<=indexes[i+1]-indexes[i]<=2048 for i in range(559))
+    check("moves.p3dm",moves,"P3DM 559-entry seek table invalid")
+    categories={
+        "mesh_previews":"preview/p%03d.ds3m",
+        "verified_uv":"preview/p%03d.p3uv",
+        "verified_material_bindings":"materials/p%03d.p3mt",
+        "original_texture_manifests":"materials/p%03d.p3tx",
+        "original_texture_catalogs":"catalogs/p%03d.p3tm"
+    }
+    counts={}
+    for category,pattern in categories.items():
+        count=0
+        for ident in MODEL_IDS:
+            path=pattern%ident
+            if src.exists(path):
+                count+=1
+                if src.length(path)==0:invalid.append(path+": empty")
+        counts[category]=count
+    texture_count=0
+    for ident in MODEL_IDS:
+        prefix=f"textures/p{ident:03d}/"
+        if src.archive is not None:
+            texture_count+=sum(n.startswith(prefix) and n.endswith(".p3px") for n in src.names)
+        else:
+            texture_count+=len(list((src.path/prefix).glob("t*.p3px")))
+    counts["original_derived_texture_payloads"]=texture_count
+    for category in categories:
+        if counts[category]<len(MODEL_IDS):
+            missing.append(f"{category}: {len(MODEL_IDS)-counts[category]} model resources not staged")
+    if texture_count<4039:
+        missing.append(f"original textures: {4039-texture_count} below verified C78 count")
+    return {"expected_resource_models":len(MODEL_IDS),
+            "counts":counts,"missing":missing,"invalid":invalid,
+            "asset_complete":not missing and not invalid,
+            "visual_accuracy_verified":False,
+            "full_gameplay_verified":False}
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--root",type=pathlib.Path,required=True)
+    p.add_argument("--report",type=pathlib.Path)
+    p.add_argument("--release",action="store_true")
+    args=p.parse_args()
+    try:
+        src=Assets(args.root)
+        try: report=audit(src)
+        finally:src.close()
+    except (ValueError,OSError,zipfile.BadZipFile,KeyError) as exc:
+        p.exit(2,"Private asset staging invalid: %s\n"%exc)
+    print("Private DS assets: "+json.dumps({"counts":report["counts"],
+        "missing_count":len(report["missing"]),"invalid_count":len(report["invalid"])},sort_keys=True))
+    if args.report:args.report.write_text(json.dumps(report,indent=2)+"\n")
+    if args.release:
+        # Presence does not prove authentic visuals: code-level gameplay parity
+        # must independently have emulator and hardware validation evidence.
+        check=pathlib.Path(__file__).resolve().parent/"check_feature_parity.py"
+        complete=subprocess.run([sys.executable,str(check),"--release"],capture_output=True,text=True)
+        if report["missing"] or report["invalid"] or complete.returncode!=0:
+            p.exit(1,"Release BLOCKED: missing/invalid original assets or unverified gameplay features.\n")
+    return 0
+
+if __name__=="__main__":sys.exit(main())
