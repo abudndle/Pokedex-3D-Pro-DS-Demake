@@ -1,0 +1,27 @@
+# Recovered BlocksDS ARM9 port build rules, invoked only after source migration
+export BLOCKSDS ?= /opt/blocksds/core
+export WONDERFUL_TOOLCHAIN ?= /opt/wonderful
+NAME := Pokedex3D_DS_BlocksDS
+GAME_TITLE := Pokedex 3D Pro DS
+GAME_SUBTITLE := Homebrew demake
+GAME_AUTHOR := Fan project
+GAME_ICON := icon.gif
+NITROFSDIR ?= nitrofs
+ARM7ELF := $(BLOCKSDS)/sys/arm7/main_core/arm7_maxmod.elf
+CC := $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/arm-none-eabi-gcc
+CFILES := $(wildcard source/*.c)
+OBJS := $(patsubst source/%.c,build/%.o,$(CFILES))
+ARCH := -mthumb -mcpu=arm946e-s+nofp
+SPECS := $(BLOCKSDS)/sys/crts/ds_arm9.specs
+CFLAGS := -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__ -Isource -I$(BLOCKSDS)/libs/libnds/include
+LDFLAGS := $(ARCH) -L$(BLOCKSDS)/libs/libnds/lib -Wl,-Map,build/$(NAME).map -Wl,--gc-sections -Wl,--start-group -lnds9 -lc -Wl,--end-group -specs=$(SPECS)
+.PHONY: rom
+rom: $(NAME).nds
+build/%.o: source/%.c
+	@mkdir -p build
+	$(CC) $(CFLAGS) -c -o $@ $<
+build/$(NAME).elf: $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS)
+$(NAME).nds: build/$(NAME).elf
+	@test -f $(GAME_ICON) || { echo "ERROR: DS ROM icon missing"; exit 1; }
+	$(BLOCKSDS)/tools/ndstool/ndstool -c $@ -7 $(ARM7ELF) -9 $< -b $(GAME_ICON) "$(GAME_TITLE);$(GAME_SUBTITLE);$(GAME_AUTHOR)" -d $(NITROFSDIR)
