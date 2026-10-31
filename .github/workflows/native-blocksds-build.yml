@@ -46,7 +46,7 @@ jobs:
       - name: Install Nintendo DS emulator and virtual display
         run: |
           sudo apt-get update
-          sudo apt-get install -y desmume xvfb x11-apps
+          sudo apt-get install -y desmume xvfb x11-apps x11-utils
       - name: Attempt ROM startup in DeSmuME CLI
         shell: bash
         run: |
@@ -66,6 +66,8 @@ jobs:
           fi
           # Capture both emulated screens for manual review in CI artifacts.
           # This is evidence, not an automated proof of correct rendering.
+          xwininfo -root -tree > emulator-windows.txt
+          cat emulator-windows.txt
           xwd -root -silent -out emulator-desktop.xwd
           test -s emulator-desktop.xwd
           tail -30 /tmp/desmume.log || true
@@ -104,4 +106,5 @@ jobs:
           name: desmume-startup-evidence
           path: |
             emulator-desktop.xwd
+            emulator-windows.txt
           if-no-files-found: warn
