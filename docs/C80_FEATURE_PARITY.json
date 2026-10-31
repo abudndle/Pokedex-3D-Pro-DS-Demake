@@ -16,15 +16,15 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/main.c",
-      "gap": "Missing accurate complete original stats, forms and verified model rendering",
+      "gap": "C82 displays recovered original English names, descriptions, height and weight from private 649-record P3DX data; complete forms/stats/evolutions, final 3D rendering and localization still incomplete",
       "verified_end_to_end": false
     },
     {
       "id": "original_text_search_filters",
       "required_for_release": true,
       "status": "partial",
-      "source": "source/main.c",
-      "gap": "Native search remains numeric; advanced source-data search/filter parity not integrated",
+      "source": "source/dex_search.c",
+      "gap": "C82 restores original-English names/description substring search, regional ranges and viewed/favorites scopes, with X+arrows initial-letter navigation; complete original touchscreen keyboard and UI search filters remain incomplete",
       "verified_end_to_end": false
     },
     {
