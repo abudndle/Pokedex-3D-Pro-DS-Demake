@@ -237,7 +237,9 @@ static void render(void) {
         }else{
             printf("\x1b[13;1HFeature implementation pending");
         }
-        printf("\x1b[17;1HPress B to go back");
+        if(state.page==P3D_PAGE_CHALLENGE && quiz.stage==P3D_CHALLENGE_QUESTION)
+            printf("\x1b[24;1HB: Return to menu");
+        else printf("\x1b[17;1HPress B to go back");
     }
 }
 int main(void) {
