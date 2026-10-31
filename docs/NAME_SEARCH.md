@@ -44,3 +44,31 @@ Run `sh tests/run_name_search.sh` or `make check-host` for synthetic fixtures,
 including malformed catalogs, query editing, wraparound, no-match states,
 maximum query lengths and touchscreen boundaries. These tests do not verify
 original-game text accuracy or DS/DSi hardware behavior.
+
+## Readable Pokédex entries
+
+On the Pokédex screen, press L+R together or tap the center **Entry details**
+button on text console row 21 to switch between model and text views. The
+text view reads the same private catalog: name, height, weight, and description.
+UP/DOWN pages the description in bounded 56-character fragments. LEFT/RIGHT
+still browses Pokémon, A still toggles favorites, X opens Search, and Y cycles
+verified forms. Descriptions are National-species records, not invented
+form-specific text. Species/form changes reset pagination.
+
+Details remain usable when a model is unavailable; missing catalog data is
+reported explicitly. The center touch target excludes the existing bottom
+species-navigation corners. These touch controls remain disabled over original
+artwork. Model animation selection and rotation apply in model view; details
+pagination does not change the selected animation clip.
+
+## Text Challenge clues
+
+The existing Pokédex Test unlock (50 cumulative answers) now displays the private
+catalog description as its clue and original catalog names as answer options.
+L/R pages the clue on the upper screen; UP/DOWN and A retain answer selection,
+and the text-screen answer rows remain tappable. The clue begins at page one
+for each question. A missing description or any missing option name disables
+scoring for that question and displays an explicit unavailable message; B still
+returns to the menu. Cached text from another question cannot authorize scoring.
+Regional non-text challenge modes keep their existing behavior. Source fixtures
+verify this flow but do not establish original-text accuracy.

@@ -8,11 +8,13 @@
 #include <filesystem.h>
 #include "feature_menu.h"
 #include "dex_text.h"
+#include "dex_info.h"
 #include "name_search.h"
 #include "menu_layout.h"
 #include "menu_navigation.h"
 #include "dsi_features.h"
 #include "challenge.h"
+#include "challenge_text.h"
 #include "game_save_bridge.h"
 #include "preview_stream.h"
 #include "species_model_map.h"
@@ -42,8 +44,11 @@ static int dex_index=0, move_index=0;
 static int dex_text_ready=0;
 static int search_name_mode=0;
 static P3DNameSearch name_search;
+static P3DDexInfo dex_info;
+static int show_dex_info=0;
 static int attack_type=1, defend_type=4, defend_type2=-1;
 static P3DChallenge quiz;
+static P3DChallengeText challenge_text;
 static int challenge_correct_total=0, challenge_answer_total=0;
 static unsigned int challenge_seed=0x13579BDFu;
 static int favorite_index=0;
@@ -104,6 +109,7 @@ static void prepare_original_art(void){
 }
 
 static void reload_preview(void){
+    p3dDexInfoLoad(&dex_info,dex_index);
     /* Free all prior per-material VRAM allocations on species/form changes. */
     p3dPreviewTextureSetRelease(&preview_gl_textures);
     int resource=selected_form?p3dFormResolve(&alternate_models,dex_index,selected_form):p3dModelMapResolve(&species_models,dex_index);
@@ -136,7 +142,10 @@ static void reload_preview(void){
 }
 static int display_preview=0;
 static int model_yaw=0;
-static void update_preview_mode(void){display_preview=!home&&state.page==P3D_PAGE_DEX&&preview_found;}
+static void update_preview_mode(void){
+    if(home||state.page!=P3D_PAGE_DEX)show_dex_info=0;
+    display_preview=!home&&state.page==P3D_PAGE_DEX&&preview_found&&!show_dex_info;
+}
 static void render_model(void){
     if(!display_preview)return;
     glViewport(0,0,255,191);
@@ -205,32 +214,50 @@ static void render(void) {
     } else {
         printf("%s\n\n", p3dPageName(state.page));
         if(state.page==P3D_PAGE_DEX){
-            printf("Pokemon entry: %03d / 649\n",dex_index+1);
-            printf("LEFT/RIGHT: browse entries\n");
-            printf("Form: %s",selected_form?"alternate":"base");
-            if(selected_form){
-                const char *name=p3dFormName(&form_names,dex_index,selected_form);
-                if(name)printf(" %s",name);
-                else printf(" #%d",selected_form);
+            if(show_dex_info){
+                printf("Pokemon #%03d\n",dex_index+1);
+                if(dex_info.ready){
+                    char first[29],second[29];
+                    p3dDexInfoLines(&dex_info,first,second);
+                    printf("%.31s\n",dex_info.text.name);
+                    printf("Height: %.15s\n",dex_info.text.height);
+                    printf("Weight: %.15s\n",dex_info.text.weight);
+                    printf("Description %d / %d\n",dex_info.page+1,dex_info.pages);
+                    if(dex_info.text.description[0])printf("%s\n%s\n",first,second);
+                    else printf("Original description unavailable.\n");
+                }else printf("Original entry text unavailable.\n");
+                printf("UP/DOWN: description pages\n");
+                printf("LEFT/RIGHT: browse Pokemon\n");
+                printf("A: favorite  X: search\n");
+                printf("L+R: return to model view\n");
+            }else{
+                printf("Pokemon entry: %03d / 649\n",dex_index+1);
+                printf("LEFT/RIGHT: browse entries\n");
+                printf("Form: %s",selected_form?"alternate":"base");
+                if(selected_form){
+                    const char *name=p3dFormName(&form_names,dex_index,selected_form);
+                    if(name)printf(" %s",name);
+                    else printf(" #%d",selected_form);
+                }
+                printf("\nY: cycle verified forms\n");
+                if(preview_found){
+                    printf("Source mesh: %d tris\n",previewStreamTriangleCount());
+                    printf("Material refs: %s\n",material_references_ready?"verified":"unavailable");
+                    printf("Texture data: %s\n",texture_payload_ready?"verified":"unavailable");
+                    printf("Native textures: %u\n",preview_gl_textures.count);
+                }
+                else printf("Source mesh unavailable\n");
+                if(preview_found){
+                    if(preview_animation.ready){
+                        printf("Animation: %u frames, %u ticks (%s)\n",preview_animation.count,preview_animation.total_ticks,preview_animation.version==2?"smooth":"held");
+                        printf("Verified clip: %u / %u\n",preview_animation_library.selected+1,preview_animation_library.count);
+                        if(preview_animation_library.count>1)
+                            printf("UP/DOWN: select animation\n");
+                    }else printf("Animation: static (no clip)\n");
+                }
+                printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
+                printf("X: search this Pokemon\n");
             }
-            printf("\nY: cycle verified forms\n");
-            if(preview_found){
-                printf("Source mesh: %d tris\n",previewStreamTriangleCount());
-                printf("Material refs: %s\n",material_references_ready?"verified":"unavailable");
-                printf("Texture data: %s\n",texture_payload_ready?"verified":"unavailable");
-                printf("Native textures: %u\n",preview_gl_textures.count);
-            }
-            else printf("Source mesh unavailable\n");
-            if(preview_found){
-                if(preview_animation.ready){
-                    printf("Animation: %u frames, %u ticks (%s)\n",preview_animation.count,preview_animation.total_ticks,preview_animation.version==2?"smooth":"held");
-                    printf("Verified clip: %u / %u\n",preview_animation_library.selected+1,preview_animation_library.count);
-                    if(preview_animation_library.count>1)
-                        printf("UP/DOWN: select animation\n");
-                }else printf("Animation: static (no clip)\n");
-            }
-            printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
-            printf("X: search this Pokemon\n");
         } else if(state.page==P3D_PAGE_SEARCH){
             P3DDexText entry;
             printf("L+R: switch number/name search\n");
@@ -319,8 +346,19 @@ static void render(void) {
                 printf("Y: Type Matchups\n");
             }else{
                 printf("Question %d / %d\n",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
-                printf("Choose Pokemon number:\n");
-                for(int i=0;i<4;i++)printf("%c %d: #%03d\n",quiz.selected==i?'>':' ',i+1,quiz.choices[i]+1);
+                if(quiz.mode==P3D_CHALLENGE_TEXT_MODE){
+                    if(challenge_text.ready){
+                        char first[29],second[29];
+                        p3dDexInfoLines(&challenge_text.clue,first,second);
+                        printf("Clue %d / %d\n%s\n%s\n",challenge_text.clue.page+1,challenge_text.clue.pages,first,second);
+                        printf("L/R: clue pages\n");
+                    }else printf("Original clue/names unavailable.\nAnswers disabled; B: menu.\n");
+                }else printf("Choose Pokemon number:\n");
+                for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++){
+                    if(quiz.mode==P3D_CHALLENGE_TEXT_MODE && challenge_text.ready)
+                        printf("%c %d: %.24s\n",quiz.selected==i?'>':' ',i+1,challenge_text.names[i]);
+                    else printf("%c %d: #%03d\n",quiz.selected==i?'>':' ',i+1,quiz.choices[i]+1);
+                }
                 printf("UP/DOWN + A: Answer\n");
             }
         } else {
@@ -368,6 +406,8 @@ static void render(void) {
             }
             else printf("\x1b[17;1HBase form");
             printf("\x1b[19;1HY: next verified form");
+            printf("\x1b[21;9H[%s]",show_dex_info?"Model view":"Entry details");
+            printf("\x1b[23;1HL+R: entry/model view");
         }else if(state.page==P3D_PAGE_SEARCH){
             printf("\x1b[11;1H[%s] L+R / tap: switch",search_name_mode?"Name":"Number");
             if(search_name_mode){
@@ -444,15 +484,18 @@ static void render(void) {
                 printf("\x1b[15;1HA: replay challenge");
             }else{
                 printf("\x1b[8;1HQuestion %d / %d",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
-                for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++)
-                    printf("\x1b[%d;2H%c Pokemon #%03d",11+i*3,
-                           quiz.selected==i?'>':' ',quiz.choices[i]+1);
+                for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++){
+                    if(quiz.mode==P3D_CHALLENGE_TEXT_MODE && challenge_text.ready)
+                        printf("\x1b[%d;2H%c %.28s",11+i*3,quiz.selected==i?'>':' ',challenge_text.names[i]);
+                    else printf("\x1b[%d;2H%c Pokemon #%03d",11+i*3,
+                                quiz.selected==i?'>':' ',quiz.choices[i]+1);
+                }
                 printf("\x1b[23;1HTap answer or press A");
             }
         }else{
             printf("\x1b[13;1HFeature implementation pending");
         }
-        if(state.page==P3D_PAGE_SEARCH ||
+        if(state.page==P3D_PAGE_SEARCH || state.page==P3D_PAGE_DEX ||
            (state.page==P3D_PAGE_CHALLENGE && quiz.stage==P3D_CHALLENGE_QUESTION))
             printf("\x1b[24;1HB: Return to menu");
         else printf("\x1b[17;1HPress B to go back");
@@ -542,6 +585,7 @@ int main(void) {
         unsigned held=keysHeld();
         int redraw=0;
         int search_navigation=0;
+        int challenge_started=0;
         /* SELECT makes the text navigation available even with a full-screen
          * recovered UI image. Press SELECT again to restore original art. */
         if(down&KEY_SELECT){
@@ -607,14 +651,25 @@ int main(void) {
                     if(down&KEY_A){
                         /* Preserve the selected region when retrying. */
                         int mode=quiz.mode_cursor;
-                        if(p3dChallengeBegin(&quiz,mode,challenge_seed,challenge_answer_total))
+                        if(p3dChallengeBegin(&quiz,mode,challenge_seed,challenge_answer_total)){
+                            p3dChallengeTextLoad(&challenge_text,&quiz);
+                            challenge_started=1;
                             redraw=1;
+                        }
                     }
                 }else{
+                    if(quiz.mode==P3D_CHALLENGE_TEXT_MODE && challenge_text.ready){
+                        int direction=((down&KEY_R)!=0)-((down&KEY_L)!=0);
+                        if(p3dDexInfoStep(&challenge_text.clue,direction))redraw=1;
+                    }
                     if((down&KEY_UP)&&quiz.selected>0){quiz.selected--;redraw=1;}
                     if((down&KEY_DOWN)&&quiz.selected<3){quiz.selected++;redraw=1;}
-                    if((down&KEY_A)&&!(down&KEY_TOUCH)){
-                        int result=p3dChallengeAnswer(&quiz,quiz.selected);
+                    if((down&KEY_A)&&!(down&KEY_TOUCH) &&
+                       (quiz.mode!=P3D_CHALLENGE_TEXT_MODE || challenge_text.ready)){
+                        int result=quiz.mode==P3D_CHALLENGE_TEXT_MODE?
+                            p3dChallengeTextAnswer(&challenge_text,&quiz,quiz.selected):
+                            p3dChallengeAnswer(&quiz,quiz.selected);
+                        if(result>=0)p3dChallengeTextLoad(&challenge_text,&quiz);
                         if(result>=0 && challenge_answer_total<100000000){
                             challenge_answer_total++;
                             if(result)challenge_correct_total++;
@@ -629,7 +684,8 @@ int main(void) {
              * Keep the original-art layout untouched until its coordinates
              * have been recovered from the source game. */
             if(state.page==P3D_PAGE_CHALLENGE &&
-               quiz.stage==P3D_CHALLENGE_QUESTION &&
+               quiz.stage==P3D_CHALLENGE_QUESTION && !challenge_started &&
+               (quiz.mode!=P3D_CHALLENGE_TEXT_MODE || challenge_text.ready) &&
                !showing_original_art && (down&KEY_TOUCH)){
                 touchPosition point;
                 touchRead(&point);
@@ -641,7 +697,10 @@ int main(void) {
                     int selected=(point.py-88)/24;
                     if(selected>=0 && selected<P3D_CHALLENGE_OPTIONS){
                         quiz.selected=selected;
-                        int result=p3dChallengeAnswer(&quiz,selected);
+                        int result=quiz.mode==P3D_CHALLENGE_TEXT_MODE?
+                            p3dChallengeTextAnswer(&challenge_text,&quiz,selected):
+                            p3dChallengeAnswer(&quiz,selected);
+                        if(result>=0)p3dChallengeTextLoad(&challenge_text,&quiz);
                         if(result>=0 && challenge_answer_total<100000000){
                             challenge_answer_total++;
                             if(result)challenge_correct_total++;
@@ -852,9 +911,19 @@ int main(void) {
                 redraw=1;
             }
             if(state.page==P3D_PAGE_DEX && !(down&KEY_X) && !search_navigation){
+                int toggle_info=((down&(KEY_L|KEY_R)) && (held&KEY_L) && (held&KEY_R));
+                if(!showing_original_art && (down&KEY_TOUCH)){
+                    touchPosition point;touchRead(&point);
+                    if(p3dDexInfoTouchToggle(point.px,point.py))toggle_info=1;
+                }
+                if(toggle_info){show_dex_info=!show_dex_info;redraw=1;}
+                if(show_dex_info && !toggle_info &&
+                   ((down&KEY_UP)!=0)!=((down&KEY_DOWN)!=0)){
+                    if(p3dDexInfoStep(&dex_info,(down&KEY_DOWN)?1:-1))redraw=1;
+                }
                 /* Cycle only existing verified optional animation files;
                  * reset playback at the new keyframe sequence. */
-                if(preview_found && preview_animation_library.ready &&
+                if(!show_dex_info && !toggle_info && preview_found && preview_animation_library.ready &&
                    ((down&KEY_UP)!=0)!=((down&KEY_DOWN)!=0)){
                     int direction=(down&KEY_DOWN)?1:-1;
                     if(p3dAnimationLibraryStep(&preview_animation_library,
@@ -867,7 +936,7 @@ int main(void) {
                 /* Held shoulder buttons rotate continuously rather than taking
                  * only one step per press.  The model is drawn each frame, so
                  * rotation needs no expensive full-console redraw. */
-                if(preview_found){
+                if(!show_dex_info && !toggle_info && preview_found){
                     if((held&KEY_L) && !(held&KEY_R))
                         model_yaw=(model_yaw-256)&32767;
                     else if((held&KEY_R) && !(held&KEY_L))
