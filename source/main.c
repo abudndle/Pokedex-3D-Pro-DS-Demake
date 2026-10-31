@@ -205,6 +205,7 @@ static void render(void) {
             printf("UP/DOWN: +/- 10\n");
             printf("A: open this Pokemon\n");
             printf("Y: toggle favorite (%s)\n",p3dFavoriteContains(&state,state.selected_dex)?"saved":"not saved");
+            printf("X: open Favorites\n");
         } else if(state.page==P3D_PAGE_MOVES){
             printf("Move entry: %03d / 559\n",move_index+1);
             printf("LEFT/RIGHT: +/- 1 move\n");
@@ -321,6 +322,7 @@ static void render(void) {
             printf("\x1b[13;1HSearch #%03d",state.selected_dex+1);
             printf("\x1b[15;1HA: open Pokemon");
             printf("\x1b[17;1HY: toggle favorite");
+            printf("\x1b[19;1HX: open Favorites");
         }else if(state.page==P3D_PAGE_MOVES){
             printf("\x1b[11;1HMove %03d of 559",move_index+1);
             if(move_catalog_ready){
@@ -576,6 +578,11 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_SEARCH){
+                if((down&KEY_X) && !(down&(KEY_A|KEY_Y))){
+                    state.page=P3D_PAGE_FAVORITES;
+                    favorite_index=0;
+                    redraw=1;
+                }
                 int next=state.selected_dex;
                 if(down&KEY_LEFT)next--;
                 if(down&KEY_RIGHT)next++;
