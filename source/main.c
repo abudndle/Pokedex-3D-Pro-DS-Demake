@@ -337,9 +337,20 @@ int main(void) {
                 if((down&KEY_LEFT)&&favorite_index>0){favorite_index--;redraw=1;}
                 if((down&KEY_RIGHT)&&favorite_index<state.favorites_count-1){favorite_index++;redraw=1;}
                 if((down&KEY_A)&&state.favorites_count>0){
-                    p3dFavoriteToggle(&state,state.favorites[favorite_index]);
+                    int removed=p3dFavoriteToggle(&state,state.favorites[favorite_index]);
+                    if(removed){
+                        progress_dirty=1;
+                        if(favorite_index>=state.favorites_count)
+                            favorite_index=state.favorites_count?state.favorites_count-1:0;
+                        redraw=1;
+                    }
+                }
+                /* X opens a saved Pokémon without deleting it. */
+                if((down&KEY_X)&&state.favorites_count>0){
+                    dex_index=state.favorites[favorite_index];
+                    state.page=P3D_PAGE_DEX;
+                    reload_preview();
                     progress_dirty=1;
-                    if(favorite_index>=state.favorites_count)favorite_index=state.favorites_count?state.favorites_count-1:0;
                     redraw=1;
                 }
             }
