@@ -241,8 +241,15 @@ static void render(void) {
             printf("\x1b[13;1HSearch #%03d",state.selected_dex+1);
             printf("\x1b[15;1HA: open Pokemon");
         }else if(state.page==P3D_PAGE_MOVES){
-            printf("\x1b[13;1HMove %03d of 559",move_index+1);
-            printf("\x1b[15;1HLEFT/RIGHT: browse");
+            printf("\x1b[11;1HMove %03d of 559",move_index+1);
+            if(move_catalog_ready){
+                P3DMove entry;
+                if(p3dMoveDexRead(move_index,&entry)){
+                    printf("\x1b[13;1H%.28s",entry.name);
+                    printf("\x1b[15;1H%.28s",entry.description);
+                }
+            }
+            printf("\x1b[19;1HL/R: +/-1  U/D: +/-10");
         }else if(state.page==P3D_PAGE_TYPES){
             int effect=defend_type2<0?p3dTypeEffect(attack_type,defend_type):
                        p3dTypeEffectDual(attack_type,defend_type,defend_type2);
