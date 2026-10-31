@@ -41,8 +41,14 @@ static void render(void) {
             printf("LEFT/RIGHT: browse moves\n");
             printf("Move data asset pending.\n");
         } else if(state.page==P3D_PAGE_TYPES){
-            printf("Type chart: FIRE -> GRASS\n");
-            printf("Effect: %dx\n",p3dTypeEffect(1,4)/10);
+            int effect=p3dTypeEffect(attack_type,defend_type);
+            printf("Attack: %s\n",p3dTypeName(attack_type));
+            printf("Defend: %s\n",p3dTypeName(defend_type));
+            if(effect==0)printf("Effect: immune (0x)\n");
+            else if(effect==5)printf("Effect: resisted (0.5x)\n");
+            else if(effect==20)printf("Effect: super effective (2x)\n");
+            else printf("Effect: normal (1x)\n");
+            printf("Arrows: change types\n");
         } else {
             printf("Native feature UI pending.\n");
         }
@@ -70,7 +76,18 @@ static void render(void) {
         printf("\x1b[24;1HUse A to open selected");
     } else {
         printf("\x1b[9;1H%s",p3dPageName(state.page));
-        printf("\x1b[13;1HFeature implementation pending");
+        if(state.page==P3D_PAGE_DEX){
+            printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
+            printf("\x1b[15;1HLEFT/RIGHT: browse");
+        }else if(state.page==P3D_PAGE_MOVES){
+            printf("\x1b[13;1HMove %03d of 559",move_index+1);
+            printf("\x1b[15;1HLEFT/RIGHT: browse");
+        }else if(state.page==P3D_PAGE_TYPES){
+            printf("\x1b[13;1H%s vs %s",p3dTypeName(attack_type),p3dTypeName(defend_type));
+            printf("\x1b[15;1HArrows: choose types");
+        }else{
+            printf("\x1b[13;1HFeature implementation pending");
+        }
         printf("\x1b[17;1HPress B to go back");
     }
 }
