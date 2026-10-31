@@ -22,3 +22,10 @@ clean:
 .PHONY: dev-rom
 dev-rom:
 	@$(MAKE) -f Makefile.native NITROFSDIR= rom
+
+# Run portable host-side regression tests without Docker, assets, or Actions.
+# DS-Homebrew builds similarly keep development tooling reproducible locally.
+.PHONY: check-host
+check-host:
+	@sh tests/run_source_smoke.sh
+	@python3 -m unittest discover -s tests -p 'test_asset_manifest*.py'
