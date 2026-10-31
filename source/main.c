@@ -395,6 +395,9 @@ int main(void) {
                 /* If A removed the last favorite, X must not act on the
                  * entry that has just shifted in the same input frame. */
                 if((down&KEY_X)&&!(down&KEY_A)&&state.favorites_count>0){
+                    /* Clamp the view cursor before indexing restored favorites. */
+                    if(favorite_index<0 || favorite_index>=state.favorites_count)
+                        favorite_index=0;
                     dex_index=state.favorites[favorite_index];
                     state.page=P3D_PAGE_DEX;
                     reload_preview();
