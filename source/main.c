@@ -233,6 +233,7 @@ static void render(void) {
             else if(effect==2)printf("Effect: double resist (0.25x)\n");
             else printf("Effect: normal (1x)\n");
             printf("Arrows: change types\n");
+            printf("Y: return to Search\n");
             printf("X: second type ON/OFF\n");
             printf("L/R: second type\n");
         } else if(state.page==P3D_PAGE_SETTINGS){
