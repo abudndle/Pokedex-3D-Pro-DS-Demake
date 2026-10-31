@@ -85,16 +85,16 @@ jobs:
           xdotool keydown Down
           sleep 1
           xdotool keyup Down
-          # Linux desmume-cli manual maps z=A, x=B. Test a clean
-          # open-and-return sequence without competing key presses.
-          xdotool keydown z
-          sleep 1
-          xdotool keyup z
-          sleep 2
-          xwd -id "$window_id" -silent -out emulator-after-down.xwd
+          # DeSmuME's current CLI source (src/frontend/posix/cli/main.cpp)
+          # maps x=A and z=B. The older Linux manpage is outdated.
           xdotool keydown x
           sleep 1
           xdotool keyup x
+          sleep 2
+          xwd -id "$window_id" -silent -out emulator-after-down.xwd
+          xdotool keydown z
+          sleep 1
+          xdotool keyup z
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
           sleep 4
