@@ -95,8 +95,8 @@
       "id": "original_texture_materials",
       "required_for_release": true,
       "status": "partial",
-      "source": "tools/c90_original_draw_material_audit.py",
-      "gap": "C90 validated 7,116 original C5 draw-to-mesh/material index links for all 730 models and privately staged 538 P3MR material-index sidecars covering 322,784 source-sampled triangles. Diffuse/normal sampler roles and textured P3MT bindings remain unverified; original full-resolution visuals are not complete.",
+      "source": "tools/c91_color_name_vram_audit.py",
+      "gap": "C91 matched original color-name/shader candidates on all sampled material ranges in 500 of 538 UV-equipped models and privately generated 1,152 budget-safe diagnostic color textures (464 model sets downscaled). Original sampler-channel routing is still unverified, 38 models have ambiguous ranges, and no P3MT or visually verified complete textured models exist.",
       "verified_end_to_end": false
     },
     {
