@@ -105,6 +105,10 @@ static int save_progress(void){
 
 static void render(void) {
     update_preview_mode();
+    /* The upper BG3 text console is in front of the 3D layer. Hide it for
+     * model previews, restoring it for menu pages or missing meshes. */
+    if(display_preview)bgHide(3);
+    else bgShow(3);
     if(!display_preview){
     consoleSelect(&top_console);
     consoleClear();
