@@ -492,6 +492,16 @@ int main(void) {
                         touchRead(&point);
                         if(point.py>=150 && point.py<192)
                             direction=point.px<64?-1:(point.px>=192?1:direction);
+                        /* The five visible filename rows start at console row
+                         * 13, then advance two 8-pixel rows per filename. */
+                        if(point.px>=8 && point.px<248 &&
+                           point.py>=104 && point.py<184){
+                            int hit=((int)point.py-104)/16;
+                            if(hit>=0 && hit<5 && (size_t)hit<shown){
+                                album_selected=(size_t)hit;redraw=1;
+                                direction=0;
+                            }
+                        }
                     }
                     if(direction<0 && album_offset>=P3D_ALBUM_PAGE_MAX){
                         album_offset-=P3D_ALBUM_PAGE_MAX;album_selected=0;redraw=1;
