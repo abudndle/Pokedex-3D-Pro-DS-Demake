@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "feature_menu.h"
 #include "menu_layout.h"
+#include "menu_navigation.h"
 #include "dsi_features.h"
 
 #define MENU_TOUCH_Y 88
@@ -58,13 +59,6 @@ static void render(void) {
         printf("\x1b[17;1HPress B to go back");
     }
 }
-static int touch_menu_index(int x,int y) {
-    if(x<0||x>=256||y<MENU_TOUCH_Y||
-       y>=MENU_TOUCH_Y+MENU_TOUCH_ROWS*MENU_TOUCH_STEP)return -1;
-    size_t first=p3dMenuVisibleStart((size_t)count,highlighted);
-    size_t index=first+(size_t)((y-MENU_TOUCH_Y)/MENU_TOUCH_STEP);
-    return index<(size_t)count?(int)index:-1;
-}
 int main(void) {
     P3DCapabilities caps=p3dCapabilities(0,0,0);
     videoSetMode(MODE_0_2D);
@@ -89,7 +83,7 @@ int main(void) {
             if(down&KEY_TOUCH) {
                 touchPosition point;
                 touchRead(&point);
-                int hit=touch_menu_index(point.px,point.py);
+                int hit=p3dMenuTouchIndex(point.px,point.py,count,highlighted);
                 if(hit>=0) {
                     highlighted=hit;
                     if(p3dMenuEnter(&state,caps,pages[highlighted]))home=0;
