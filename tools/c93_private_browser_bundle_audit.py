@@ -9,7 +9,7 @@ import struct
 import zlib
 from pathlib import Path
 
-PATTERN=re.compile(r"const MODEL_PAYLOADS=(\\{.*?\\});\\nconst ids=",re.S)
+PATTERN=re.compile(r"const MODEL_PAYLOADS=(\{.*?\});\nconst ids=",re.S)
 
 def audit(html,provenance):
     raw=html.read_text(encoding="utf-8")
