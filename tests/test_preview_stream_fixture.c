@@ -3,7 +3,9 @@
 #include "preview_stream.h"
 static int emitted;
 static int red_seen,green_seen;
+static int uv_seen;
 
+void glTexCoord2t16(short u,short v){(void)u;(void)v;uv_seen++;}
 void glColor3b(unsigned char r,unsigned char g,unsigned char b){if(r==255&&g==0&&b==0)red_seen++;if(r==0&&g==255&&b==0)green_seen++;}
 void glBegin(int m){assert(m==1);}
 void glVertex3v16(short x,short y,short z){(void)x;(void)y;(void)z;emitted++;}
@@ -14,9 +16,11 @@ int main(void){
  assert(previewStreamHasModel());
  assert(previewStreamTriangleCount()==1);
  assert(previewStreamOriginalTriangleCount()==42);
- previewStreamDraw();assert(emitted==3);
+ assert(previewStreamHasUv());
+ previewStreamDraw();assert(emitted==3 && uv_seen==3);
  assert(previewStreamLoad(1));
  assert(previewStreamTriangleCount()==600);
+ assert(!previewStreamHasUv());
  emitted=0; previewStreamDraw(); assert(emitted==1800);
  assert(previewStreamLoad(3));
  emitted=0;red_seen=green_seen=0; previewStreamDraw();

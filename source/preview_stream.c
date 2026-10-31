@@ -8,11 +8,13 @@
 #include <stdint.h>
 #include <string.h>
 #include "preview_stream.h"
+#include "model_uv.h"
 
 #define C7_MAX_PREVIEW_TRIANGLES 600
 static int16_t s_xyz[C7_MAX_PREVIEW_TRIANGLES * 9];
 static unsigned char s_face_rgb[C7_MAX_PREVIEW_TRIANGLES * 3];
 static int s_has_face_colors;
+static P3DUvMap s_uv;
 static int s_loaded = 0;
 static int s_triangle_count = 0;
 static int s_original_triangle_count = 0;
@@ -43,6 +45,7 @@ int previewStreamLoad(int resource_index) {
     s_triangle_count=0;
     s_original_triangle_count=0;
     s_has_face_colors=0;
+    s_uv.ready=0;
     if (!s_fs_available || resource_index < 0 || resource_index >= 738) return 0;
 #ifdef C7_TEST_HOST
     snprintf(path,sizeof(path),"nitrofs/preview/p%03d.ds3m",resource_index);
@@ -65,6 +68,13 @@ int previewStreamLoad(int resource_index) {
     s_original_triangle_count=(int)get32(head+12);
     s_has_face_colors=(version==2);
     s_loaded=1;
+    /* Optional private UV companion: never invent texture coordinates. */
+#ifdef C7_TEST_HOST
+    snprintf(path,sizeof(path),"nitrofs/preview/p%03d.p3uv",resource_index);
+#else
+    snprintf(path,sizeof(path),"nitro:/preview/p%03d.p3uv",resource_index);
+#endif
+    p3dUvLoad(&s_uv,path,tri_count);
     /* Native Nintendo DS ARM9 runs little-endian, matching DS3M data. */
     for (j=0;j<(unsigned int)(s_triangle_count*9);j++) {
         /* Values are signed v16 4.12; no extra conversion is necessary. */
@@ -73,6 +83,7 @@ int previewStreamLoad(int resource_index) {
     return 1;
 }
 int previewStreamHasModel(void) { return s_loaded; }
+int previewStreamHasUv(void) { return s_loaded && s_uv.ready; }
 int previewStreamTriangleCount(void) { return s_triangle_count; }
 int previewStreamOriginalTriangleCount(void) { return s_original_triangle_count; }
 void previewStreamDraw(void) {
@@ -85,8 +96,11 @@ void previewStreamDraw(void) {
             int c=(i/9)*3;
             glColor3b(s_face_rgb[c],s_face_rgb[c+1],s_face_rgb[c+2]);
         }
+        if(s_uv.ready)glTexCoord2t16((t16)s_uv.uv[(i/9)*6],(t16)s_uv.uv[(i/9)*6+1]);
         glVertex3v16((v16)s_xyz[i],(v16)s_xyz[i+1],(v16)s_xyz[i+2]);
+        if(s_uv.ready)glTexCoord2t16((t16)s_uv.uv[(i/9)*6+2],(t16)s_uv.uv[(i/9)*6+3]);
         glVertex3v16((v16)s_xyz[i+3],(v16)s_xyz[i+4],(v16)s_xyz[i+5]);
+        if(s_uv.ready)glTexCoord2t16((t16)s_uv.uv[(i/9)*6+4],(t16)s_uv.uv[(i/9)*6+5]);
         glVertex3v16((v16)s_xyz[i+6],(v16)s_xyz[i+7],(v16)s_xyz[i+8]);
     }
     glEnd();

@@ -6,6 +6,7 @@ extern "C" {
 int previewStreamInit(void);
 int previewStreamLoad(int resource_index);
 int previewStreamHasModel(void);
+int previewStreamHasUv(void);
 int previewStreamTriangleCount(void);
 int previewStreamOriginalTriangleCount(void);
 void previewStreamDraw(void);
