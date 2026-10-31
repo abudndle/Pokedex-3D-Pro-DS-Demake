@@ -5,6 +5,7 @@ import json
 import pathlib
 import sys
 VALID={"missing","partial","implemented_baseline","verified_complete"}
+REQUIRED_FEATURE_IDS=['animations','challenges','cries_music_speech','dsi_camera_ar','dual_screen_menus','favorites','move_dex','nds_melonds_hardware_validation','original_localizations','original_pokemon_models','original_text_search_filters','original_texture_materials','photo_album','pokedex_entries_forms','pokemon_stats_evolutions_learnsets','progress_saves','records','settings_custom_art','touch_and_buttons','type_chart']
 def check(path, root):
     data=json.loads(path.read_text(encoding="utf-8"))
     if data.get("schema_version")!=1 or not isinstance(data.get("features"),list):
@@ -27,8 +28,8 @@ def check(path, root):
             row.get("verified_end_to_end") is not True or
             not row.get("emulator_test") or not row.get("hardware_or_documented_exception")):
             raise ValueError("unsubstantiated completion claim for "+identifier)
-    if not ids:
-        raise ValueError("empty feature inventory")
+    if ids != set(REQUIRED_FEATURE_IDS):
+        raise ValueError("mandatory features missing or unexpected: %s"%sorted(ids.symmetric_difference(REQUIRED_FEATURE_IDS)))
     return data
 def main():
     parser=argparse.ArgumentParser()
