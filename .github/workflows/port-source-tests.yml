@@ -30,3 +30,6 @@ jobs:
 
       - name: Verify regional challenge quiz rules
         run: sh tests/run_challenge_smoke.sh
+
+      - name: Verify original Move Dex catalog reader
+        run: sh tests/run_move_dex_smoke.sh
