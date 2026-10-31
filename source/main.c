@@ -261,6 +261,12 @@ int main(void) {
             art_page=-1; /* force re-evaluation of the same page */
             redraw=1;
         }
+        /* START explicitly retries a previously failed save, including from
+         * the home menu, without discarding unsaved changes on failure. */
+        if((down&KEY_START)&&progress_dirty){
+            if(save_progress())progress_dirty=0;
+            redraw=1;
+        }
         if(home) {
             if((down&KEY_UP)&&highlighted>0){highlighted--;redraw=1;}
             if((down&KEY_DOWN)&&highlighted<count-1){highlighted++;redraw=1;}
