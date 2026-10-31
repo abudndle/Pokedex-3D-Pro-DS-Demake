@@ -310,33 +310,33 @@ static void render(void) {
             static const int first[]={0,151,251,386,493};
             static const int last[]={150,250,385,492,648};
             if(records_tab==0){
-                printf("VIEWED: %d / 649\\n",p3dRecordsTotal(&records));
+                printf("VIEWED: %d / 649\n",p3dRecordsTotal(&records));
                 for(int i=0;i<5;i++)
-                    printf("%-8s %3d / %3d\\n",regions[i],
+                    printf("%-8s %3d / %3d\n",regions[i],
                            p3dRecordsCount(&records,first[i],last[i]),last[i]-first[i]+1);
-                printf("Saved favorites: %d\\n",state.favorites_count);
+                printf("Saved favorites: %d\n",state.favorites_count);
             }else if(records_tab==1){
-                printf("RECENT VIEWED POKEMON\\n");
+                printf("RECENT VIEWED POKEMON\n");
                 for(int i=0;i<P3D_RECORD_RECENT;i++){
                     int id=records.recent[i];
                     if(id==P3D_RECORD_NO_SPECIES)break;
-                    printf("%c %d: Pokemon #%03d\\n",
+                    printf("%c %d: Pokemon #%03d\n",
                            i==records_recent_cursor?'>':' ',i+1,id+1);
                 }
-                printf("UP/DOWN: select, A: open\\n");
+                printf("UP/DOWN: select, A: open\n");
             }else{
-                printf("CHALLENGE HIGHSCORES\\n");
-                printf("Completed rounds: %u\\n",(unsigned)records.rounds);
+                printf("CHALLENGE HIGHSCORES\n");
+                printf("Completed rounds: %u\n",(unsigned)records.rounds);
                 for(int i=0;i<P3D_RECORD_CHALLENGES;i++){
-                    printf("%d: %2d best, %u runs\\n",i+1,
+                    printf("%d: %2d best, %u runs\n",i+1,
                            records.best[i]==0xffu?-1:(int)records.best[i],
                            (unsigned)records.runs[i]);
                 }
-                printf("Overall correct: %d/%d\\n",
+                printf("Overall correct: %d/%d\n",
                        challenge_correct_total,challenge_answer_total);
             }
-            printf("L/R: record tabs (%d/3)\\n",records_tab+1);
-            printf("X: Favorites  Y: Challenge\\n");
+            printf("L/R: record tabs (%d/3)\n",records_tab+1);
+            printf("X: Favorites  Y: Challenge\n");
         } else if(state.page==P3D_PAGE_ALBUM){
             if(!storage_ready)printf("Photo Album needs FAT storage.\n");
             else if(!album_ready)printf("Photo folder unavailable.\n");
@@ -450,33 +450,33 @@ static void render(void) {
             else printf("\x1b[17;1HEffect: 1x");
             printf("\x1b[20;1HX: 2nd type  L/R: change");
         }else if(state.page==P3D_PAGE_RECORDS){
-            printf("\\x1b[9;1HRecords: %s",records_tab==0?"REGIONS":records_tab==1?"RECENT":"QUIZZES");
+            printf("\x1b[9;1HRecords: %s",records_tab==0?"REGIONS":records_tab==1?"RECENT":"QUIZZES");
             if(records_tab==0){
-                printf("\\x1b[11;1HViewed: %d / 649",p3dRecordsTotal(&records));
-                printf("\\x1b[13;1HKanto %d/151 Johto %d/100",
+                printf("\x1b[11;1HViewed: %d / 649",p3dRecordsTotal(&records));
+                printf("\x1b[13;1HKanto %d/151 Johto %d/100",
                        p3dRecordsCount(&records,0,150),p3dRecordsCount(&records,151,250));
-                printf("\\x1b[15;1HHoenn %d/135 Sinnoh %d/107",
+                printf("\x1b[15;1HHoenn %d/135 Sinnoh %d/107",
                        p3dRecordsCount(&records,251,385),p3dRecordsCount(&records,386,492));
-                printf("\\x1b[17;1HUnova: %d / 156",p3dRecordsCount(&records,493,648));
-                printf("\\x1b[19;1HFavorites: %d  Photos: %u",
+                printf("\x1b[17;1HUnova: %d / 156",p3dRecordsCount(&records,493,648));
+                printf("\x1b[19;1HFavorites: %d  Photos: %u",
                        state.favorites_count,(unsigned)records_photo_total());
             }else if(records_tab==1){
                 for(int i=0;i<5;i++){
                     int row=(records_recent_cursor/5)*5+i;
                     if(row>=P3D_RECORD_RECENT ||
                        records.recent[row]==P3D_RECORD_NO_SPECIES)break;
-                    printf("\\x1b[%d;1H%c Pokemon #%03d",11+i*2,
+                    printf("\x1b[%d;1H%c Pokemon #%03d",11+i*2,
                            row==records_recent_cursor?'>':' ',
                            records.recent[row]+1);
                 }
             }else{
-                printf("\\x1b[11;1HCompleted: %u",(unsigned)records.rounds);
+                printf("\x1b[11;1HCompleted: %u",(unsigned)records.rounds);
                 for(int i=0;i<7;i++)
-                    printf("\\x1b[%d;1H%d: %u runs  best %d",
+                    printf("\x1b[%d;1H%d: %u runs  best %d",
                            13+i*2,i+1,(unsigned)records.runs[i],
                            records.best[i]==0xffu?-1:(int)records.best[i]);
             }
-            printf("\\x1b[23;1HL/R: tabs  X/Fav Y/Quiz");
+            printf("\x1b[23;1HL/R: tabs  X/Fav Y/Quiz");
         }else if(state.page==P3D_PAGE_SETTINGS){
             printf("\x1b[13;1HAuto rotate: %s",state.rotate?"ON":"OFF");
             printf("\x1b[15;1HA: toggle setting");
