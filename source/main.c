@@ -1,7 +1,6 @@
-/* Asset-free native build smoke entry point.
- * This DEVELOPMENT SHELL is intentionally not the original Pokédex 3D Pro UI.
- * It will be replaced by the recovered C14 main.c when migration is complete.
- * Do not distribute this as a finished port or substitute original assets.
+/* Native DS dual-screen development menu.
+ * This is an interactive development shell, NOT the original game's graphics.
+ * Replace with verified recovered Pokédex 3D Pro UI and game features.
  */
 #include <nds.h>
 #include <stdio.h>
@@ -9,65 +8,101 @@
 #include "menu_layout.h"
 #include "dsi_features.h"
 
-static P3DMenu menu_state;
-static P3DPage pages[P3D_MENU_MAX];
-static int selected=0;
-static int page_count=0;
-static int on_home=1;
+#define MENU_TOUCH_Y 88
+#define MENU_TOUCH_STEP 16
+#define MENU_TOUCH_ROWS 6
 
-static void draw_shell(void) {
+static PrintConsole top_console, bottom_console;
+static P3DMenu state;
+static P3DPage pages[P3D_MENU_MAX];
+static int highlighted=0, count=0, home=1;
+
+static void render(void) {
+    consoleSelect(&top_console);
     consoleClear();
-    printf("POKEDEX 3D PRO - DS\n");
-    printf("PORT DEVELOPMENT BUILD\n");
-    printf("-----------------------\n");
-    if (on_home) {
-        size_t start=p3dMenuVisibleStart((size_t)page_count,selected);
-        printf("A: Open  B: Back\n");
-        printf("Up/Down: Navigate\n\n");
-        for (int row=0;row<P3D_MENU_VISIBLE_ROWS;row++) {
-            size_t i=start+(size_t)row;
-            if (i>=(size_t)page_count) break;
-            printf("%c %s\n",selected==(int)i?'>':' ',p3dPageName(pages[i]));
-        }
+    printf("POKEDEX 3D PRO DS\n");
+    printf("========================\n\n");
+    if (home) {
+        printf("Choose a feature on the\n");
+        printf("touchscreen.\n\n");
+        printf("UP / DOWN: SELECT\n");
+        printf("A: OPEN\n");
     } else {
-        printf("%s\n\n",p3dPageName(menu_state.page));
-        printf("Gameplay screen migration\n");
-        printf("still in progress.\n");
-        printf("Original asset renderer\n");
-        printf("not yet connected.\n");
-        printf("\nB: Return to main menu\n");
+        printf("%s\n\n", p3dPageName(state.page));
+        printf("Native gameplay screen is\n");
+        printf("not integrated yet.\n\n");
+        printf("B: RETURN TO MENU\n");
     }
-    printf("\nNOT THE FINAL GAME\n");
+    printf("\nDEVELOPMENT BUILD\n");
+
+    consoleSelect(&bottom_console);
+    consoleClear();
+    printf("POKEDEX 3D PRO\n");
+    printf("------------------------\n");
+    if (home) {
+        size_t first=p3dMenuVisibleStart((size_t)count,highlighted);
+        printf("Tap a menu entry:\n");
+        for (int row=0;row<MENU_TOUCH_ROWS;row++) {
+            size_t index=first+(size_t)row;
+            if(index>=(size_t)count) break;
+            /* Text console is 8 pixels per row, zero-based.
+               Two console rows per menu entry => 16-pixel touch target. */
+            printf("\x1b[%d;1H%c %-25s",11+row*2,
+                   (int)index==highlighted?'>':' ',
+                   p3dPageName(pages[index]));
+        }
+        printf("\x1b[24;1HUse A to open selected");
+    } else {
+        printf("\x1b[9;1H%s",p3dPageName(state.page));
+        printf("\x1b[13;1HFeature implementation pending");
+        printf("\x1b[17;1HPress B to go back");
+    }
 }
-int main(void){
-    /* No DSi camera UI until camera capability and feature are implemented. */
-    P3DCapabilities capabilities=p3dCapabilities(0,0,0);
-    consoleDemoInit();
-    p3dMenuReset(&menu_state);
-    page_count=(int)p3dMenuEntries(capabilities,pages);
-    draw_shell();
-    while (1) {
+static int touch_menu_index(int x,int y) {
+    if(x<0||x>=256||y<MENU_TOUCH_Y||
+       y>=MENU_TOUCH_Y+MENU_TOUCH_ROWS*MENU_TOUCH_STEP)return -1;
+    size_t first=p3dMenuVisibleStart((size_t)count,highlighted);
+    size_t index=first+(size_t)((y-MENU_TOUCH_Y)/MENU_TOUCH_STEP);
+    return index<(size_t)count?(int)index:-1;
+}
+int main(void) {
+    P3DCapabilities caps=p3dCapabilities(0,0,0);
+    videoSetMode(MODE_0_2D);
+    videoSetModeSub(MODE_0_2D);
+    vramSetBankA(VRAM_A_MAIN_BG);
+    vramSetBankC(VRAM_C_SUB_BG);
+    consoleInit(&top_console,3,BgType_Text4bpp,BgSize_T_256x256,
+                31,0,true,true);
+    consoleInit(&bottom_console,3,BgType_Text4bpp,BgSize_T_256x256,
+                31,0,false,true);
+    p3dMenuReset(&state);
+    count=(int)p3dMenuEntries(caps,pages);
+    render();
+    while(1) {
         swiWaitForVBlank();
         scanKeys();
-        unsigned pressed=keysDown();
-        int changed=0;
-        if (on_home) {
-            if ((pressed&KEY_UP)&&selected>0){selected--;changed=1;}
-            if ((pressed&KEY_DOWN)&&selected<page_count-1){selected++;changed=1;}
-            if (pressed&KEY_TOUCH) {
-                touchPosition touch;
-                touchRead(&touch);
-                int selected_from_touch=p3dMenuHitTest(touch.px,touch.py,(size_t)page_count,selected);
-                if(selected_from_touch>=0){selected=selected_from_touch;changed=1;}
-            }
-            if ((pressed&KEY_A)&&selected<page_count) {
-                if(p3dMenuEnter(&menu_state,capabilities,pages[selected])) {
-                    on_home=0;changed=1;
+        unsigned down=keysDown();
+        int redraw=0;
+        if(home) {
+            if((down&KEY_UP)&&highlighted>0){highlighted--;redraw=1;}
+            if((down&KEY_DOWN)&&highlighted<count-1){highlighted++;redraw=1;}
+            if(down&KEY_TOUCH) {
+                touchPosition point;
+                touchRead(&point);
+                int hit=touch_menu_index(point.px,point.py);
+                if(hit>=0) {
+                    highlighted=hit;
+                    if(p3dMenuEnter(&state,caps,pages[highlighted]))home=0;
+                    redraw=1;
                 }
             }
-        } else if (pressed&KEY_B) {
-            on_home=1;changed=1;
+            if((down&KEY_A)&&highlighted>=0&&highlighted<count) {
+                if(p3dMenuEnter(&state,caps,pages[highlighted]))home=0;
+                redraw=1;
+            }
+        } else if(down&KEY_B) {
+            home=1;redraw=1;
         }
-        if(changed)draw_shell();
+        if(redraw)render();
     }
 }
