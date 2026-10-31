@@ -68,8 +68,10 @@ jobs:
           # This is evidence, not an automated proof of correct rendering.
           xwininfo -root -tree > emulator-windows.txt
           cat emulator-windows.txt
-          xwd -root -silent -out emulator-desktop.xwd
-          test -s emulator-desktop.xwd
+          window_id="$(awk '/"Desmume/{print $1; exit}' emulator-windows.txt)"
+          test -n "$window_id" || { echo "No DeSmuME window detected"; exit 1; }
+          xwd -id "$window_id" -silent -out emulator-window.xwd
+          test -s emulator-window.xwd
           tail -30 /tmp/desmume.log || true
           SCRIPT
           chmod +x /tmp/check_emulator.sh
@@ -79,15 +81,14 @@ jobs:
           python3 - <<'PY'
           import struct
           from pathlib import Path
-          raw=Path('emulator-desktop.xwd').read_bytes()
+          raw=Path('emulator-window.xwd').read_bytes()
           h=struct.unpack_from('>25I',raw)
           header, width, height, bpl, colors=h[0],h[4],h[5],h[12],h[19]
           assert h[3]==24 and h[11]==24 and h[17]==8, 'Unsupported XWD format'
           offset=header+colors*12
           assert len(raw)>=offset+bpl*height, 'Truncated XWD capture'
           pixels=memoryview(raw)[offset:offset+bpl*height]
-          # Sample the entire 1024x768 virtual display. A healthy GUI
-          # should occupy substantially more than a thin colored stripe.
+          # Sample only the 256x384 emulator window, not the black desktop.
           colored=0
           total=0
           for y in range(0,height,4):
@@ -97,7 +98,7 @@ jobs:
                   total+=1
           ratio=colored/total
           print(f'Visible nonblack screen pixels: {ratio:.1%}')
-          assert ratio>=0.05, 'Emulator capture is mostly black; inspect startup screenshot'
+          assert ratio>=0.05, 'Emulator window itself is mostly black; inspect startup screenshot'
           PY
       - name: Upload emulator visual evidence
         if: always()
@@ -105,6 +106,6 @@ jobs:
         with:
           name: desmume-startup-evidence
           path: |
-            emulator-desktop.xwd
+            emulator-window.xwd
             emulator-windows.txt
           if-no-files-found: warn
