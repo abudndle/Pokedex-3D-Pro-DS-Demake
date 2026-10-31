@@ -45,3 +45,6 @@ jobs:
 
       - name: Verify custom background runtime loading
         run: sh tests/run_image_background.sh
+
+      - name: Verify DS Settings image touch selection
+        run: sh tests/run_settings_images.sh
