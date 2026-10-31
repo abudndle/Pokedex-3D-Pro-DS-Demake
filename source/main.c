@@ -17,6 +17,7 @@
 #include "form_model_map.h"
 #include "form_names.h"
 #include "model_animation.h"
+#include "model_animation_library.h"
 #include "model_material_texture.h"
 #include "texture_asset.h"
 #include "preview_texture_set.h"
@@ -48,6 +49,7 @@ static int progress_dirty=0;
 static int preview_ready=0;
 static int preview_found=0;
 static P3DAnimationClip preview_animation;
+static P3DAnimationLibrary preview_animation_library;
 static P3DMaterialMap preview_materials;
 static P3DTextureManifest preview_textures;
 static int material_references_ready=0;
@@ -103,6 +105,7 @@ static void reload_preview(void){
     char clip_path[80];
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
     preview_animation.ready=0;
+    preview_animation_library.ready=0;
     preview_materials.ready=0;
     preview_textures.ready=0;
     material_references_ready=0;
@@ -110,8 +113,10 @@ static void reload_preview(void){
     preview_pixels.ready=0;
     animation_tick=0;
     if(preview_found){
-        snprintf(clip_path,sizeof(clip_path),"nitro:/animations/p%03d.p3an",resource);
-        p3dAnimationLoad(&preview_animation,clip_path);
+        /* Load only existing and validated private clips. No invented motion
+         * or action labels are generated for missing original assets. */
+        p3dAnimationLibraryLoad(&preview_animation_library,
+                                &preview_animation,"nitro:/animations",resource);
         snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3mt",resource);
         if(p3dMaterialMapLoad(&preview_materials,clip_path,(unsigned)previewStreamTriangleCount())){
             snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3tx",resource);
@@ -212,9 +217,12 @@ static void render(void) {
             }
             else printf("Source mesh unavailable\n");
             if(preview_found){
-                if(preview_animation.ready)
+                if(preview_animation.ready){
                     printf("Animation: %u frames, %u ticks (%s)\n",preview_animation.count,preview_animation.total_ticks,preview_animation.version==2?"smooth":"held");
-                else printf("Animation: static (no clip)\n");
+                    printf("Verified clip: %u / %u\n",preview_animation_library.selected+1,preview_animation_library.count);
+                    if(preview_animation_library.count>1)
+                        printf("UP/DOWN: select animation\n");
+                }else printf("Animation: static (no clip)\n");
             }
             printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
             printf("X: search this Pokemon\n");
@@ -791,6 +799,18 @@ int main(void) {
                 redraw=1;
             }
             if(state.page==P3D_PAGE_DEX && !(down&KEY_X)){
+                /* Cycle only existing verified optional animation files;
+                 * reset playback at the new keyframe sequence. */
+                if(preview_found && preview_animation_library.ready &&
+                   ((down&KEY_UP)!=0)!=((down&KEY_DOWN)!=0)){
+                    int direction=(down&KEY_DOWN)?1:-1;
+                    if(p3dAnimationLibraryStep(&preview_animation_library,
+                                               &preview_animation,
+                                               "nitro:/animations",direction)){
+                        animation_tick=0;
+                        redraw=1;
+                    }
+                }
                 /* Held shoulder buttons rotate continuously rather than taking
                  * only one step per press.  The model is drawn each frame, so
                  * rotation needs no expensive full-console redraw. */
