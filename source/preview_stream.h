@@ -9,6 +9,8 @@ int previewStreamHasModel(void);
 int previewStreamHasUv(void);
 int previewStreamTriangleCount(void);
 int previewStreamOriginalTriangleCount(void);
+/* With verified texture+UV only, use white vertices to avoid tinting RGB555. */
+void previewStreamDrawMode(int textured);
 void previewStreamDraw(void);
 #ifdef __cplusplus
 }
