@@ -24,3 +24,6 @@ jobs:
 
       - name: Test recovered feature menu and type chart
         run: sh tests/run_feature_menu_smoke.sh
+
+      - name: Verify save persistence and backup slots
+        run: sh tests/run_save_store_smoke.sh
