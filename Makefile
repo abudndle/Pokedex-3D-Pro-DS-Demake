@@ -36,10 +36,10 @@ check-host:
 		run_bmp_loader.sh run_image_background.sh \
 		run_settings_images.sh run_menu_navigation.sh \
 		run_game_save_bridge.sh; do \
-		echo "Running $test"; sh "tests/$test"; \
+		echo "Running $$test"; sh "tests/$$test"; \
 	done
 	@python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 	@python3 tests/test_private_ui_packager.py
-	@tmp=$(mktemp); trap 'rm -f "$tmp"' EXIT; \
+	@tmp=$$(mktemp); trap 'rm -f "$$tmp"' EXIT; \
 		cc -std=c11 -Wall -Wextra -Werror -Isource \
-		tests/test_save_recovery.c source/save_store.c -o "$tmp"; "$tmp"
+		tests/test_save_recovery.c source/save_store.c -o "$$tmp"; "$$tmp"
