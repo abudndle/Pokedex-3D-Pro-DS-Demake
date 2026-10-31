@@ -43,6 +43,8 @@ static int move_catalog_ready=0;
 static P3DPhotoAlbum photo_album;
 static int album_ready=0;
 static size_t album_offset=0;
+static size_t album_selected=0;
+static int album_confirm_delete=0;
 static int art_page=-1;
 static int showing_original_art=0;
 static int original_art_available=0;
@@ -171,8 +173,9 @@ static void render(void) {
                 size_t shown=p3dPhotoAlbumPage(&photo_album,photos,P3D_ALBUM_PAGE_MAX,album_offset,&total);
                 printf("Photos: %u\n",(unsigned)total);
                 if(!shown)printf("No saved AR photos.\n");
-                for(size_t i=0;i<shown;i++)printf("%s\n",photos[i]);
-                printf("LEFT/RIGHT: browse page\n");
+                for(size_t i=0;i<shown;i++)printf("%c%s\n",i==album_selected?'>':' ',photos[i]);
+                printf("UP/DOWN: select  L/R: page\n");
+                printf("X: delete (confirm with A)\n");
             }
         } else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
@@ -261,8 +264,8 @@ static void render(void) {
                 size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
                 printf("\x1b[11;1HPhotos: %u",(unsigned)total);
                 for(size_t i=0;i<shown && i<5;i++)
-                    printf("\x1b[%d;1H%s",13+(int)i*2,names[i]);
-                printf("\x1b[24;1HLEFT/RIGHT: page");
+                    printf("\x1b[%d;1H%c%s",13+(int)i*2,i==album_selected?'>':' ',names[i]);
+                printf("\x1b[24;1H%s",album_confirm_delete?"A: delete  B: cancel":"X: delete  L/R: page");
             }
         }else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
@@ -450,20 +453,34 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_ALBUM && album_ready){
-                int direction=(down&KEY_LEFT)?-1:((down&KEY_RIGHT)?1:0);
-                if((down&KEY_TOUCH) && !showing_original_art){
-                    touchPosition point;
-                    touchRead(&point);
-                    if(point.py>=150 && point.py<192)
-                        direction=point.px<64?-1:(point.px>=192?1:direction);
-                }
-                if(direction<0 && album_offset>=P3D_ALBUM_PAGE_MAX){
-                    album_offset-=P3D_ALBUM_PAGE_MAX;redraw=1;
-                }else if(direction>0){
-                    size_t total=0;
-                    p3dPhotoAlbumPage(&photo_album,NULL,0,0,&total);
-                    if(album_offset+P3D_ALBUM_PAGE_MAX<total){
-                        album_offset+=P3D_ALBUM_PAGE_MAX;redraw=1;
+                char names[P3D_ALBUM_PAGE_MAX][32];
+                size_t total=0;
+                size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
+                if(!shown)album_selected=0;
+                else if(album_selected>=shown)album_selected=shown-1;
+                if(album_confirm_delete){
+                    if(down&KEY_A){
+                        if(shown && p3dPhotoAlbumDelete(&photo_album,names[album_selected]))
+                            redraw=1;
+                        album_confirm_delete=0;
+                        redraw=1;
+                    }
+                    if(down&KEY_X){album_confirm_delete=0;redraw=1;}
+                }else{
+                    if((down&KEY_UP) && album_selected>0){album_selected--;redraw=1;}
+                    if((down&KEY_DOWN) && album_selected+1<shown){album_selected++;redraw=1;}
+                    if((down&KEY_X) && shown){album_confirm_delete=1;redraw=1;}
+                    int direction=(down&KEY_LEFT)?-1:((down&KEY_RIGHT)?1:0);
+                    if((down&KEY_TOUCH) && !showing_original_art){
+                        touchPosition point;
+                        touchRead(&point);
+                        if(point.py>=150 && point.py<192)
+                            direction=point.px<64?-1:(point.px>=192?1:direction);
+                    }
+                    if(direction<0 && album_offset>=P3D_ALBUM_PAGE_MAX){
+                        album_offset-=P3D_ALBUM_PAGE_MAX;album_selected=0;redraw=1;
+                    }else if(direction>0 && album_offset+P3D_ALBUM_PAGE_MAX<total){
+                        album_offset+=P3D_ALBUM_PAGE_MAX;album_selected=0;redraw=1;
                     }
                 }
             }
