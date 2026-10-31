@@ -653,16 +653,29 @@ int main(void) {
             if(state.page==P3D_PAGE_MOVES){
                 /* L and R are dedicated to description scrolling, but a
                  * simultaneous shoulder press must not scroll twice. */
-                if(move_catalog_ready && ((down&KEY_L)!=0)!=((down&KEY_R)!=0)){
+                int scroll_dir=((down&KEY_R)!=0)-((down&KEY_L)!=0);
+                /* The lower-screen center scrolls descriptions without
+                 * conflicting with bottom-corner move navigation. */
+                if((down&KEY_TOUCH) && !showing_original_art){
+                    touchPosition point;
+                    touchRead(&point);
+                    if(point.px>=64 && point.px<192 &&
+                       point.py>=112 && point.py<152)
+                        scroll_dir=-1;
+                    else if(point.px>=64 && point.px<192 &&
+                            point.py>=152 && point.py<184)
+                        scroll_dir=1;
+                }
+                if(move_catalog_ready && scroll_dir){
                     P3DMove entry;
                     if(p3dMoveDexRead(move_index,&entry)){
                         int length=(int)strlen(entry.description);
                         int max_offset=length>84?length-84:0;
-                        if((down&KEY_L) && move_text_offset>0){
+                        if(scroll_dir<0 && move_text_offset>0){
                             move_text_offset=move_text_offset>=28?move_text_offset-28:0;
                             redraw=1;
                         }
-                        if((down&KEY_R) && move_text_offset<max_offset){
+                        if(scroll_dir>0 && move_text_offset<max_offset){
                             move_text_offset+=28;
                             if(move_text_offset>max_offset)move_text_offset=max_offset;
                             redraw=1;
