@@ -305,6 +305,14 @@ int main(void) {
                 home=1;
                 redraw=1;
             } else {
+            /* Challenge picker: process mode choice before A starts a quiz.
+             * This avoids silently ignoring same-frame direction + A. */
+            if(state.page==P3D_PAGE_CHALLENGE &&
+               quiz.stage==P3D_CHALLENGE_PICKER){
+                int available=p3dChallengeAvailableModes(challenge_answer_total);
+                if((down&KEY_LEFT)&&quiz.mode_cursor>0){quiz.mode_cursor--;redraw=1;}
+                if((down&KEY_RIGHT)&&quiz.mode_cursor<available-1){quiz.mode_cursor++;redraw=1;}
+            }
             if(state.page==P3D_PAGE_CHALLENGE){
                 if(quiz.stage==P3D_CHALLENGE_PICKER||quiz.stage==P3D_CHALLENGE_RESULTS){
                     if(down&KEY_A){p3dChallengeBegin(&quiz,quiz.mode_cursor,1,challenge_answer_total);redraw=1;}
@@ -322,14 +330,7 @@ int main(void) {
                     }
                 }
             }
-            /* Challenge picker: choose regional quiz rather than always
-             * restarting the same Unova mode. */
-            if(state.page==P3D_PAGE_CHALLENGE &&
-               quiz.stage==P3D_CHALLENGE_PICKER){
-                int available=p3dChallengeAvailableModes(challenge_answer_total);
-                if((down&KEY_LEFT)&&quiz.mode_cursor>0){quiz.mode_cursor--;redraw=1;}
-                if((down&KEY_RIGHT)&&quiz.mode_cursor<available-1){quiz.mode_cursor++;redraw=1;}
-            }
+
             if(state.page==P3D_PAGE_SEARCH){
                 int next=state.selected_dex;
                 if(down&KEY_LEFT)next--;
