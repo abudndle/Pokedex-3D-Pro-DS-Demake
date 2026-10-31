@@ -41,6 +41,7 @@ static int progress_dirty=0;
 static int preview_ready=0;
 static int preview_found=0;
 static int move_catalog_ready=0;
+static int move_text_offset=0;
 static P3DPhotoAlbum photo_album;
 static int album_ready=0;
 static size_t album_offset=0;
@@ -250,13 +251,14 @@ static void render(void) {
                     /* Clip each fragment to the console's 32-character
                      * width and display the available 84 characters. */
                     for(size_t part=0;part<3;part++){
-                        size_t offset=part*28;
+                        size_t offset=(size_t)move_text_offset+part*28;
                         if(strlen(entry.description)<=offset)break;
                         printf("\x1b[%d;1H%.28s",15+(int)part*2,entry.description+offset);
                     }
                 }
             }
-            printf("\x1b[19;1HL/R: +/-1  U/D: +/-10");
+            printf("\x1b[21;1HL/R: scroll text");
+            printf("\x1b[23;1HArrows: browse moves");
         }else if(state.page==P3D_PAGE_TYPES){
             int effect=defend_type2<0?p3dTypeEffect(attack_type,defend_type):
                        p3dTypeEffectDual(attack_type,defend_type,defend_type2);
@@ -649,6 +651,22 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_MOVES){
+                if(move_catalog_ready && (down&(KEY_L|KEY_R))){
+                    P3DMove entry;
+                    if(p3dMoveDexRead(move_index,&entry)){
+                        int length=(int)strlen(entry.description);
+                        int max_offset=length>84?length-84:0;
+                        if((down&KEY_L) && move_text_offset>0){
+                            move_text_offset=move_text_offset>=28?move_text_offset-28:0;
+                            redraw=1;
+                        }
+                        if((down&KEY_R) && move_text_offset<max_offset){
+                            move_text_offset+=28;
+                            if(move_text_offset>max_offset)move_text_offset=max_offset;
+                            redraw=1;
+                        }
+                    }
+                }
                 int next=move_index;
                 if(down&KEY_LEFT)next--;
                 if(down&KEY_RIGHT)next++;
@@ -658,6 +676,7 @@ int main(void) {
                 if(next>558)next=558;
                 if(next!=move_index){
                     move_index=next;
+                    move_text_offset=0;
                     progress_dirty=1;
                     redraw=1;
                 }
