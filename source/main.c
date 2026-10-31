@@ -208,6 +208,7 @@ static void render(void) {
             printf("Y: toggle favorite (%s)\n",p3dFavoriteContains(&state,state.selected_dex)?"saved":"not saved");
             printf("X: open Favorites\n");
             printf("L: open Move Dex\n");
+            printf("R: open Settings\n");
         } else if(state.page==P3D_PAGE_MOVES){
             printf("Move entry: %03d / 559\n",move_index+1);
             printf("LEFT/RIGHT: +/- 1 move\n");
@@ -590,6 +591,10 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_SEARCH){
+                if((down&KEY_R) && !(down&(KEY_A|KEY_X|KEY_Y|KEY_L))){
+                    state.page=P3D_PAGE_SETTINGS;
+                    redraw=1;
+                }
                 if((down&KEY_L) && !(down&(KEY_A|KEY_X|KEY_Y))){
                     state.page=P3D_PAGE_MOVES;
                     redraw=1;
