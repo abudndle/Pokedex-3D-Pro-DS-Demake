@@ -289,8 +289,7 @@ int main(void) {
                 if(progress_dirty && save_progress())progress_dirty=0;
                 home=1;
                 redraw=1;
-            }
-            if(state.page==P3D_PAGE_CHALLENGE){
+            } else if(state.page==P3D_PAGE_CHALLENGE){
                 if(quiz.stage==P3D_CHALLENGE_PICKER||quiz.stage==P3D_CHALLENGE_RESULTS){
                     if(down&KEY_A){p3dChallengeBegin(&quiz,0,1,0);redraw=1;}
                 }else{
