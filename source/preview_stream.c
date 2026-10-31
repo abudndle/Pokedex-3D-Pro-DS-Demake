@@ -86,13 +86,14 @@ int previewStreamHasModel(void) { return s_loaded; }
 int previewStreamHasUv(void) { return s_loaded && s_uv.ready; }
 int previewStreamTriangleCount(void) { return s_triangle_count; }
 int previewStreamOriginalTriangleCount(void) { return s_original_triangle_count; }
-void previewStreamDrawMode(int texture_width,int texture_height) {
+void previewStreamDrawRange(int first_triangle,int triangle_count,int texture_width,int texture_height) {
     int textured=texture_width>0 && texture_height>0;
     int i;
-    if (!s_loaded) return;
+    if (!s_loaded || first_triangle<0 || triangle_count<1 ||
+        first_triangle>s_triangle_count || triangle_count>s_triangle_count-first_triangle) return;
     glColor3b(textured ? 255 : 192,textured ? 255 : 224,textured ? 255 : 232);
     glBegin(GL_TRIANGLES);
-    for (i=0;i<s_triangle_count*9;i+=9) {
+    for (i=first_triangle*9;i<(first_triangle+triangle_count)*9;i+=9) {
         if (s_has_face_colors && !textured) {
             int c=(i/9)*3;
             glColor3b(s_face_rgb[c],s_face_rgb[c+1],s_face_rgb[c+2]);
@@ -107,4 +108,7 @@ void previewStreamDrawMode(int texture_width,int texture_height) {
     glEnd();
 }
 
+void previewStreamDrawMode(int texture_width,int texture_height) {
+    previewStreamDrawRange(0,s_triangle_count,texture_width,texture_height);
+}
 void previewStreamDraw(void) { previewStreamDrawMode(0,0); }
