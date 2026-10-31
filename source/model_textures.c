@@ -4,7 +4,8 @@
 static unsigned rd16(const unsigned char *p){return (unsigned)p[0]|((unsigned)p[1]<<8);}
 int p3dTextureManifestLoad(P3DTextureManifest *map,const char *path){
  unsigned char h[8],b[8];P3DTextureManifest tmp={0};FILE *f;
- if(!map)return 0;map->ready=0;
+ if(!map)return 0;
+ map->ready=0;
  if(!path)return 0;
  f=fopen(path,"rb");if(!f)return 0;
  if(fread(h,1,8,f)!=8||memcmp(h,"P3TX",4)!=0||rd16(h+4)!=1||
