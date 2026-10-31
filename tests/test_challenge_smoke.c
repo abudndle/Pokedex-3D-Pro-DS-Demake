@@ -14,6 +14,8 @@ int main(void){
    assert(q.choices[q.correct]==q.pokemon);
    for(int j=0;j<4;j++){assert(q.choices[j]>=493&&q.choices[j]<=648);for(int k=0;k<j;k++)assert(q.choices[j]!=q.choices[k]);}
    assert(p3dChallengeAnswer(&q,q.correct)==1);
+   assert(q.stage==P3D_CHALLENGE_REVIEW && q.question==i);
+   assert(p3dChallengeContinue(&q));
  }
  assert(q.stage==P3D_CHALLENGE_RESULTS&&q.score==10);
  p3dChallengeClue("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",0,a,b);

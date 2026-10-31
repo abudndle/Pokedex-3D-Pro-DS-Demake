@@ -52,8 +52,23 @@ int p3dChallengeBegin(P3DChallenge *q,int mode,uint32_t seed,int cumulative_answ
 int p3dChallengeAnswer(P3DChallenge *q,int choice){
  int success;
  if(!q||q->stage!=P3D_CHALLENGE_QUESTION||choice<0||choice>=P3D_CHALLENGE_OPTIONS)return -1;
- success=(choice==q->correct);if(success)q->score++;q->question++;
- if(q->question==P3D_CHALLENGE_QUESTIONS)q->stage=P3D_CHALLENGE_RESULTS;
- else make_question(q);
+ success=(choice==q->correct);
+ q->selected=choice;
+ if(success)q->score++;
+ q->stage=P3D_CHALLENGE_REVIEW;
  return success;
+}
+int p3dChallengeContinue(P3DChallenge *q){
+ if(!q||q->stage!=P3D_CHALLENGE_REVIEW)return 0;
+ q->question++;
+ if(q->question==P3D_CHALLENGE_QUESTIONS)q->stage=P3D_CHALLENGE_RESULTS;
+ else {make_question(q);q->stage=P3D_CHALLENGE_QUESTION;}
+ return 1;
+}
+int p3dChallengeTouchChoice(int x,int y){
+ if(x<8||x>=248||y<80||y>=176)return -1;
+ return (y-80)/24;
+}
+int p3dChallengeTouchContinue(int x,int y){
+ return x>=8&&x<248&&y>=144&&y<168;
 }
