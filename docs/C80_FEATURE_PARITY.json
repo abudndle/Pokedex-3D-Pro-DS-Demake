@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "target": "Pokédex 3D Pro demake for DS/DS Lite/DSi",
+  "release_policy": "No release-complete claim until every mandatory feature is verified_complete with source and end-to-end evidence; hardware-inapplicable camera features must be gated on DS/DS Lite.",
+  "features": [
+    {
+      "id": "dual_screen_menus",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/feature_menu.c",
+      "gap": "Native navigation works; original menu layout/art needs visual parity testing",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "pokedex_entries_forms",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/main.c",
+      "gap": "Missing accurate complete original stats, forms and verified model rendering",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "original_text_search_filters",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/main.c",
+      "gap": "Native search remains numeric; advanced source-data search/filter parity not integrated",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "move_dex",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/move_dex.c",
+      "gap": "559 source moves but incomplete battle metadata, audio and filters",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "type_chart",
+      "required_for_release": true,
+      "status": "implemented_baseline",
+      "source": "source/feature_menu.c",
+      "gap": "Gen V dual type matchup calculation; original visual layout not verified",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "favorites",
+      "required_for_release": true,
+      "status": "implemented_baseline",
+      "source": "source/feature_menu.c",
+      "gap": "Six favorites persisted; verify original semantics and all input flows",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "challenges",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/challenge.c",
+      "gap": "Seven challenge modes implemented; 29 original modes remain unimplemented",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "records",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/main.c",
+      "gap": "C80 saved quiz totals/favorites/photo count; viewed bitmap and individual high scores pending",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "photo_album",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/photo_album.c",
+      "gap": "Basic list/page/delete; original photo associations, slideshow and DSi capture pending",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "dsi_camera_ar",
+      "required_for_release": true,
+      "status": "missing",
+      "source": "source/dsi_features.c",
+      "gap": "DSi-only camera backend and AR tracking are not implemented",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "original_pokemon_models",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/preview_stream.c",
+      "gap": "Low-poly native samples, not all faithful original textured geometry",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "original_texture_materials",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/model_materials.c",
+      "gap": "Private 4039 textures converted; verified mesh/material binds are still missing",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "animations",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/model_animation_library.c",
+      "gap": "Optional verified clip loader; original full animation library not confirmed",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "cries_music_speech",
+      "required_for_release": true,
+      "status": "missing",
+      "source": "source/main.c",
+      "gap": "No complete original audio, Pokémon cries or spoken content implemented",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "pokemon_stats_evolutions_learnsets",
+      "required_for_release": true,
+      "status": "missing",
+      "source": "source/main.c",
+      "gap": "Detailed authentic species metadata screens and filters not integrated",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "progress_saves",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/game_save_bridge.c",
+      "gap": "Current save retains favorites and quiz totals, not full original records",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "settings_custom_art",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/main.c",
+      "gap": "Rotation and original-art toggle exist; full original settings/UI customization unverified",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "touch_and_buttons",
+      "required_for_release": true,
+      "status": "partial",
+      "source": "source/main.c",
+      "gap": "Navigation exists; full original touch-target parity not verified",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "nds_melonds_hardware_validation",
+      "required_for_release": true,
+      "status": "missing",
+      "source": "Makefile.native",
+      "gap": "Smoke ROM CI is not end-to-end emulator and real DS/DSi proof",
+      "verified_end_to_end": false
+    },
+    {
+      "id": "original_localizations",
+      "required_for_release": true,
+      "status": "missing",
+      "source": "source/main.c",
+      "gap": "Source game contains multiple languages; native menu/text language switching and verified localization parity are not implemented",
+      "verified_end_to_end": false
+    }
+  ]
+}

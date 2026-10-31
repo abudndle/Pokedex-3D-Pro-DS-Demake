@@ -47,3 +47,4 @@ check-host:
 
 	@python3 -m unittest discover -s tests -p 'test_c76_model_texture_catalog_host.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c78_texture_loader_host.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v

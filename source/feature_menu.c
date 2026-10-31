@@ -1,7 +1,7 @@
 #include "feature_menu.h"
 #include <string.h>
-static const P3DPage menu[]={P3D_PAGE_DEX,P3D_PAGE_SEARCH,P3D_PAGE_MOVES,P3D_PAGE_TYPES,P3D_PAGE_FAVORITES,P3D_PAGE_CHALLENGE,P3D_PAGE_SETTINGS,P3D_PAGE_ALBUM,P3D_PAGE_AR};
-static const char *names[]={"MAIN MENU","POKEDEX","SEARCH","MOVE DEX","TYPE CHART","FAVORITES","CHALLENGE","SETTINGS","PHOTO ALBUM","AR CAMERA"};
+static const P3DPage menu[]={P3D_PAGE_DEX,P3D_PAGE_SEARCH,P3D_PAGE_MOVES,P3D_PAGE_TYPES,P3D_PAGE_FAVORITES,P3D_PAGE_CHALLENGE,P3D_PAGE_SETTINGS,P3D_PAGE_ALBUM,P3D_PAGE_RECORDS,P3D_PAGE_AR};
+static const char *names[]={"MAIN MENU","POKEDEX","SEARCH","MOVE DEX","TYPE CHART","FAVORITES","CHALLENGE","SETTINGS","PHOTO ALBUM","AR CAMERA","RECORDS"};
 const char *p3dPageName(P3DPage p){return (unsigned)p<(unsigned)P3D_PAGE_COUNT?names[p]:"UNKNOWN";}
 void p3dMenuReset(P3DMenu *s){if(!s)return;memset(s,0,sizeof(*s));s->search_letter='A';s->type_defend2=-1;s->rotate=1;for(int i=0;i<P3D_FAVORITES_MAX;i++)s->favorites[i]=-1;}
 size_t p3dMenuEntries(P3DCapabilities caps,P3DPage out[P3D_MENU_MAX]){

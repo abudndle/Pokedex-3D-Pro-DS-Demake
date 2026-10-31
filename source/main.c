@@ -68,6 +68,15 @@ static int album_ready=0;
 static size_t album_offset=0;
 static size_t album_selected=0;
 static int album_confirm_delete=0;
+/* Live Records summary: the current save stores quiz totals and favorites,
+ * but does not yet store a viewed-species bitmap or per-mode high scores. */
+static size_t records_photo_total(void){
+    char names[P3D_ALBUM_PAGE_MAX][32];
+    size_t total=0;
+    if(album_ready)
+        p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,0,&total);
+    return total;
+}
 static int art_page=-1;
 static int showing_original_art=0;
 static int original_art_available=0;
@@ -280,6 +289,15 @@ static void render(void) {
                 printf("A: remove favorite\n");
                 printf("Y: search this Pokemon\n");
             }else printf("No favorites yet.\n");
+        } else if(state.page==P3D_PAGE_RECORDS){
+            printf("Quiz correct: %d / %d\\n",challenge_correct_total,challenge_answer_total);
+            printf("Saved favorites: %d / %d\\n",state.favorites_count,P3D_FAVORITES_MAX);
+            if(album_ready)printf("Album photos: %u\\n",(unsigned)records_photo_total());
+            else printf("Album count: unavailable\\n");
+            printf("Viewed-species history: pending\\n");
+            printf("Per-mode best scores: pending\\n");
+            printf("A: Album  X: Favorites\\n");
+            printf("Y: Challenges\\n");
         } else if(state.page==P3D_PAGE_ALBUM){
             if(!storage_ready)printf("Photo Album needs FAT storage.\n");
             else if(!album_ready)printf("Photo folder unavailable.\n");
@@ -392,6 +410,13 @@ static void render(void) {
             else if(effect==40)printf("\x1b[17;1HEffect: 4x");
             else printf("\x1b[17;1HEffect: 1x");
             printf("\x1b[20;1HX: 2nd type  L/R: change");
+        }else if(state.page==P3D_PAGE_RECORDS){
+            printf("\x1b[11;1HQuiz: %d / %d",challenge_correct_total,challenge_answer_total);
+            printf("\x1b[13;1HFavorites: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
+            if(album_ready)printf("\x1b[15;1HPhotos: %u",(unsigned)records_photo_total());
+            else printf("\x1b[15;1HPhotos: unavailable");
+            printf("\x1b[19;1HA:Album X:Favorites");
+            printf("\x1b[21;1HY:Challenge");
         }else if(state.page==P3D_PAGE_SETTINGS){
             printf("\x1b[13;1HAuto rotate: %s",state.rotate?"ON":"OFF");
             printf("\x1b[15;1HA: toggle setting");
@@ -710,6 +735,23 @@ int main(void) {
                     }else if(direction>0 && album_offset+P3D_ALBUM_PAGE_MAX<total){
                         album_offset+=P3D_ALBUM_PAGE_MAX;album_selected=0;redraw=1;
                     }
+                }
+            }
+            if(state.page==P3D_PAGE_RECORDS){
+                if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
+                    state.page=P3D_PAGE_CHALLENGE;
+                    p3dChallengeReset(&quiz);
+                    redraw=1;
+                }else if((down&KEY_X) && !(down&KEY_A)){
+                    state.page=P3D_PAGE_FAVORITES;
+                    favorite_index=0;
+                    redraw=1;
+                }else if(down&KEY_A){
+                    state.page=P3D_PAGE_ALBUM;
+                    album_offset=0;
+                    album_selected=0;
+                    album_confirm_delete=0;
+                    redraw=1;
                 }
             }
             if(state.page==P3D_PAGE_SETTINGS){
