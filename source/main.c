@@ -4,6 +4,7 @@
  */
 #include <nds.h>
 #include <stdio.h>
+#include <string.h>
 #include <filesystem.h>
 #include "feature_menu.h"
 #include "menu_layout.h"
@@ -247,6 +248,8 @@ static void render(void) {
                 if(p3dMoveDexRead(move_index,&entry)){
                     printf("\x1b[13;1H%.28s",entry.name);
                     printf("\x1b[15;1H%.28s",entry.description);
+                    if(strlen(entry.description)>28)
+                        printf("\x1b[17;1H%.28s",entry.description+28);
                 }
             }
             printf("\x1b[19;1HL/R: +/-1  U/D: +/-10");
