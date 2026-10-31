@@ -228,8 +228,11 @@ static void render(void) {
                 printf("\x1b[13;1HScore: %d / %d",quiz.score,P3D_CHALLENGE_QUESTIONS);
                 printf("\x1b[15;1HA: replay challenge");
             }else{
-                printf("\x1b[13;1HQuestion: %d / %d",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
-                printf("\x1b[15;1HUP/DOWN: choose answer");
+                printf("\x1b[8;1HQuestion %d / %d",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
+                for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++)
+                    printf("\x1b[%d;2H%c Pokemon #%03d",11+i*3,
+                           quiz.selected==i?'>':' ',quiz.choices[i]+1);
+                printf("\x1b[23;1HTap answer or press A");
             }
         }else{
             printf("\x1b[13;1HFeature implementation pending");
@@ -347,7 +350,7 @@ int main(void) {
                 }else{
                     if((down&KEY_UP)&&quiz.selected>0){quiz.selected--;redraw=1;}
                     if((down&KEY_DOWN)&&quiz.selected<3){quiz.selected++;redraw=1;}
-                    if(down&KEY_A){
+                    if((down&KEY_A)&&!(down&KEY_TOUCH)){
                         int result=p3dChallengeAnswer(&quiz,quiz.selected);
                         if(result>=0 && challenge_answer_total<100000000){
                             challenge_answer_total++;
@@ -372,6 +375,12 @@ int main(void) {
                     int selected=(point.py-80)/24;
                     if(selected>=0 && selected<P3D_CHALLENGE_OPTIONS){
                         quiz.selected=selected;
+                        int result=p3dChallengeAnswer(&quiz,selected);
+                        if(result>=0 && challenge_answer_total<100000000){
+                            challenge_answer_total++;
+                            if(result)challenge_correct_total++;
+                            progress_dirty=1;
+                        }
                         redraw=1;
                     }
                 }
