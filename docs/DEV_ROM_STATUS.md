@@ -16,3 +16,12 @@ The GitHub Actions **Native BlocksDS development ROM** job produces a boot-forma
 - Complete native gameplay.
 
 The private original game assets must not be committed to GitHub. Final game ROM assembly will be done using the asset integration process with the user's own originals.
+
+## Animation inspection controls
+In the Pokédex text navigation screen, a validated animation clip enables
+touch controls on row 11: tap the left half to pause/resume or the right half
+to restart. Restart keeps the current paused/playing state. Selecting another
+clip, species or form resets playback and resumes it. SELECT still toggles
+original artwork; playback hitboxes are disabled while that artwork is shown.
+Missing clips remain static. These controls inspect the existing P3AN transform
+transport; they do not implement original skeletal animation.

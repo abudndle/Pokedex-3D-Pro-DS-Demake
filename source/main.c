@@ -17,6 +17,7 @@
 #include "form_model_map.h"
 #include "form_names.h"
 #include "model_animation.h"
+#include "animation_playback.h"
 #include "model_animation_library.h"
 #include "model_material_texture.h"
 #include "texture_asset.h"
@@ -56,7 +57,7 @@ static int material_references_ready=0;
 static P3DTexturePixels preview_pixels;
 static int texture_payload_ready=0;
 static P3DPreviewTextureSet preview_gl_textures;
-static unsigned animation_tick=0;
+static P3DAnimationPlayback animation_playback;
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
 static P3DFormNames form_names;
@@ -111,7 +112,7 @@ static void reload_preview(void){
     material_references_ready=0;
     texture_payload_ready=0;
     preview_pixels.ready=0;
-    animation_tick=0;
+    p3dPlaybackReset(&animation_playback);
     if(preview_found){
         /* Load only existing and validated private clips. No invented motion
          * or action labels are generated for missing original assets. */
@@ -142,7 +143,7 @@ static void render_model(void){
     glRotateYi(model_yaw);
     if(preview_animation.ready){
         P3DAnimationFrame pose;
-        if(p3dAnimationPoseAt(&preview_animation,animation_tick,&pose)){
+        if(p3dAnimationPoseAt(&preview_animation,animation_playback.tick,&pose)){
             glRotateXi(pose.pitch);
             glRotateYi(pose.yaw);
             glRotateZi(pose.roll);
@@ -344,6 +345,8 @@ static void render(void) {
     } else {
         printf("\x1b[9;1H%s",p3dPageName(state.page));
         if(state.page==P3D_PAGE_DEX){
+            if(preview_animation.ready)
+                printf("\x1b[11;1H[%-6s]        [Restart]",animation_playback.paused?"Resume":"Pause");
             printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
             if(selected_form){
@@ -807,7 +810,7 @@ int main(void) {
                     if(p3dAnimationLibraryStep(&preview_animation_library,
                                                &preview_animation,
                                                "nitro:/animations",direction)){
-                        animation_tick=0;
+                        p3dPlaybackReset(&animation_playback);
                         redraw=1;
                     }
                 }
@@ -832,6 +835,8 @@ int main(void) {
             if(!showing_original_art && (down&KEY_TOUCH)){
                 touchPosition point;
                 touchRead(&point);
+                if(state.page==P3D_PAGE_DEX && !(down&(KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN)) &&
+                   p3dPlaybackTouch(&animation_playback,&preview_animation,point.px,point.py))redraw=1;
                 if(point.py>=150 && point.py<192){
                     int direction=point.px<64?-1:(point.px>=192?1:0);
                     if(state.page==P3D_PAGE_DEX && direction){
@@ -914,7 +919,7 @@ int main(void) {
         if(redraw)render();
         if(display_preview){
             render_model();
-            if(preview_animation.ready)animation_tick=(animation_tick+1)%preview_animation.total_ticks;
+            p3dPlaybackAdvance(&animation_playback,&preview_animation);
         }
     }
 }
