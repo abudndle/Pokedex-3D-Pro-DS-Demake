@@ -16,6 +16,7 @@
 #include "species_model_map.h"
 #include "form_model_map.h"
 #include "form_names.h"
+#include "model_animation.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
 #include "photo_album.h"
@@ -43,6 +44,8 @@ static int save_message=0;
 static int progress_dirty=0;
 static int preview_ready=0;
 static int preview_found=0;
+static P3DAnimationClip preview_animation;
+static unsigned animation_tick=0;
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
 static P3DFormNames form_names;
@@ -86,7 +89,14 @@ static void prepare_original_art(void){
 
 static void reload_preview(void){
     int resource=selected_form?p3dFormResolve(&alternate_models,dex_index,selected_form):p3dModelMapResolve(&species_models,dex_index);
+    char clip_path[80];
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
+    preview_animation.ready=0;
+    animation_tick=0;
+    if(preview_found){
+        snprintf(clip_path,sizeof(clip_path),"nitro:/animations/p%03d.p3an",resource);
+        p3dAnimationLoad(&preview_animation,clip_path);
+    }
 }
 static int display_preview=0;
 static int model_yaw=0;
@@ -99,6 +109,14 @@ static void render_model(void){
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();
     glTranslatef32(0,0,floattof32(-3));
     glRotateYi(model_yaw);
+    if(preview_animation.ready){
+        int frame=p3dAnimationFrameAt(&preview_animation,animation_tick);
+        if(frame>=0){
+            glRotateXi(preview_animation.frames[frame].pitch);
+            glRotateYi(preview_animation.frames[frame].yaw);
+            glRotateZi(preview_animation.frames[frame].roll);
+        }
+    }
     glPolyFmt(POLY_ALPHA(31)|POLY_CULL_NONE);
     glColor3b(255,255,255);
     previewStreamDraw();
@@ -759,6 +777,9 @@ int main(void) {
          * switching between a model and a text page could render a stale
          * model for one extra frame. */
         if(redraw)render();
-        if(display_preview)render_model();
+        if(display_preview){
+            render_model();
+            if(preview_animation.ready)animation_tick=(animation_tick+1)%preview_animation.total_ticks;
+        }
     }
 }
