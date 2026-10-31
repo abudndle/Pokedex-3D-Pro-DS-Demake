@@ -35,3 +35,7 @@ The final build must **fail with a clear missing-assets message** if the require
 
 ## Revised original-asset requirement (latest user instruction)
 The goal is to finish porting **the actual game with its original assets**, not produce a generic lookalike. Original assets may be used during development, restoration, and test builds as needed to faithfully implement and verify the port. The previous final-build-only timing requirement is superseded. Keep the decrypted game image and proprietary asset payloads out of GitHub source control; use the user's private local assets during source builds and tests. Missing required originals must be reported explicitly, never substituted with inaccurate replicas.
+
+## DS-Homebrew technical references
+
+See [DS-Homebrew implementation references](docs/DS_HOMEBREW_REFERENCES.md) for TWiLight Menu++, nds-bootstrap, and GodMode9i patterns relevant to DS/DSi UI, storage, asset conversion and launch testing. The project remains a separate BlocksDS development ROM and does not bundle original Pokémon assets.
