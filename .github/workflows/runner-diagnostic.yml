@@ -1,0 +1,15 @@
+name: Actions runner diagnostic
+on:
+  push:
+    branches: [fix/nitrofs-asset-initialization]
+  workflow_dispatch:
+jobs:
+  runner-health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm runner can execute commands
+        run: |
+          echo "GitHub Actions runner started"
+          uname -a
+          command -v python3
+          command -v cc
