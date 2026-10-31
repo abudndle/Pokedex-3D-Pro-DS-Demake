@@ -253,6 +253,7 @@ int main(void) {
         swiWaitForVBlank();
         scanKeys();
         unsigned down=keysDown();
+        unsigned held=keysHeld();
         int redraw=0;
         /* SELECT makes the text navigation available even with a full-screen
          * recovered UI image. Press SELECT again to restore original art. */
@@ -316,8 +317,15 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_DEX){
-                if(preview_found && (down&KEY_L)){model_yaw=(model_yaw-512)&32767;redraw=1;}
-                if(preview_found && (down&KEY_R)){model_yaw=(model_yaw+512)&32767;redraw=1;}
+                /* Held shoulder buttons rotate continuously rather than taking
+                 * only one step per press.  The model is drawn each frame, so
+                 * rotation needs no expensive full-console redraw. */
+                if(preview_found){
+                    if((held&KEY_L) && !(held&KEY_R))
+                        model_yaw=(model_yaw-256)&32767;
+                    else if((held&KEY_R) && !(held&KEY_L))
+                        model_yaw=(model_yaw+256)&32767;
+                }
                 if(down&KEY_A){if(p3dFavoriteToggle(&state,dex_index))progress_dirty=1;redraw=1;}
                 if((down&KEY_LEFT)&&dex_index>0){dex_index--;reload_preview();progress_dirty=1;redraw=1;}
                 if((down&KEY_RIGHT)&&dex_index<648){dex_index++;reload_preview();progress_dirty=1;redraw=1;}
