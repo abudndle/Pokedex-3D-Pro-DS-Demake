@@ -71,15 +71,14 @@ jobs:
           test -n "$window_id" || { cat /tmp/desmume.log; echo "No emulator window"; exit 1; }
           xwd -id "$window_id" -silent -out emulator-early.xwd
           test -s emulator-early.xwd
-          # Exercise the DS d-pad through the DeSmuME SDL keyboard mapping.
-          # Save a separate frame for manual review of input responsiveness.
-          if command -v xdotool >/dev/null 2>&1; then
-            xdotool windowactivate --sync "$window_id" || true
-            xdotool key --window "$window_id" Down
-            sleep 1
-            xwd -id "$window_id" -silent -out emulator-after-down.xwd
-          fi
-          sleep 20
+          # Wait until the home menu is present, then compare before/after input.
+          sleep 12
+          xwd -id "$window_id" -silent -out emulator-before-down.xwd
+          xdotool windowactivate --sync "$window_id" || true
+          xdotool key --window "$window_id" Down
+          sleep 2
+          xwd -id "$window_id" -silent -out emulator-after-down.xwd
+          sleep 6
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
             echo "DeSmuME terminated before the startup smoke test completed" >&2
@@ -143,6 +142,7 @@ jobs:
           path: |
             emulator-window.xwd
             emulator-early.xwd
+            emulator-before-down.xwd
             emulator-after-down.xwd
             emulator-windows.txt
           if-no-files-found: warn
