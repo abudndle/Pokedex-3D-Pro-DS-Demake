@@ -218,8 +218,18 @@ static void render(void) {
             printf("\x1b[13;1HMove %03d of 559",move_index+1);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
         }else if(state.page==P3D_PAGE_TYPES){
-            printf("\x1b[13;1H%s vs %s",p3dTypeName(attack_type),p3dTypeName(defend_type));
-            printf("\x1b[15;1HArrows: choose types");
+            int effect=defend_type2<0?p3dTypeEffect(attack_type,defend_type):
+                       p3dTypeEffectDual(attack_type,defend_type,defend_type2);
+            printf("\x1b[11;1HAttack: %s",p3dTypeName(attack_type));
+            printf("\x1b[13;1HDefend: %s",p3dTypeName(defend_type));
+            printf("\x1b[15;1HSecond: %s",defend_type2<0?"OFF":p3dTypeName(defend_type2));
+            if(effect==0)printf("\x1b[17;1HEffect: 0x");
+            else if(effect==2)printf("\x1b[17;1HEffect: 0.25x");
+            else if(effect==5)printf("\x1b[17;1HEffect: 0.5x");
+            else if(effect==20)printf("\x1b[17;1HEffect: 2x");
+            else if(effect==40)printf("\x1b[17;1HEffect: 4x");
+            else printf("\x1b[17;1HEffect: 1x");
+            printf("\x1b[20;1HX: 2nd type  L/R: change");
         }else if(state.page==P3D_PAGE_SETTINGS){
             printf("\x1b[13;1HAuto rotate: %s",state.rotate?"ON":"OFF");
             printf("\x1b[15;1HA: toggle setting");
