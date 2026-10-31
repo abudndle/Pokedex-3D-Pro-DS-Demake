@@ -93,8 +93,10 @@ jobs:
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-down.xwd
           # Press DS B to return from Pokédex to the home menu.
+          # Hold B across several DS VBlanks, as for the A/Down probe.
+          # A very brief key can be missed by the DS keysDown edge scanner.
           xdotool keydown z
-          sleep 0.2
+          sleep 1
           xdotool keyup z
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
