@@ -50,5 +50,15 @@ int main(void) {
     assert(p3dSearchNext(labels,4,0,'c',1)==2);
     assert(p3dSearchNext(labels,4,0,'Z',1)==-1);
     assert(p3dSearchNext(labels,4,0,'A',0)==-1);
+    /* Generation V type matchup examples (scale: 0, 5, 10, 20).
+     * Immunity must remain zero even for dual-type defenders. */
+    assert(p3dTypeEffect(3,8)==0);  /* Electric -> Ground */
+    assert(p3dTypeEffect(1,4)==20); /* Fire -> Grass */
+    assert(p3dTypeEffect(1,2)==5);  /* Fire -> Water */
+    assert(p3dTypeEffectDual(3,2,8)==0);
+    assert(p3dTypeEffectDual(1,4,6)==20);
+    assert(p3dTypeEffectDual(1,4,-1)==20);
+    assert(p3dTypeEffectDual(-1,4,2)==-1);
+    assert(p3dTypeEffectDual(1,4,17)==-1);
     return 0;
 }
