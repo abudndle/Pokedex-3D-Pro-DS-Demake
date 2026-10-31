@@ -95,8 +95,8 @@
       "id": "original_texture_materials",
       "required_for_release": true,
       "status": "partial",
-      "source": "tools/c88_original_material_references.py",
-      "gap": "C88 resolved original material/shader/texture index references. C89 joined 3,712 C5 mesh descriptors to export group counts, but exact mesh material IDs and per-face P3MT ranges remain zero verified; authentic textured DS renders are unfinished.",
+      "source": "tools/c90_original_draw_material_audit.py",
+      "gap": "C90 validated 7,116 original C5 draw-to-mesh/material index links for all 730 models and privately staged 538 P3MR material-index sidecars covering 322,784 source-sampled triangles. Diffuse/normal sampler roles and textured P3MT bindings remain unverified; original full-resolution visuals are not complete.",
       "verified_end_to_end": false
     },
     {
