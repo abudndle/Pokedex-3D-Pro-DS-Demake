@@ -377,8 +377,12 @@ int main(void) {
             }
         } else {
             if(down&KEY_B){
-                if(progress_dirty && save_progress())progress_dirty=0;
-                home=1;
+                if(state.page==P3D_PAGE_ALBUM && album_confirm_delete){
+                    album_confirm_delete=0;
+                }else{
+                    if(progress_dirty && save_progress())progress_dirty=0;
+                    home=1;
+                }
                 redraw=1;
             } else {
             /* Challenge picker: process mode choice before A starts a quiz.
