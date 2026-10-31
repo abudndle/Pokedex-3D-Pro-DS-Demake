@@ -34,6 +34,7 @@ static int preview_ready=0;
 static int preview_found=0;
 static void reload_preview(void){preview_found=preview_ready&&previewStreamLoad(dex_index);}
 static int display_preview=0;
+static int model_yaw=0;
 static void update_preview_mode(void){display_preview=!home&&state.page==P3D_PAGE_DEX&&preview_found;}
 static void render_model(void){
     if(!display_preview)return;
@@ -42,6 +43,7 @@ static void render_model(void){
     gluPerspective(50,256.0/192.0,0.1,20.0);
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();
     glTranslatef32(0,0,floattof32(-3));
+    glRotateYi(model_yaw);
     glPolyFmt(POLY_ALPHA(31)|POLY_CULL_NONE);
     glColor3b(255,255,255);
     previewStreamDraw();
@@ -167,6 +169,8 @@ int main(void) {
     videoSetMode(MODE_0_3D);
     glInit();
     glEnable(GL_ANTIALIAS);
+    glEnable(GL_BLEND);
+    glClearDepth(GL_MAX_DEPTH);
     glClearColor(4,4,8,31);
     videoSetModeSub(MODE_0_2D);
     vramSetBankA(VRAM_A_MAIN_BG);
@@ -244,6 +248,8 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_DEX){
+                if(preview_found && (down&KEY_L)){model_yaw=(model_yaw-512)&32767;redraw=1;}
+                if(preview_found && (down&KEY_R)){model_yaw=(model_yaw+512)&32767;redraw=1;}
                 if(down&KEY_A){if(p3dFavoriteToggle(&state,dex_index))progress_dirty=1;redraw=1;}
                 if((down&KEY_LEFT)&&dex_index>0){dex_index--;reload_preview();progress_dirty=1;redraw=1;}
                 if((down&KEY_RIGHT)&&dex_index<648){dex_index++;reload_preview();progress_dirty=1;redraw=1;}
