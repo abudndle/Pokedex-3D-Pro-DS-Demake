@@ -93,14 +93,23 @@ jobs:
           # Sample only the 256x384 emulator window, not the black desktop.
           colored=0
           total=0
+          unique=set()
+          per_screen=[set(),set()]
           for y in range(0,height,4):
               for x in range(0,width,4):
                   p=y*bpl+pixel_stride*x
-                  colored+=max(pixels[p],pixels[p+1],pixels[p+2])>16
+                  rgb=tuple(pixels[p:p+3])
+                  colored+=max(rgb)>16
                   total+=1
+                  unique.add(rgb)
+                  per_screen[0 if y<height//2 else 1].add(rgb)
           ratio=colored/total
-          print(f'Visible nonblack screen pixels: {ratio:.1%}')
-          assert ratio>=0.05, 'Emulator window itself is mostly black; inspect startup screenshot'
+          print(f'Visible nonblack window pixels: {ratio:.1%}; '
+                f'unique colors: {len(unique)}; '
+                f'upper/lower colors: {[len(v) for v in per_screen]}')
+          assert ratio>=0.05, 'Emulator window is mostly black'
+          assert len(unique)>=8 and all(len(v)>=4 for v in per_screen), (
+              'Emulator shows a blank/solid-color DS screen, not visible gameplay')
           PY
       - name: Upload emulator visual evidence
         if: always()
