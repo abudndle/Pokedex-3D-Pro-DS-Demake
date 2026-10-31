@@ -1,0 +1,29 @@
+# Local proprietary game assets; do not commit
+*.cci
+*.cia
+*.3ds
+*.nds
+*.z5
+*.c5
+*.glb
+*.obj
+*.mtl
+*.png
+*.jpg
+*.bin
+*.zip
+*.7z
+*.rar
+
+# Local recovery output
+assets/
+original_assets/
+decoded_models/
+model_exports/
+model_assets/
+build/
+dist/
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
