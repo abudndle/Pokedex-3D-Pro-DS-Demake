@@ -18,6 +18,7 @@
 #include "form_names.h"
 #include "model_animation.h"
 #include "model_material_texture.h"
+#include "texture_asset.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
 #include "photo_album.h"
@@ -49,6 +50,8 @@ static P3DAnimationClip preview_animation;
 static P3DMaterialMap preview_materials;
 static P3DTextureManifest preview_textures;
 static int material_references_ready=0;
+static P3DTexturePixels preview_pixels;
+static int texture_payload_ready=0;
 static unsigned animation_tick=0;
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
@@ -99,6 +102,8 @@ static void reload_preview(void){
     preview_materials.ready=0;
     preview_textures.ready=0;
     material_references_ready=0;
+    texture_payload_ready=0;
+    preview_pixels.ready=0;
     animation_tick=0;
     if(preview_found){
         snprintf(clip_path,sizeof(clip_path),"nitro:/animations/p%03d.p3an",resource);
@@ -108,6 +113,11 @@ static void reload_preview(void){
             snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3tx",resource);
             if(p3dTextureManifestLoad(&preview_textures,clip_path))
                 material_references_ready=p3dModelMaterialTexturesValid(&preview_materials,&preview_textures);
+            if(material_references_ready && preview_textures.count==1){
+                unsigned id=preview_textures.entries[0].id;
+                snprintf(clip_path,sizeof(clip_path),"nitro:/textures/t%03u.p3px",id);
+                texture_payload_ready=p3dTextureAssetLoad(&preview_pixels,&preview_textures,id,clip_path);
+            }
         }
     }
 }
@@ -180,6 +190,7 @@ static void render(void) {
             if(preview_found){
                 printf("Source mesh: %d tris\n",previewStreamTriangleCount());
                 printf("Material refs: %s\n",material_references_ready?"verified":"unavailable");
+                printf("Single texture data: %s\n",texture_payload_ready?"verified":"unavailable");
             }
             else printf("Source mesh unavailable\n");
             if(preview_found){
