@@ -314,7 +314,7 @@ int main(void) {
     #ifdef P3D_HAVE_FAT
     storage_ready=fatInitDefault()?1:0;
     #else
-    storage_ready=0; /* slim development toolchain excludes libfat */
+    storage_ready=0; /* FAT support disabled for this build configuration */
     #endif
     if(storage_ready){
         P3DSaveState record;
@@ -326,6 +326,8 @@ int main(void) {
             }
         }
     }
+    /* libfat mounts the default writable device as fat:/; create the album
+     * directory only when the device is actually available. */
     if(storage_ready)album_ready=p3dPhotoAlbumOpen(&photo_album,"fat:/Pokedex 3D Pro/Photos");
     if(nitro_ready){
         preview_ready=previewStreamInit();
