@@ -140,6 +140,10 @@ static void render(void) {
             else if(effect==20)printf("Effect: super effective (2x)\n");
             else printf("Effect: normal (1x)\n");
             printf("Arrows: change types\n");
+        } else if(state.page==P3D_PAGE_SETTINGS){
+            printf("Automatic model rotation: %s\n",state.rotate?"ON":"OFF");
+            printf("A: toggle automatic rotation\n");
+            printf("L/R: rotate manually in Pokedex\n");
         } else if(state.page==P3D_PAGE_FAVORITES){
             printf("Saved favorites: %d / %d\n",state.favorites_count,P3D_FAVORITES_MAX);
             if(state.favorites_count>0){
@@ -207,6 +211,9 @@ static void render(void) {
         }else if(state.page==P3D_PAGE_TYPES){
             printf("\x1b[13;1H%s vs %s",p3dTypeName(attack_type),p3dTypeName(defend_type));
             printf("\x1b[15;1HArrows: choose types");
+        }else if(state.page==P3D_PAGE_SETTINGS){
+            printf("\x1b[13;1HAuto rotate: %s",state.rotate?"ON":"OFF");
+            printf("\x1b[15;1HA: toggle setting");
         }else if(state.page==P3D_PAGE_FAVORITES){
             printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
             printf("\x1b[15;1HChoose in Pokedex");
@@ -374,6 +381,11 @@ int main(void) {
                     redraw=1;
                 }
             }
+            if(state.page==P3D_PAGE_SETTINGS && (down&KEY_A)){
+                state.rotate=!state.rotate;
+                progress_dirty=1;
+                redraw=1;
+            }
             if(state.page==P3D_PAGE_TYPES){
                 if(down&KEY_UP){attack_type=(attack_type+16)%17;redraw=1;}
                 if(down&KEY_DOWN){attack_type=(attack_type+1)%17;redraw=1;}
@@ -428,6 +440,8 @@ int main(void) {
                         model_yaw=(model_yaw-256)&32767;
                     else if((held&KEY_R) && !(held&KEY_L))
                         model_yaw=(model_yaw+256)&32767;
+                    else if(state.rotate && !(held&KEY_L) && !(held&KEY_R))
+                        model_yaw=(model_yaw+64)&32767;
                 }
                 if(down&KEY_A){if(p3dFavoriteToggle(&state,dex_index))progress_dirty=1;redraw=1;}
                 if((down&KEY_LEFT)&&dex_index>0){dex_index--;reload_preview();progress_dirty=1;redraw=1;}
