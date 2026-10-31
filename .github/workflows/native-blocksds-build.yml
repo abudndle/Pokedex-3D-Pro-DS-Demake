@@ -92,6 +92,12 @@ jobs:
           xdotool keyup x
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-down.xwd
+          # Press DS B to return from Pokédex to the home menu.
+          xdotool keydown z
+          sleep 0.2
+          xdotool keyup z
+          sleep 2
+          xwd -id "$window_id" -silent -out emulator-after-back.xwd
           sleep 6
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
@@ -179,5 +185,6 @@ jobs:
             emulator-early.xwd
             emulator-before-down.xwd
             emulator-after-down.xwd
+            emulator-after-back.xwd
             emulator-windows.txt
           if-no-files-found: warn
