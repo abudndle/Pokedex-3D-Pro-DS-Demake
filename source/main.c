@@ -342,7 +342,7 @@ int main(void) {
              * have been recovered from the source game. */
             if(state.page==P3D_PAGE_CHALLENGE &&
                quiz.stage==P3D_CHALLENGE_QUESTION &&
-               !prefer_original_art && (down&KEY_TOUCH)){
+               !showing_original_art && (down&KEY_TOUCH)){
                 touchPosition point;
                 touchRead(&point);
                 if(point.px>=24 && point.px<232 &&
