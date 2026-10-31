@@ -38,10 +38,15 @@ int p3dSaveLoad(const char *base,P3DSaveState *out){
 }
 int p3dSaveStore(const char *base,const P3DSaveState *s){
  P3DSaveState a,b;uint32_t sa=0,sb=0,next=1;int va,vb,slot;unsigned char buf[SAVE_SIZE];char path[256];FILE *f;
- if(!p3dSaveStateValid(s))return 0;va=readslot(base,0,&a,&sa);vb=readslot(base,1,&b,&sb);
+ if(!p3dSaveStateValid(s)) return 0;
+ va=readslot(base,0,&a,&sa);
+ vb=readslot(base,1,&b,&sb);
  if(va&&vb){int cur=newer(sb,sa)?1:0;slot=1-cur;next=(cur?sb:sa)+1;}
  else if(va){slot=1;next=sa+1;}else if(vb){slot=0;next=sb+1;}else slot=0;
- if(!slotpath(path,base,slot))return 0;encode(buf,s,next);f=fopen(path,"wb");if(!f)return 0;
+ if(!slotpath(path,base,slot)) return 0;
+ encode(buf,s,next);
+ f=fopen(path,"wb");
+ if(!f) return 0;
  if(fwrite(buf,1,SAVE_SIZE,f)!=SAVE_SIZE){fclose(f);return 0;}
  if(fflush(f)!=0){fclose(f);return 0;}return fclose(f)==0;
 }
