@@ -9,6 +9,8 @@
 #include "menu_navigation.h"
 #include "dsi_features.h"
 #include "challenge.h"
+#include "game_save_bridge.h"
+#include <fat.h>
 
 #define MENU_TOUCH_Y 88
 #define MENU_TOUCH_STEP 16
@@ -22,6 +24,16 @@ static int dex_index=0, move_index=0;
 static int attack_type=1, defend_type=4;
 static P3DChallenge quiz;
 static int favorite_index=0;
+static int storage_ready=0;
+static int save_message=0;
+#define P3D_SAVE_BASE "fat:/pokedex3d" 
+static void save_progress(void){
+    P3DSaveState record;
+    if(!storage_ready)return;
+    if(p3dGameSaveCapture(&record,&state,dex_index,move_index,0,0))
+        save_message=p3dSaveStore(P3D_SAVE_BASE,&record)?1:2;
+}
+
 
 static void render(void) {
     consoleSelect(&top_console);
@@ -79,6 +91,10 @@ static void render(void) {
         printf("B: RETURN TO MENU\n");
     }
     printf("\nDEVELOPMENT BUILD\n");
+    if(!storage_ready)printf("No writable storage\n");
+    else if(save_message==1)printf("Progress saved\n");
+    else if(save_message==2)printf("Save failed\n");
+    else if(save_message==3)printf("Progress restored\n");
 
     consoleSelect(&bottom_console);
     consoleClear();
@@ -132,6 +148,15 @@ int main(void) {
                 31,0,false,true);
     p3dMenuReset(&state);
     p3dChallengeReset(&quiz);
+    /* FAT/DLDI storage is optional in DS mode; no media means volatile progress. */
+    storage_ready=fatInitDefault()?1:0;
+    if(storage_ready){
+        P3DSaveState record;
+        if(p3dSaveLoad(P3D_SAVE_BASE,&record)){
+            p3dGameSaveRestore(&record,&state,&dex_index,&move_index);
+            save_message=3;
+        }
+    }
     count=(int)p3dMenuEntries(caps,pages);
     render();
     while(1) {
@@ -192,6 +217,9 @@ int main(void) {
                 if((down&KEY_RIGHT)&&move_index<558){move_index++;redraw=1;}
             }
         }
-        if(redraw)render();
+        if(redraw){
+            if(!home&&(state.page==P3D_PAGE_DEX||state.page==P3D_PAGE_MOVES||state.page==P3D_PAGE_FAVORITES))save_progress();
+            render();
+        }
     }
 }
