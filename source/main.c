@@ -19,7 +19,7 @@
 #include "model_animation.h"
 #include "model_material_texture.h"
 #include "texture_asset.h"
-#include "ds_texture_upload.h"
+#include "preview_texture_set.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
 #include "photo_album.h"
@@ -53,7 +53,7 @@ static P3DTextureManifest preview_textures;
 static int material_references_ready=0;
 static P3DTexturePixels preview_pixels;
 static int texture_payload_ready=0;
-static int preview_gl_texture=0;
+static P3DPreviewTextureSet preview_gl_textures;
 static unsigned animation_tick=0;
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
@@ -97,13 +97,8 @@ static void prepare_original_art(void){
 }
 
 static void reload_preview(void){
-    /* Retire the old resource before changing species/forms; one VRAM
-     * texture at a time avoids stale bindings and exceeding 128 KiB. */
-    if(preview_gl_texture>0){
-        glBindTexture(0,0);
-        glDeleteTextures(1,&preview_gl_texture);
-        preview_gl_texture=0;
-    }
+    /* Free all prior per-material VRAM allocations on species/form changes. */
+    p3dPreviewTextureSetRelease(&preview_gl_textures);
     int resource=selected_form?p3dFormResolve(&alternate_models,dex_index,selected_form):p3dModelMapResolve(&species_models,dex_index);
     char clip_path[80];
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
@@ -122,13 +117,10 @@ static void reload_preview(void){
             snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3tx",resource);
             if(p3dTextureManifestLoad(&preview_textures,clip_path))
                 material_references_ready=p3dModelMaterialTexturesValid(&preview_materials,&preview_textures);
-            if(material_references_ready && preview_textures.count==1){
-                unsigned id=preview_textures.entries[0].id;
-                snprintf(clip_path,sizeof(clip_path),"nitro:/textures/t%03u.p3px",id);
-                texture_payload_ready=p3dTextureAssetLoad(&preview_pixels,&preview_textures,id,clip_path);
-                if(texture_payload_ready && previewStreamHasUv())
-                    p3dDsTextureUpload(&preview_pixels,&preview_gl_texture);
-            }
+            if(material_references_ready && previewStreamHasUv())
+                texture_payload_ready=p3dPreviewTextureSetLoad(
+                    &preview_gl_textures,&preview_pixels,
+                    &preview_materials,&preview_textures,"nitro:/textures");
         }
     }
 }
@@ -152,10 +144,17 @@ static void render_model(void){
         }
     }
     glPolyFmt(POLY_ALPHA(31)|POLY_CULL_NONE);
-    if(preview_gl_texture>0){
+    if(preview_gl_textures.ready){
         glEnable(GL_TEXTURE_2D);
-        glBindTexture(0,preview_gl_texture);
-        previewStreamDrawMode(preview_pixels.width,preview_pixels.height);
+        for(unsigned i=0;i<preview_materials.count;i++){
+            const P3DMaterialRange *range=&preview_materials.ranges[i];
+            const P3DPreviewTexture *tex=p3dPreviewTextureSetFind(
+                &preview_gl_textures,range->texture_id);
+            if(!tex)continue; /* The loader validates every referenced ID. */
+            glBindTexture(0,tex->gl_id);
+            previewStreamDrawRange(range->first_triangle,range->triangle_count,
+                                   tex->width,tex->height);
+        }
         glBindTexture(0,0);
     }else{
         glDisable(GL_TEXTURE_2D);
@@ -208,8 +207,8 @@ static void render(void) {
             if(preview_found){
                 printf("Source mesh: %d tris\n",previewStreamTriangleCount());
                 printf("Material refs: %s\n",material_references_ready?"verified":"unavailable");
-                printf("Single texture data: %s\n",texture_payload_ready?"verified":"unavailable");
-                printf("Native texture: %s\n",preview_gl_texture>0?"uploaded":"unavailable");
+                printf("Texture data: %s\n",texture_payload_ready?"verified":"unavailable");
+                printf("Native textures: %u\n",preview_gl_textures.count);
             }
             else printf("Source mesh unavailable\n");
             if(preview_found){
