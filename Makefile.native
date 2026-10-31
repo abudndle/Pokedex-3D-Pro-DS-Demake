@@ -25,4 +25,8 @@ build/%.o: source/%.c
 build/$(NAME).elf: $(OBJS)
 	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 $(NAME).nds: build/$(NAME).elf
+	@test -f "$(ARM7ELF)" || { echo "ERROR: BlocksDS ARM7 core missing: $(ARM7ELF)" >&2; exit 1; }
+	@if [ -n "$(strip $(NITROFSDIR))" ]; then \
+	  test -d "$(NITROFSDIR)" || { echo "ERROR: required NitroFS asset directory missing: $(NITROFSDIR)" >&2; exit 1; }; \
+	fi
 	$(BLOCKSDS)/tools/ndstool/ndstool -c $@ -7 $(ARM7ELF) -9 $< $(if $(strip $(NITROFSDIR)),-d $(NITROFSDIR),)
