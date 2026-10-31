@@ -17,6 +17,7 @@
 #include "form_model_map.h"
 #include "form_names.h"
 #include "model_animation.h"
+#include "model_material_texture.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
 #include "photo_album.h"
@@ -45,6 +46,9 @@ static int progress_dirty=0;
 static int preview_ready=0;
 static int preview_found=0;
 static P3DAnimationClip preview_animation;
+static P3DMaterialMap preview_materials;
+static P3DTextureManifest preview_textures;
+static int material_references_ready=0;
 static unsigned animation_tick=0;
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
@@ -92,10 +96,19 @@ static void reload_preview(void){
     char clip_path[80];
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
     preview_animation.ready=0;
+    preview_materials.ready=0;
+    preview_textures.ready=0;
+    material_references_ready=0;
     animation_tick=0;
     if(preview_found){
         snprintf(clip_path,sizeof(clip_path),"nitro:/animations/p%03d.p3an",resource);
         p3dAnimationLoad(&preview_animation,clip_path);
+        snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3mt",resource);
+        if(p3dMaterialMapLoad(&preview_materials,clip_path,(unsigned)previewStreamTriangleCount())){
+            snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3tx",resource);
+            if(p3dTextureManifestLoad(&preview_textures,clip_path))
+                material_references_ready=p3dModelMaterialTexturesValid(&preview_materials,&preview_textures);
+        }
     }
 }
 static int display_preview=0;
@@ -164,7 +177,10 @@ static void render(void) {
                 else printf(" #%d",selected_form);
             }
             printf("\nY: cycle verified forms\n");
-            if(preview_found)printf("Source mesh: %d tris\n",previewStreamTriangleCount());
+            if(preview_found){
+                printf("Source mesh: %d tris\n",previewStreamTriangleCount());
+                printf("Material refs: %s\n",material_references_ready?"verified":"unavailable");
+            }
             else printf("Source mesh unavailable\n");
             if(preview_found){
                 if(preview_animation.ready)
