@@ -1,6 +1,9 @@
 # Pokédex 3D Pro — Nintendo DS / DSi Demake
 
 Community research and source-level demake project. **Unfinished. Not a verified playable ROM.**
+this is ai project dont look into this page please i was originally trying to keep it private but i cant do that 
+anynore so dont mind the notes and messages you read in the code
+im just playing with ai for fun
 
 ## Goals
 - Preserve the original game's menu layout and recovered model geometry rather than substitute arbitrary lookalikes.
