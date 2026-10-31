@@ -18,6 +18,7 @@ static P3DMenu state;
 static P3DPage pages[P3D_MENU_MAX];
 static int highlighted=0, count=0, home=1;
 static int dex_index=0, move_index=0;
+static int attack_type=1, defend_type=4;
 
 static void render(void) {
     consoleSelect(&top_console);
@@ -110,6 +111,12 @@ int main(void) {
             }
         } else {
             if(down&KEY_B){home=1;redraw=1;}
+            if(state.page==P3D_PAGE_TYPES){
+                if(down&KEY_UP){attack_type=(attack_type+16)%17;redraw=1;}
+                if(down&KEY_DOWN){attack_type=(attack_type+1)%17;redraw=1;}
+                if(down&KEY_LEFT){defend_type=(defend_type+16)%17;redraw=1;}
+                if(down&KEY_RIGHT){defend_type=(defend_type+1)%17;redraw=1;}
+            }
             if(state.page==P3D_PAGE_DEX){
                 if((down&KEY_LEFT)&&dex_index>0){dex_index--;redraw=1;}
                 if((down&KEY_RIGHT)&&dex_index<648){dex_index++;redraw=1;}
