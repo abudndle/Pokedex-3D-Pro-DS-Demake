@@ -41,5 +41,14 @@ int main(void) {
     assert(state.favorites_count==P3D_FAVORITES_MAX-1);
     assert(p3dFavoriteToggle(&state,100)==1);
     assert(state.favorites_count==P3D_FAVORITES_MAX);
+    /* Search origins can come from damaged save data. A very negative
+     * position must wrap safely rather than index before the array. */
+    const char *labels[]={"Alpha","Bravo","Charlie","Delta"};
+    assert(p3dSearchNext(labels,4,-1000,'B',1)==1);
+    assert(p3dSearchNext(labels,4,-1000,'D',-1)==3);
+    assert(p3dSearchNext(labels,4,-2147483647-1,'A',1)==0);
+    assert(p3dSearchNext(labels,4,0,'c',1)==2);
+    assert(p3dSearchNext(labels,4,0,'Z',1)==-1);
+    assert(p3dSearchNext(labels,4,0,'A',0)==-1);
     return 0;
 }
