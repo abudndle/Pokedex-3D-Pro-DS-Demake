@@ -13,6 +13,7 @@
 #include "challenge.h"
 #include "game_save_bridge.h"
 #include "preview_stream.h"
+#include "species_model_map.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
 #include "photo_album.h"
@@ -40,6 +41,7 @@ static int save_message=0;
 static int progress_dirty=0;
 static int preview_ready=0;
 static int preview_found=0;
+static P3DModelMap species_models;
 static int move_catalog_ready=0;
 static int move_text_offset=0;
 static P3DPhotoAlbum photo_album;
@@ -77,7 +79,10 @@ static void prepare_original_art(void){
     }
 }
 
-static void reload_preview(void){preview_found=preview_ready&&previewStreamLoad(dex_index);}
+static void reload_preview(void){
+    int resource=p3dModelMapResolve(&species_models,dex_index);
+    preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
+}
 static int display_preview=0;
 static int model_yaw=0;
 static void update_preview_mode(void){display_preview=!home&&state.page==P3D_PAGE_DEX&&preview_found;}
@@ -353,6 +358,7 @@ int main(void) {
     BG_PALETTE_SUB[0]=RGB15(0,0,0);
     /* Mount the ROM filesystem before accessing original pages, models, or moves. */
     nitro_ready=nitroFSInit(NULL)?1:0;
+    if(nitro_ready) p3dModelMapLoad(&species_models,"nitro:/models/species_map.p3sm");
     p3dMenuReset(&state);
     p3dChallengeReset(&quiz);
     /* FAT/DLDI storage is optional in DS mode; no media means volatile progress. */
