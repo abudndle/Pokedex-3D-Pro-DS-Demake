@@ -24,6 +24,7 @@
 #include "original_ui_page.h"
 #include "move_dex.h"
 #include "photo_album.h"
+#include "records.h"
 #ifdef P3D_HAVE_FAT
 #include <fat.h>
 #endif
@@ -39,6 +40,10 @@ static int highlighted=0, count=0, home=1;
 static int dex_index=0, move_index=0;
 static int attack_type=1, defend_type=4, defend_type2=-1;
 static P3DChallenge quiz;
+static P3DRecords records;
+static int records_dirty=0;
+static int records_tab=0;
+static int records_recent_cursor=0;
 static int challenge_correct_total=0, challenge_answer_total=0;
 static unsigned int challenge_seed=0x13579BDFu;
 static int favorite_index=0;
@@ -68,8 +73,8 @@ static int album_ready=0;
 static size_t album_offset=0;
 static size_t album_selected=0;
 static int album_confirm_delete=0;
-/* Live Records summary: the current save stores quiz totals and favorites,
- * but does not yet store a viewed-species bitmap or per-mode high scores. */
+/* C81 viewed species, regional totals and per-mode high scores are stored in
+ * separate dual-slot P3RC saves; P3SV legacy progress remains compatible. */
 static size_t records_photo_total(void){
     char names[P3D_ALBUM_PAGE_MAX][32];
     size_t total=0;
@@ -189,12 +194,23 @@ static int save_progress(void){
         save_message=2;
         return 0;
     }
-    save_message=p3dSaveStore(P3D_SAVE_BASE,&record)?1:2;
-    return save_message==1;
+    int saved=p3dSaveStore(P3D_SAVE_BASE,&record)?1:0;
+    if(saved && records_dirty){
+        if(p3dRecordsStore(P3D_SAVE_BASE,&records))records_dirty=0;
+        else saved=0;
+    }
+    save_message=saved?1:2;
+    return saved;
 }
 
 
 static void render(void) {
+    /* View tracking happens on actual Dex-page visits, including forms.
+     * Never mark unseen species when merely booting the home menu. */
+    if(!home && state.page==P3D_PAGE_DEX && p3dRecordsVisit(&records,dex_index)){
+        records_dirty=1;
+        progress_dirty=1;
+    }
     update_preview_mode();
     /* The upper BG3 text console is in front of the 3D layer. Hide it for
      * model previews, restoring it for menu pages or missing meshes. */
@@ -290,14 +306,37 @@ static void render(void) {
                 printf("Y: search this Pokemon\n");
             }else printf("No favorites yet.\n");
         } else if(state.page==P3D_PAGE_RECORDS){
-            printf("Quiz correct: %d / %d\\n",challenge_correct_total,challenge_answer_total);
-            printf("Saved favorites: %d / %d\\n",state.favorites_count,P3D_FAVORITES_MAX);
-            if(album_ready)printf("Album photos: %u\\n",(unsigned)records_photo_total());
-            else printf("Album count: unavailable\\n");
-            printf("Viewed-species history: pending\\n");
-            printf("Per-mode best scores: pending\\n");
-            printf("A: Album  X: Favorites\\n");
-            printf("Y: Challenges\\n");
+            static const char *regions[]={"KANTO","JOHTO","HOENN","SINNOH","UNOVA"};
+            static const int first[]={0,151,251,386,493};
+            static const int last[]={150,250,385,492,648};
+            if(records_tab==0){
+                printf("VIEWED: %d / 649\\n",p3dRecordsTotal(&records));
+                for(int i=0;i<5;i++)
+                    printf("%-8s %3d / %3d\\n",regions[i],
+                           p3dRecordsCount(&records,first[i],last[i]),last[i]-first[i]+1);
+                printf("Saved favorites: %d\\n",state.favorites_count);
+            }else if(records_tab==1){
+                printf("RECENT VIEWED POKEMON\\n");
+                for(int i=0;i<P3D_RECORD_RECENT;i++){
+                    int id=records.recent[i];
+                    if(id==P3D_RECORD_NO_SPECIES)break;
+                    printf("%c %d: Pokemon #%03d\\n",
+                           i==records_recent_cursor?'>':' ',i+1,id+1);
+                }
+                printf("UP/DOWN: select, A: open\\n");
+            }else{
+                printf("CHALLENGE HIGHSCORES\\n");
+                printf("Completed rounds: %u\\n",(unsigned)records.rounds);
+                for(int i=0;i<P3D_RECORD_CHALLENGES;i++){
+                    printf("%d: %2d best, %u runs\\n",i+1,
+                           records.best[i]==0xffu?-1:(int)records.best[i],
+                           (unsigned)records.runs[i]);
+                }
+                printf("Overall correct: %d/%d\\n",
+                       challenge_correct_total,challenge_answer_total);
+            }
+            printf("L/R: record tabs (%d/3)\\n",records_tab+1);
+            printf("X: Favorites  Y: Challenge\\n");
         } else if(state.page==P3D_PAGE_ALBUM){
             if(!storage_ready)printf("Photo Album needs FAT storage.\n");
             else if(!album_ready)printf("Photo folder unavailable.\n");
@@ -411,12 +450,33 @@ static void render(void) {
             else printf("\x1b[17;1HEffect: 1x");
             printf("\x1b[20;1HX: 2nd type  L/R: change");
         }else if(state.page==P3D_PAGE_RECORDS){
-            printf("\x1b[11;1HQuiz: %d / %d",challenge_correct_total,challenge_answer_total);
-            printf("\x1b[13;1HFavorites: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
-            if(album_ready)printf("\x1b[15;1HPhotos: %u",(unsigned)records_photo_total());
-            else printf("\x1b[15;1HPhotos: unavailable");
-            printf("\x1b[19;1HA:Album X:Favorites");
-            printf("\x1b[21;1HY:Challenge");
+            printf("\\x1b[9;1HRecords: %s",records_tab==0?"REGIONS":records_tab==1?"RECENT":"QUIZZES");
+            if(records_tab==0){
+                printf("\\x1b[11;1HViewed: %d / 649",p3dRecordsTotal(&records));
+                printf("\\x1b[13;1HKanto %d/151 Johto %d/100",
+                       p3dRecordsCount(&records,0,150),p3dRecordsCount(&records,151,250));
+                printf("\\x1b[15;1HHoenn %d/135 Sinnoh %d/107",
+                       p3dRecordsCount(&records,251,385),p3dRecordsCount(&records,386,492));
+                printf("\\x1b[17;1HUnova: %d / 156",p3dRecordsCount(&records,493,648));
+                printf("\\x1b[19;1HFavorites: %d  Photos: %u",
+                       state.favorites_count,(unsigned)records_photo_total());
+            }else if(records_tab==1){
+                for(int i=0;i<5;i++){
+                    int row=(records_recent_cursor/5)*5+i;
+                    if(row>=P3D_RECORD_RECENT ||
+                       records.recent[row]==P3D_RECORD_NO_SPECIES)break;
+                    printf("\\x1b[%d;1H%c Pokemon #%03d",11+i*2,
+                           row==records_recent_cursor?'>':' ',
+                           records.recent[row]+1);
+                }
+            }else{
+                printf("\\x1b[11;1HCompleted: %u",(unsigned)records.rounds);
+                for(int i=0;i<7;i++)
+                    printf("\\x1b[%d;1H%d: %u runs  best %d",
+                           13+i*2,i+1,(unsigned)records.runs[i],
+                           records.best[i]==0xffu?-1:(int)records.best[i]);
+            }
+            printf("\\x1b[23;1HL/R: tabs  X/Fav Y/Quiz");
         }else if(state.page==P3D_PAGE_SETTINGS){
             printf("\x1b[13;1HAuto rotate: %s",state.rotate?"ON":"OFF");
             printf("\x1b[15;1HA: toggle setting");
@@ -504,6 +564,7 @@ int main(void) {
     }
     p3dMenuReset(&state);
     p3dChallengeReset(&quiz);
+    p3dRecordsReset(&records);
     /* FAT/DLDI storage is optional in DS mode; no media means volatile progress. */
     #ifdef P3D_HAVE_FAT
     storage_ready=fatInitDefault()?1:0;
@@ -511,6 +572,8 @@ int main(void) {
     storage_ready=0; /* FAT support disabled for this build configuration */
     #endif
     if(storage_ready){
+        /* Bad or missing records slots leave a clean in-memory history. */
+        (void)p3dRecordsLoad(P3D_SAVE_BASE,&records);
         P3DSaveState record;
         if(p3dSaveLoad(P3D_SAVE_BASE,&record)){
             if(p3dGameSaveRestore(&record,&state,&dex_index,&move_index)){
@@ -616,6 +679,11 @@ int main(void) {
                             if(result)challenge_correct_total++;
                             progress_dirty=1;
                         }
+                        if(result>=0 && quiz.stage==P3D_CHALLENGE_RESULTS &&
+                           p3dRecordsComplete(&records,quiz.mode,quiz.score)){
+                            records_dirty=1;
+                            progress_dirty=1;
+                        }
                         redraw=1;
                     }
                 }
@@ -641,6 +709,11 @@ int main(void) {
                         if(result>=0 && challenge_answer_total<100000000){
                             challenge_answer_total++;
                             if(result)challenge_correct_total++;
+                            progress_dirty=1;
+                        }
+                        if(result>=0 && quiz.stage==P3D_CHALLENGE_RESULTS &&
+                           p3dRecordsComplete(&records,quiz.mode,quiz.score)){
+                            records_dirty=1;
                             progress_dirty=1;
                         }
                         redraw=1;
@@ -738,6 +811,22 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_RECORDS){
+                if((down&KEY_RIGHT) || (down&KEY_R)){
+                    records_tab=(records_tab+1)%3;
+                    records_recent_cursor=0;
+                    redraw=1;
+                }else if((down&KEY_LEFT) || (down&KEY_L)){
+                    records_tab=(records_tab+2)%3;
+                    records_recent_cursor=0;
+                    redraw=1;
+                }else if(records_tab==1 && (down&(KEY_UP|KEY_DOWN))){
+                    int next=records_recent_cursor+((down&KEY_DOWN)?1:-1);
+                    if(next>=0 && next<P3D_RECORD_RECENT &&
+                       records.recent[next]!=P3D_RECORD_NO_SPECIES){
+                        records_recent_cursor=next;
+                        redraw=1;
+                    }
+                }
                 if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
                     state.page=P3D_PAGE_CHALLENGE;
                     p3dChallengeReset(&quiz);
@@ -747,11 +836,20 @@ int main(void) {
                     favorite_index=0;
                     redraw=1;
                 }else if(down&KEY_A){
-                    state.page=P3D_PAGE_ALBUM;
-                    album_offset=0;
-                    album_selected=0;
-                    album_confirm_delete=0;
-                    redraw=1;
+                    if(records_tab==1 &&
+                       records.recent[records_recent_cursor]!=P3D_RECORD_NO_SPECIES){
+                        dex_index=(int)records.recent[records_recent_cursor];
+                        selected_form=0;
+                        state.page=P3D_PAGE_DEX;
+                        reload_preview();
+                        redraw=1;
+                    }else if(records_tab==0){
+                        state.page=P3D_PAGE_ALBUM;
+                        album_offset=0;
+                        album_selected=0;
+                        album_confirm_delete=0;
+                        redraw=1;
+                    }
                 }
             }
             if(state.page==P3D_PAGE_SETTINGS){
