@@ -41,6 +41,20 @@ int main(void) {
     assert(state.favorites_count==P3D_FAVORITES_MAX-1);
     assert(p3dFavoriteToggle(&state,100)==1);
     assert(state.favorites_count==P3D_FAVORITES_MAX);
+    /* Removing a favorite before the current selection must keep the
+     * same Pokémon highlighted after the array shifts left. */
+    p3dMenuReset(&state);
+    for(int i=0;i<4;i++) assert(p3dFavoriteToggle(&state,i)==1);
+    state.favorite_cursor=3;
+    assert(p3dFavoriteToggle(&state,1)==-1);
+    assert(state.favorite_cursor==2);
+    assert(state.favorites[state.favorite_cursor]==3);
+    assert(p3dFavoriteToggle(&state,3)==-1);
+    assert(state.favorite_cursor==1);
+    assert(state.favorites[state.favorite_cursor]==2);
+    assert(p3dFavoriteToggle(&state,0)==-1);
+    assert(p3dFavoriteToggle(&state,2)==-1);
+    assert(state.favorites_count==0 && state.favorite_cursor==0);
     /* Search origins can come from damaged save data. A very negative
      * position must wrap safely rather than index before the array. */
     const char *labels[]={"Alpha","Bravo","Charlie","Delta"};
