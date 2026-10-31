@@ -1,23 +1,25 @@
-name: Native BlocksDS build readiness
+name: Native BlocksDS development ROM
 on:
-  workflow_dispatch:
   push:
     paths:
       - 'source/**'
       - 'Makefile'
       - 'Makefile.native'
       - '.github/workflows/native-blocksds.yml'
+  workflow_dispatch:
 jobs:
-  readiness:
+  native-dev-rom:
     runs-on: ubuntu-latest
+    container:
+      image: skylyrac/blocksds:slim-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Report native source readiness (nonfatal until migration is complete)
-        run: |
-          if make verify-source; then
-            echo 'Native game source: migrated' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'Native game source: INCOMPLETE. Continue the C14 source migration before attempting a ROM build.' >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - name: Explain private asset requirement
-        run: echo 'Native ROM construction requires user-supplied original NitroFS assets, which are intentionally not present on GitHub-hosted runners.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Compile asset-free native development shell
+        run: make dev-rom
+      - name: Check output is a nonempty ROM
+        run: test -s Pokedex3D_DS_BlocksDS.nds
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pokedex3D-native-development-smoke-only
+          path: Pokedex3D_DS_BlocksDS.nds
+          retention-days: 7
