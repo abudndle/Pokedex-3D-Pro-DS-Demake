@@ -175,7 +175,9 @@ static void render(void) {
                 if(!shown)printf("No saved AR photos.\n");
                 for(size_t i=0;i<shown;i++)printf("%c%s\n",i==album_selected?'>':' ',photos[i]);
                 printf("UP/DOWN: select  L/R: page\n");
-                printf("X: delete (confirm with A)\n");
+                if(album_confirm_delete && shown)
+                    printf("Delete %s? A:yes B:no\n",photos[album_selected]);
+                else printf("X: delete (confirm with A)\n");
             }
         } else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
@@ -473,7 +475,11 @@ int main(void) {
                 }else{
                     if((down&KEY_UP) && album_selected>0){album_selected--;redraw=1;}
                     if((down&KEY_DOWN) && album_selected+1<shown){album_selected++;redraw=1;}
-                    if((down&KEY_X) && shown){album_confirm_delete=1;redraw=1;}
+                    /* Never request deletion while its confirmation is hidden
+                     * beneath an original-art bitmap overlay. */
+                    if((down&KEY_X) && shown && !showing_original_art){
+                        album_confirm_delete=1;redraw=1;
+                    }
                     int direction=(down&KEY_LEFT)?-1:((down&KEY_RIGHT)?1:0);
                     if((down&KEY_TOUCH) && !showing_original_art){
                         touchPosition point;
