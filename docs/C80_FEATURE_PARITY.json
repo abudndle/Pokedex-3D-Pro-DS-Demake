@@ -63,8 +63,8 @@
       "id": "records",
       "required_for_release": true,
       "status": "partial",
-      "source": "source/main.c",
-      "gap": "C80 saved quiz totals/favorites/photo count; viewed bitmap and individual high scores pending",
+      "source": "source/records.c",
+      "gap": "C81 restores viewed history for 649 species, five regional totals, eight recent entries and seven challenge-mode highscores; original 36-mode records and original graphics remain incomplete",
       "verified_end_to_end": false
     },
     {
@@ -127,8 +127,8 @@
       "id": "progress_saves",
       "required_for_release": true,
       "status": "partial",
-      "source": "source/game_save_bridge.c",
-      "gap": "Current save retains favorites and quiz totals, not full original records",
+      "source": "source/records.c",
+      "gap": "Legacy P3SV and separate CRC-checked P3RC now persist favorites, cumulative quiz totals, 649 viewed flags, eight recent species and 7 implemented quiz highscores; original full data/save parity not verified",
       "verified_end_to_end": false
     },
     {
