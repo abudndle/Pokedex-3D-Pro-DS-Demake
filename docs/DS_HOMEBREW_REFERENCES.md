@@ -4,8 +4,8 @@ This project uses DS-Homebrew projects as **technical references**, not sources 
 
 ## References and what to reuse
 
-- [TWiLight Menu++](https://github.com/DS-Homebrew/TWiLightMenu): dual-screen Nintendo DS/DSi menus, SD-card browser and launcher structure, themes, and lightweight image viewing. Its `imageview`, `romsel_dsimenutheme`, and `settings` subprojects are useful references for the Pokédex's photo album, UI assets and settings.
-- [nds-bootstrap](https://github.com/DS-Homebrew/nds-bootstrap): launch behavior, SD-card paths, save-file expectations and compatibility when running a homebrew `.nds` on DS/DSi/3DS via TWiLight Menu++. Use it for runtime interoperability, **not** as a graphics or 3D model source.
+- [TWiLight Menu++](https://github.com/DS-Homebrew/TWiLightMenu): dual-screen Nintendo DS/DSi menus, SD-card browser and launcher structure, themes, and lightweight image viewing. Its README documents `make package` at the repository root and `make dist` in component directories; those targets are not BlocksDS build commands. Its `imageview`, `romsel_dsimenutheme`, and `settings` subprojects are useful references for the Pokédex's photo album, UI assets and settings.
+- [nds-bootstrap](https://github.com/DS-Homebrew/nds-bootstrap): launch behavior, SD-card paths, save-file expectations and compatibility when running a homebrew `.nds` on DS/DSi/3DS via TWiLight Menu++. Its README documents `.sav` for DS ROM saves and `.pub`/`.prv` for DSiWare; those are launcher conventions, not a promise that this project's custom FAT save path automatically works. Use it for runtime interoperability, **not** as a graphics or 3D model source.
 - [GodMode9i](https://github.com/DS-Homebrew/GodMode9i): read-only file-browser conventions and DSi/SD-card storage handling. Keep file operations carefully bounded, especially imported assets and save data.
 
 ## Port-specific implementation rules
@@ -19,7 +19,7 @@ This project uses DS-Homebrew projects as **technical references**, not sources 
 
 ## Build-environment note
 
-TWiLight Menu++ and nds-bootstrap currently document devkitPro's `nds-dev` package with devkitARM and libnds, while this repository uses **BlocksDS** for its native smoke build. These are alternate toolchains; do **not** mix incompatible build flags or libraries simply because the code targets Nintendo DS.
+TWiLight Menu++ documents devkitARM, libnds, grit and mmutil via devkitPro, and nds-bootstrap documents devkitARM plus Nintendo DS libraries, while this repository uses **BlocksDS** for its native smoke build. These are alternate toolchains; do **not** mix incompatible build flags or libraries simply because the code targets Nintendo DS.
 
 ## Current limitation
 
