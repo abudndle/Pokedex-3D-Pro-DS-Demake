@@ -85,7 +85,7 @@ static void render_model(void){
 #define P3D_SAVE_BASE "fat:/pokedex3d" 
 static int save_progress(void){
     P3DSaveState record;
-    if(!storage_ready)return 0;
+    if(!storage_ready){save_message=2;return 0;}
     if(!p3dGameSaveCapture(&record,&state,dex_index,move_index,0,0)){
         save_message=2;
         return 0;
