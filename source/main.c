@@ -19,6 +19,7 @@
 #include "model_animation.h"
 #include "model_material_texture.h"
 #include "texture_asset.h"
+#include "ds_texture_upload.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
 #include "photo_album.h"
@@ -52,6 +53,7 @@ static P3DTextureManifest preview_textures;
 static int material_references_ready=0;
 static P3DTexturePixels preview_pixels;
 static int texture_payload_ready=0;
+static int preview_gl_texture=0;
 static unsigned animation_tick=0;
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
@@ -95,6 +97,13 @@ static void prepare_original_art(void){
 }
 
 static void reload_preview(void){
+    /* Retire the old resource before changing species/forms; one VRAM
+     * texture at a time avoids stale bindings and exceeding 128 KiB. */
+    if(preview_gl_texture>0){
+        glBindTexture(0,0);
+        glDeleteTextures(1,&preview_gl_texture);
+        preview_gl_texture=0;
+    }
     int resource=selected_form?p3dFormResolve(&alternate_models,dex_index,selected_form):p3dModelMapResolve(&species_models,dex_index);
     char clip_path[80];
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
@@ -117,6 +126,8 @@ static void reload_preview(void){
                 unsigned id=preview_textures.entries[0].id;
                 snprintf(clip_path,sizeof(clip_path),"nitro:/textures/t%03u.p3px",id);
                 texture_payload_ready=p3dTextureAssetLoad(&preview_pixels,&preview_textures,id,clip_path);
+                if(texture_payload_ready && previewStreamHasUv())
+                    p3dDsTextureUpload(&preview_pixels,&preview_gl_texture);
             }
         }
     }
@@ -141,8 +152,15 @@ static void render_model(void){
         }
     }
     glPolyFmt(POLY_ALPHA(31)|POLY_CULL_NONE);
-    glColor3b(255,255,255);
-    previewStreamDraw();
+    if(preview_gl_texture>0){
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(0,preview_gl_texture);
+        previewStreamDrawMode(preview_pixels.width,preview_pixels.height);
+        glBindTexture(0,0);
+    }else{
+        glDisable(GL_TEXTURE_2D);
+        previewStreamDraw();
+    }
     glFlush(0);
 }
 
@@ -191,6 +209,7 @@ static void render(void) {
                 printf("Source mesh: %d tris\n",previewStreamTriangleCount());
                 printf("Material refs: %s\n",material_references_ready?"verified":"unavailable");
                 printf("Single texture data: %s\n",texture_payload_ready?"verified":"unavailable");
+                printf("Native texture: %s\n",preview_gl_texture>0?"uploaded":"unavailable");
             }
             else printf("Source mesh unavailable\n");
             if(preview_found){
@@ -413,6 +432,8 @@ int main(void) {
     /* Mode 0 exposes BG3 as a tiled text background for consoleInit. */
     videoSetModeSub(MODE_0_2D);
     vramSetBankA(VRAM_A_MAIN_BG);
+    /* Dedicated 128 KiB texture VRAM; bank A remains the upper text BG. */
+    vramSetBankB(VRAM_B_TEXTURE);
     vramSetBankC(VRAM_C_SUB_BG);
     consoleInit(&top_console,3,BgType_Text4bpp,BgSize_T_256x256,
                 31,0,true,true);
