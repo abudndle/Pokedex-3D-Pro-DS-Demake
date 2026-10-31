@@ -4,6 +4,7 @@
  */
 #include <nds.h>
 #include <stdio.h>
+#include <filesystem.h>
 #include "feature_menu.h"
 #include "menu_layout.h"
 #include "menu_navigation.h"
@@ -30,6 +31,7 @@ static int attack_type=1, defend_type=4;
 static P3DChallenge quiz;
 static int favorite_index=0;
 static int storage_ready=0;
+static int nitro_ready=0;
 static int save_message=0;
 static int progress_dirty=0;
 static int preview_ready=0;
@@ -42,7 +44,7 @@ static void prepare_original_art(void){
     int page=home?P3D_PAGE_HOME:(int)state.page;
     if(page==art_page)return;
     art_page=page;
-    original_art_available=p3dOriginalUiPageLoad(page);
+    original_art_available=nitro_ready&&p3dOriginalUiPageLoad(page);
     if(original_art_available){
         bgInitSub(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
         bgShow(2);bgHide(3);
@@ -146,6 +148,7 @@ static void render(void) {
         printf("B: RETURN TO MENU\n");
     }
     printf("\nDEVELOPMENT BUILD\n");
+    if(!nitro_ready)printf("NitroFS unavailable: assets disabled\n");
     if(!storage_ready)printf("No writable storage\n");
     else if(save_message==1)printf("Progress saved\n");
     else if(save_message==2)printf("Save failed\n");
@@ -209,6 +212,8 @@ int main(void) {
                 31,0,true,true);
     consoleInit(&bottom_console,3,BgType_Text4bpp,BgSize_T_256x256,
                 31,0,false,true);
+    /* Mount the ROM filesystem before accessing original pages, models, or moves. */
+    nitro_ready=nitroFSInit(NULL)?1:0;
     p3dMenuReset(&state);
     p3dChallengeReset(&quiz);
     /* FAT/DLDI storage is optional in DS mode; no media means volatile progress. */
@@ -224,8 +229,11 @@ int main(void) {
             save_message=3;
         }
     }
-    preview_ready=previewStreamInit();
-    if(preview_ready)move_catalog_ready=p3dMoveDexInit("nitro:/moves.p3dm");
+    if(nitro_ready){
+        preview_ready=previewStreamInit();
+        /* Moves must remain available even if a model preview is missing. */
+        move_catalog_ready=p3dMoveDexInit("nitro:/moves.p3dm");
+    }
     reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
     render();
