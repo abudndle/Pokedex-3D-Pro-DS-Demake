@@ -75,7 +75,11 @@ jobs:
           sleep 12
           xwd -id "$window_id" -silent -out emulator-before-down.xwd
           xdotool windowactivate --sync "$window_id" || true
-          xdotool key --window "$window_id" Down
+          # Hold Down across multiple emulated DS frames so scanKeys()
+          # can observe the press instead of a potentially missed tap.
+          xdotool keydown --window "$window_id" Down
+          sleep 1
+          xdotool keyup --window "$window_id" Down
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-down.xwd
           sleep 6
