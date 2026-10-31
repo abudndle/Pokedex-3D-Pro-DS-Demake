@@ -281,7 +281,9 @@ int main(void) {
                     redraw=1;
                 }
             }
-            if((down&KEY_A)&&highlighted>=0&&highlighted<count) {
+            /* A menu tap already opens an entry; do not let a simultaneous
+             * A press open the next highlighted entry in the same frame. */
+            if((down&KEY_A)&&!(down&KEY_TOUCH)&&highlighted>=0&&highlighted<count) {
                 if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);}
                 redraw=1;
             }
