@@ -58,7 +58,8 @@ jobs:
           /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
-          sleep 8
+          # Give NitroFS/FAT startup and the DS CPU more time to draw frames.
+          sleep 20
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
             echo "DeSmuME terminated before the startup smoke test completed" >&2
