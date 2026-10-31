@@ -46,3 +46,4 @@ check-host:
 		tests/test_save_recovery.c source/save_store.c -o "$$tmp"; "$$tmp"
 
 	@python3 -m unittest discover -s tests -p 'test_c76_model_texture_catalog_host.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c78_texture_loader_host.py' -v
