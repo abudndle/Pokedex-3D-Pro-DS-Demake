@@ -32,6 +32,16 @@ int main(void){
  assert(previewStreamLoad(3));
  emitted=0;red_seen=green_seen=0; previewStreamDraw();
  assert(emitted==6 && red_seen==1 && green_seen==1);
+ emitted=0;red_seen=green_seen=0;
+ previewStreamDrawRange(1,1,0,0);
+ assert(emitted==3 && red_seen==0 && green_seen==1);
+ emitted=0;
+ previewStreamDrawRange(1,2,0,0);
+ assert(emitted==0); /* Reject ranges exceeding the loaded mesh. */
+ previewStreamDrawRange(-1,1,0,0);
+ assert(emitted==0);
+ previewStreamDrawRange(0,0,0,0);
+ assert(emitted==0);
  assert(!previewStreamLoad(4)); /* v2 colors truncated */
  assert(!previewStreamLoad(2)); /* 601 triangles must not overflow the buffer. */
  assert(!previewStreamLoad(721));
