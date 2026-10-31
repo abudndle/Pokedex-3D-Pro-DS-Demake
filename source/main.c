@@ -242,6 +242,7 @@ static void render(void) {
                 printf("Pokemon #%03d\n",state.favorites[favorite_index]+1);
                 printf("LEFT/RIGHT: browse\n");
                 printf("A: remove favorite\n");
+                printf("Y: search this Pokemon\n");
             }else printf("No favorites yet.\n");
         } else if(state.page==P3D_PAGE_ALBUM){
             if(!storage_ready)printf("Photo Album needs FAT storage.\n");
@@ -695,6 +696,15 @@ int main(void) {
                  * left/right navigation. */
                 if(favorite_index<0 || favorite_index>=state.favorites_count)
                     favorite_index=0;
+                if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
+                    if(state.favorites_count>0){
+                        state.selected_dex=state.favorites[favorite_index];
+                    }else{
+                        state.selected_dex=dex_index;
+                    }
+                    state.page=P3D_PAGE_SEARCH;
+                    redraw=1;
+                }
                 if((down&KEY_LEFT)&&favorite_index>0){favorite_index--;redraw=1;}
                 if((down&KEY_RIGHT)&&favorite_index<state.favorites_count-1){favorite_index++;redraw=1;}
                 if((down&KEY_A)&&state.favorites_count>0){
