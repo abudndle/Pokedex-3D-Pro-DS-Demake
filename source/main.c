@@ -8,6 +8,7 @@
 #include "menu_layout.h"
 #include "menu_navigation.h"
 #include "dsi_features.h"
+#include "challenge.h"
 
 #define MENU_TOUCH_Y 88
 #define MENU_TOUCH_STEP 16
@@ -19,6 +20,7 @@ static P3DPage pages[P3D_MENU_MAX];
 static int highlighted=0, count=0, home=1;
 static int dex_index=0, move_index=0;
 static int attack_type=1, defend_type=4;
+static P3DChallenge quiz;
 
 static void render(void) {
     consoleSelect(&top_console);
@@ -49,6 +51,18 @@ static void render(void) {
             else if(effect==20)printf("Effect: super effective (2x)\n");
             else printf("Effect: normal (1x)\n");
             printf("Arrows: change types\n");
+        } else if(state.page==P3D_PAGE_CHALLENGE){
+            if(quiz.stage==P3D_CHALLENGE_PICKER){
+                printf("A: Start Unova quiz\n");
+            }else if(quiz.stage==P3D_CHALLENGE_RESULTS){
+                printf("Quiz complete: %d / %d\n",quiz.score,P3D_CHALLENGE_QUESTIONS);
+                printf("A: Try again\n");
+            }else{
+                printf("Question %d / %d\n",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
+                printf("Choose Pokemon number:\n");
+                for(int i=0;i<4;i++)printf("%c %d: #%03d\n",quiz.selected==i?'>':' ',i+1,quiz.choices[i]+1);
+                printf("UP/DOWN + A: Answer\n");
+            }
         } else {
             printf("Native feature UI pending.\n");
         }
@@ -85,6 +99,9 @@ static void render(void) {
         }else if(state.page==P3D_PAGE_TYPES){
             printf("\x1b[13;1H%s vs %s",p3dTypeName(attack_type),p3dTypeName(defend_type));
             printf("\x1b[15;1HArrows: choose types");
+        }else if(state.page==P3D_PAGE_CHALLENGE){
+            printf("\x1b[13;1HChallenge: %d / %d",quiz.question, P3D_CHALLENGE_QUESTIONS);
+            printf("\x1b[15;1HA: select   B: return");
         }else{
             printf("\x1b[13;1HFeature implementation pending");
         }
@@ -102,6 +119,7 @@ int main(void) {
     consoleInit(&bottom_console,3,BgType_Text4bpp,BgSize_T_256x256,
                 31,0,false,true);
     p3dMenuReset(&state);
+    p3dChallengeReset(&quiz);
     count=(int)p3dMenuEntries(caps,pages);
     render();
     while(1) {
@@ -118,7 +136,7 @@ int main(void) {
                 int hit=p3dMenuTouchIndex(point.px,point.py,count,highlighted);
                 if(hit>=0) {
                     highlighted=hit;
-                    if(p3dMenuEnter(&state,caps,pages[highlighted]))home=0;
+                    if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);}
                     redraw=1;
                 }
             }
@@ -128,6 +146,15 @@ int main(void) {
             }
         } else {
             if(down&KEY_B){home=1;redraw=1;}
+            if(state.page==P3D_PAGE_CHALLENGE){
+                if(quiz.stage==P3D_CHALLENGE_PICKER||quiz.stage==P3D_CHALLENGE_RESULTS){
+                    if(down&KEY_A){p3dChallengeBegin(&quiz,0,1,0);redraw=1;}
+                }else{
+                    if((down&KEY_UP)&&quiz.selected>0){quiz.selected--;redraw=1;}
+                    if((down&KEY_DOWN)&&quiz.selected<3){quiz.selected++;redraw=1;}
+                    if(down&KEY_A){p3dChallengeAnswer(&quiz,quiz.selected);redraw=1;}
+                }
+            }
             if(state.page==P3D_PAGE_TYPES){
                 if(down&KEY_UP){attack_type=(attack_type+16)%17;redraw=1;}
                 if(down&KEY_DOWN){attack_type=(attack_type+1)%17;redraw=1;}
