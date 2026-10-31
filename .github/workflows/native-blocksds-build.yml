@@ -46,7 +46,7 @@ jobs:
       - name: Install Nintendo DS emulator and virtual display
         run: |
           sudo apt-get update
-          sudo apt-get install -y desmume xvfb
+          sudo apt-get install -y desmume xvfb x11-apps
       - name: Attempt ROM startup in DeSmuME CLI
         shell: bash
         run: |
@@ -64,9 +64,19 @@ jobs:
             echo "DeSmuME terminated before the startup smoke test completed" >&2
             exit 1
           fi
-          # CLI is an SDL frontend, not a GTK window. The emulator
-          # remaining alive after ROM load is a basic startup smoke test.
+          # Capture both emulated screens for manual review in CI artifacts.
+          # This is evidence, not an automated proof of correct rendering.
+          xwd -root -silent -out emulator-desktop.xwd
+          test -s emulator-desktop.xwd
           tail -30 /tmp/desmume.log || true
           SCRIPT
           chmod +x /tmp/check_emulator.sh
           xvfb-run -a -s '-screen 0 1024x768x24' timeout 35s /tmp/check_emulator.sh
+      - name: Upload emulator visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desmume-startup-evidence
+          path: |
+            emulator-desktop.xwd
+          if-no-files-found: warn
