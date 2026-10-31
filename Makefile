@@ -15,6 +15,7 @@ verify-source:
 	@if [ -n "$(strip $(MISSING))" ]; then echo "ERROR: Native port source migration incomplete. Missing: $(MISSING)" >&2; exit 1; fi
 verify-assets:
 	@test -d "$(NITROFSDIR)" || { echo "ERROR: Private original-asset NitroFS directory missing: $(NITROFSDIR)" >&2; exit 1; }
+	@python3 tools/check_private_release_assets.py --root "$(NITROFSDIR)" --release
 clean:
 	@rm -rf build Pokedex3D_DS_BlocksDS.nds
 
@@ -49,4 +50,5 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c76_model_texture_catalog_host.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c78_texture_loader_host.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c79_private_texture_manifest_builder.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c85_private_release_assets.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
