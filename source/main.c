@@ -122,10 +122,14 @@ static void reload_preview(void){
             snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3tx",resource);
             if(p3dTextureManifestLoad(&preview_textures,clip_path))
                 material_references_ready=p3dModelMaterialTexturesValid(&preview_materials,&preview_textures);
-            if(material_references_ready && previewStreamHasUv())
+            if(material_references_ready && previewStreamHasUv()){
+                /* Model-scoped paths avoid colliding texture IDs across species. */
+                snprintf(clip_path,sizeof(clip_path),
+                         "nitro:/textures/p%03d",resource);
                 texture_payload_ready=p3dPreviewTextureSetLoad(
                     &preview_gl_textures,&preview_pixels,
-                    &preview_materials,&preview_textures,"nitro:/textures");
+                    &preview_materials,&preview_textures,clip_path);
+            }
         }
     }
 }
