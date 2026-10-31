@@ -137,6 +137,9 @@ static void render(void) {
         if(state.page==P3D_PAGE_DEX){
             printf("Pokemon entry: %03d / 649\n",dex_index+1);
             printf("LEFT/RIGHT: browse entries\n");
+            printf("Form: %s",selected_form?"alternate":"base");
+            if(selected_form)printf(" #%d",selected_form);
+            printf("\nY: cycle verified forms\n");
             if(preview_found)printf("Source mesh: %d tris\n",previewStreamTriangleCount());
             else printf("Source mesh unavailable\n");
             printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
@@ -250,6 +253,9 @@ static void render(void) {
         if(state.page==P3D_PAGE_DEX){
             printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
+            if(selected_form)printf("\x1b[17;1HAlternate form #%d",selected_form);
+            else printf("\x1b[17;1HBase form");
+            printf("\x1b[19;1HY: next verified form");
         }else if(state.page==P3D_PAGE_SEARCH){
             printf("\x1b[13;1HSearch #%03d",state.selected_dex+1);
             printf("\x1b[15;1HA: open Pokemon");
