@@ -289,7 +289,8 @@ int main(void) {
                 if(progress_dirty && save_progress())progress_dirty=0;
                 home=1;
                 redraw=1;
-            } else if(state.page==P3D_PAGE_CHALLENGE){
+            } else {
+            if(state.page==P3D_PAGE_CHALLENGE){
                 if(quiz.stage==P3D_CHALLENGE_PICKER||quiz.stage==P3D_CHALLENGE_RESULTS){
                     if(down&KEY_A){p3dChallengeBegin(&quiz,0,1,0);redraw=1;}
                 }else{
@@ -325,6 +326,7 @@ int main(void) {
                 if((down&KEY_LEFT)&&move_index>0){move_index--;progress_dirty=1;redraw=1;}
                 if((down&KEY_RIGHT)&&move_index<558){move_index++;progress_dirty=1;redraw=1;}
             }
+            } /* Do not process page-specific input after B returns home. */
         }
         /* Update page/model state before issuing 3D commands.  Previously
          * render_model() ran with the prior frame's display_preview flag:
