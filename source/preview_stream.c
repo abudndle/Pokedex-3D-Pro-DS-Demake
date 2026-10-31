@@ -9,7 +9,7 @@
 #include <string.h>
 #include "preview_stream.h"
 
-#define C7_MAX_PREVIEW_TRIANGLES 300
+#define C7_MAX_PREVIEW_TRIANGLES 600
 static int16_t s_xyz[C7_MAX_PREVIEW_TRIANGLES * 9];
 static int s_loaded = 0;
 static int s_triangle_count = 0;
