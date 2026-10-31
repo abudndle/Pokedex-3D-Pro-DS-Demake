@@ -72,6 +72,31 @@ jobs:
           SCRIPT
           chmod +x /tmp/check_emulator.sh
           xvfb-run -a -s '-screen 0 1024x768x24' timeout 35s /tmp/check_emulator.sh
+      - name: Reject mostly blank emulator display
+        run: |
+          python3 - <<'PY'
+          import struct
+          from pathlib import Path
+          raw=Path('emulator-desktop.xwd').read_bytes()
+          h=struct.unpack_from('>25I',raw)
+          header, width, height, bpl, colors=h[0],h[4],h[5],h[12],h[19]
+          assert h[3]==24 and h[11]==24 and h[17]==8, 'Unsupported XWD format'
+          offset=header+colors*12
+          assert len(raw)>=offset+bpl*height, 'Truncated XWD capture'
+          pixels=memoryview(raw)[offset:offset+bpl*height]
+          # Sample the entire 1024x768 virtual display. A healthy GUI
+          # should occupy substantially more than a thin colored stripe.
+          colored=0
+          total=0
+          for y in range(0,height,4):
+              for x in range(0,width,4):
+                  p=y*bpl+4*x
+                  colored+=max(pixels[p],pixels[p+1],pixels[p+2])>16
+                  total+=1
+          ratio=colored/total
+          print(f'Visible nonblack screen pixels: {ratio:.1%}')
+          assert ratio>=0.05, 'Emulator capture is mostly black; inspect startup screenshot'
+          PY
       - name: Upload emulator visual evidence
         if: always()
         uses: actions/upload-artifact@v4
