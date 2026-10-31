@@ -53,4 +53,5 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c85_private_release_assets.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
