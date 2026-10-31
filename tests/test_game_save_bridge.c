@@ -13,5 +13,11 @@ int main(void){
  assert(dex==24&&move==12&&p3dFavoriteContains(&menu,24)&&p3dFavoriteContains(&menu,0));
  assert(menu.rotate==0&&menu.backdrop==2);
  assert(!p3dGameSaveCapture(&save,&menu,-1,0,0,0));
+ assert(!p3dGameSaveCapture(&save,&menu,649,0,0,0));
+ assert(p3dGameSaveCapture(&save,&menu,648,0,0,0));
+ save.selected_model=737; /* Legacy original-resource selection. */
+ assert(p3dGameSaveRestore(&save,&menu,&dex,&move));
+ assert(dex==648);
+
  puts("Native gameplay save bridge: PASS");return 0;
 }
