@@ -48,3 +48,6 @@ jobs:
 
       - name: Verify DS Settings image touch selection
         run: sh tests/run_settings_images.sh
+
+      - name: Verify native menu touchscreen row mapping
+        run: sh tests/run_menu_navigation.sh
