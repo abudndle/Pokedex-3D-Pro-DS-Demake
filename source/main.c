@@ -352,6 +352,9 @@ int main(void) {
          * recovered UI image. Press SELECT again to restore original art. */
         if(down&KEY_SELECT){
             prefer_original_art=!prefer_original_art;
+            /* An invisible confirmation must never remain armed when the
+             * screen mode changes, including returning to the text screen. */
+            album_confirm_delete=0;
             art_page=-1; /* force re-evaluation of the same page */
             redraw=1;
         }
