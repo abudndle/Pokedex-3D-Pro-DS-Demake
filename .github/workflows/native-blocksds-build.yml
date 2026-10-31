@@ -46,7 +46,7 @@ jobs:
       - name: Install Nintendo DS emulator and virtual display
         run: |
           sudo apt-get update
-          sudo apt-get install -y desmume xvfb imagemagick
+          sudo apt-get install -y desmume xvfb x11-utils
       - name: Attempt ROM startup in DeSmuME
         shell: bash
         run: |
