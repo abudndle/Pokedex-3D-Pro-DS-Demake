@@ -358,6 +358,7 @@ int main(void) {
     BG_PALETTE_SUB[0]=RGB15(0,0,0);
     /* Mount the ROM filesystem before accessing original pages, models, or moves. */
     nitro_ready=nitroFSInit(NULL)?1:0;
+    if(nitro_ready) p3dModelMapLoad(&species_models,"nitro:/models/species_map.p3sm");
     p3dMenuReset(&state);
     p3dChallengeReset(&quiz);
     /* FAT/DLDI storage is optional in DS mode; no media means volatile progress. */
