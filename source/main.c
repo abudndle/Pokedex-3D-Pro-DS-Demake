@@ -338,6 +338,14 @@ int main(void) {
     consoleSelect(&bottom_console);
     printf("Initializing game...\n");
     swiWaitForVBlank();
+    /* Diagnostic color pulse: direct backdrop registers should be visible
+     * even if the text console or game filesystems never become ready.
+     * Keep the early console text visible after this short boot probe. */
+    BG_PALETTE[0]=RGB15(0,20,0);
+    BG_PALETTE_SUB[0]=RGB15(0,0,20);
+    for(int probe=0;probe<45;probe++)swiWaitForVBlank();
+    BG_PALETTE[0]=RGB15(0,0,0);
+    BG_PALETTE_SUB[0]=RGB15(0,0,0);
     /* Mount the ROM filesystem before accessing original pages, models, or moves. */
     nitro_ready=nitroFSInit(NULL)?1:0;
     p3dMenuReset(&state);
