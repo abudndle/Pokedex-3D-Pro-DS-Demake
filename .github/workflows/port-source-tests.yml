@@ -27,3 +27,6 @@ jobs:
 
       - name: Verify save persistence and backup slots
         run: sh tests/run_save_store_smoke.sh
+
+      - name: Verify regional challenge quiz rules
+        run: sh tests/run_challenge_smoke.sh
