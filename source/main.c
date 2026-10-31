@@ -166,6 +166,11 @@ static void render(void) {
             printf("\nY: cycle verified forms\n");
             if(preview_found)printf("Source mesh: %d tris\n",previewStreamTriangleCount());
             else printf("Source mesh unavailable\n");
+            if(preview_found){
+                if(preview_animation.ready)
+                    printf("Animation: %u frames, %u ticks\n",preview_animation.count,preview_animation.total_ticks);
+                else printf("Animation: static (no clip)\n");
+            }
             printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
         } else if(state.page==P3D_PAGE_SEARCH){
             printf("Pokemon number: %03d / 649\n",state.selected_dex+1);
