@@ -199,6 +199,7 @@ static void render(void) {
                 else printf("Animation: static (no clip)\n");
             }
             printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
+            printf("X: search this Pokemon\n");
         } else if(state.page==P3D_PAGE_SEARCH){
             printf("Pokemon number: %03d / 649\n",state.selected_dex+1);
             printf("LEFT/RIGHT: +/- 1\n");
@@ -735,6 +736,11 @@ int main(void) {
             /* Selecting a favorite is a navigation action. Do not process
              * Pokédex A/LEFT/RIGHT input again on the same frame; otherwise
              * X+A could immediately remove the just-opened favorite. */
+            if(state.page==P3D_PAGE_DEX && (down&KEY_X) && !(down&(KEY_A|KEY_Y))){
+                state.selected_dex=dex_index;
+                state.page=P3D_PAGE_SEARCH;
+                redraw=1;
+            }
             if(state.page==P3D_PAGE_DEX && !(down&KEY_X)){
                 /* Held shoulder buttons rotate continuously rather than taking
                  * only one step per press.  The model is drawn each frame, so
