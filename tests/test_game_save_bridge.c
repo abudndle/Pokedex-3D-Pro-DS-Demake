@@ -18,6 +18,12 @@ int main(void){
  save.selected_model=737; /* Legacy original-resource selection. */
  assert(p3dGameSaveRestore(&save,&menu,&dex,&move));
  assert(dex==648);
+ save.favorite_count=2;
+ save.favorites[0]=737;
+ save.favorites[1]=24;
+ assert(p3dGameSaveRestore(&save,&menu,&dex,&move));
+ assert(menu.favorites_count==1&&menu.favorites[0]==24);
+ assert(!p3dFavoriteContains(&menu,737));
 
  puts("Native gameplay save bridge: PASS");return 0;
 }
