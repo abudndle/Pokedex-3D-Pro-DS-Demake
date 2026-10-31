@@ -17,6 +17,8 @@ jobs:
         run: |
           test -s Pokedex3D_DS_BlocksDS.nds
           ls -lh Pokedex3D_DS_BlocksDS.nds
+      - name: Validate ROM header and ARM7/ARM9 sections
+        run: python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
       - uses: actions/upload-artifact@v4
         with:
           name: native-ds-smoke-rom
