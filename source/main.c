@@ -212,6 +212,7 @@ static void render(void) {
             printf("Move entry: %03d / 559\n",move_index+1);
             printf("LEFT/RIGHT: +/- 1 move\n");
             printf("UP/DOWN: +/- 10 moves\n");
+            printf("Y: back to Pokemon Search\n");
             if(move_catalog_ready){
                 P3DMove entry;
                 if(p3dMoveDexRead(move_index,&entry)){
@@ -791,6 +792,11 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_MOVES){
+                if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
+                    state.selected_dex=dex_index;
+                    state.page=P3D_PAGE_SEARCH;
+                    redraw=1;
+                }
                 /* L and R are dedicated to description scrolling, but a
                  * simultaneous shoulder press must not scroll twice. */
                 int scroll_dir=((down&KEY_R)!=0)-((down&KEY_L)!=0);
