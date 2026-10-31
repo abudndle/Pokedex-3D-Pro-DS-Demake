@@ -87,8 +87,8 @@
       "id": "original_pokemon_models",
       "required_for_release": true,
       "status": "partial",
-      "source": "source/preview_stream.c",
-      "gap": "C89 matches 3,712 source mesh descriptors to C7 OBJ export order and counts, finding p561 truncated/missing mesh groups and four missing source OBJ exports; source index topology, material selectors and visually faithful full-poly models are still unverified",
+      "source": "tools/c93_private_browser_bundle_audit.py",
+      "gap": "C93 privately renders 500 original-derived material candidates in a standalone interactive offline browser, with seven full recovered source OBJ reference meshes and 493 600-face samples. Actual DS visual parity, original 3DS shader texture-channel semantics, animations and complete original mesh geometry across all 730 remain unverified.",
       "verified_end_to_end": false
     },
     {
