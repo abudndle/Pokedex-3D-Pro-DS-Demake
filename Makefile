@@ -17,3 +17,8 @@ verify-assets:
 	@test -d "$(NITROFSDIR)" || { echo "ERROR: Private original-asset NitroFS directory missing: $(NITROFSDIR)" >&2; exit 1; }
 clean:
 	@rm -rf build Pokedex3D_DS_BlocksDS.nds
+
+# Asset-free native compilation smoke test; never treated as a release ROM.
+.PHONY: dev-rom
+dev-rom:
+	@$(MAKE) -f Makefile.native NITROFSDIR= rom
