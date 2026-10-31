@@ -242,6 +242,7 @@ static void render(void) {
                 printf("Pokemon #%03d\n",state.favorites[favorite_index]+1);
                 printf("LEFT/RIGHT: browse\n");
                 printf("A: remove favorite\n");
+                printf("Y: search this Pokemon\n");
             }else printf("No favorites yet.\n");
         } else if(state.page==P3D_PAGE_ALBUM){
             if(!storage_ready)printf("Photo Album needs FAT storage.\n");
