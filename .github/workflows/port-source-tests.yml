@@ -39,3 +39,6 @@ jobs:
 
       - name: Verify optional DS-mode image selection
         run: sh tests/run_custom_images.sh
+
+      - name: Verify DS custom BMP decoding
+        run: sh tests/run_bmp_loader.sh
