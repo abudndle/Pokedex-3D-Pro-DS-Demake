@@ -163,16 +163,16 @@ static void render(void) {
                 printf("A: remove favorite\n");
             }else printf("No favorites yet.\n");
         } else if(state.page==P3D_PAGE_ALBUM){
-            if(!storage_ready)printf("Photo Album needs FAT storage.\\n");
-            else if(!album_ready)printf("Photo folder unavailable.\\n");
+            if(!storage_ready)printf("Photo Album needs FAT storage.\n");
+            else if(!album_ready)printf("Photo folder unavailable.\n");
             else {
                 char photos[P3D_ALBUM_PAGE_MAX][32];
                 size_t total=0;
                 size_t shown=p3dPhotoAlbumPage(&photo_album,photos,P3D_ALBUM_PAGE_MAX,album_offset,&total);
-                printf("Photos: %u\\n",(unsigned)total);
-                if(!shown)printf("No saved AR photos.\\n");
-                for(size_t i=0;i<shown;i++)printf("%s\\n",photos[i]);
-                printf("LEFT/RIGHT: browse page\\n");
+                printf("Photos: %u\n",(unsigned)total);
+                if(!shown)printf("No saved AR photos.\n");
+                for(size_t i=0;i<shown;i++)printf("%s\n",photos[i]);
+                printf("LEFT/RIGHT: browse page\n");
             }
         } else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
@@ -253,16 +253,16 @@ static void render(void) {
             printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
             printf("\x1b[15;1HChoose in Pokedex");
         }else if(state.page==P3D_PAGE_ALBUM){
-            if(!storage_ready)printf("\\x1b[13;1HFAT storage unavailable");
-            else if(!album_ready)printf("\\x1b[13;1HPhoto folder unavailable");
+            if(!storage_ready)printf("\x1b[13;1HFAT storage unavailable");
+            else if(!album_ready)printf("\x1b[13;1HPhoto folder unavailable");
             else {
                 size_t total=0;
                 char names[P3D_ALBUM_PAGE_MAX][32];
                 size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
-                printf("\\x1b[11;1HPhotos: %u",(unsigned)total);
+                printf("\x1b[11;1HPhotos: %u",(unsigned)total);
                 for(size_t i=0;i<shown && i<5;i++)
-                    printf("\\x1b[%d;1H%s",13+(int)i*2,names[i]);
-                printf("\\x1b[24;1HLEFT/RIGHT: page");
+                    printf("\x1b[%d;1H%s",13+(int)i*2,names[i]);
+                printf("\x1b[24;1HLEFT/RIGHT: page");
             }
         }else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
