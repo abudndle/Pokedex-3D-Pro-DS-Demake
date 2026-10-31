@@ -115,6 +115,11 @@ static void render(void) {
             if(preview_found)printf("Source mesh: %d tris\n",previewStreamTriangleCount());
             else printf("Source mesh unavailable\n");
             printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
+        } else if(state.page==P3D_PAGE_SEARCH){
+            printf("Pokemon number: %03d / 649\\n",state.selected_dex+1);
+            printf("LEFT/RIGHT: +/- 1\\n");
+            printf("UP/DOWN: +/- 10\\n");
+            printf("A: open this Pokemon\\n");
         } else if(state.page==P3D_PAGE_MOVES){
             printf("Move entry: %03d / 559\n",move_index+1);
             printf("LEFT/RIGHT: browse moves\n");
@@ -300,6 +305,23 @@ int main(void) {
                     if((down&KEY_UP)&&quiz.selected>0){quiz.selected--;redraw=1;}
                     if((down&KEY_DOWN)&&quiz.selected<3){quiz.selected++;redraw=1;}
                     if(down&KEY_A){p3dChallengeAnswer(&quiz,quiz.selected);redraw=1;}
+                }
+            }
+            if(state.page==P3D_PAGE_SEARCH){
+                int next=state.selected_dex;
+                if(down&KEY_LEFT)next--;
+                if(down&KEY_RIGHT)next++;
+                if(down&KEY_UP)next-=10;
+                if(down&KEY_DOWN)next+=10;
+                if(next<0)next=0;
+                if(next>648)next=648;
+                if(next!=state.selected_dex){state.selected_dex=next;redraw=1;}
+                if(down&KEY_A){
+                    dex_index=state.selected_dex;
+                    state.page=P3D_PAGE_DEX;
+                    reload_preview();
+                    progress_dirty=1;
+                    redraw=1;
                 }
             }
             if(state.page==P3D_PAGE_TYPES){
