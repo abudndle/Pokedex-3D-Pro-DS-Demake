@@ -85,11 +85,11 @@ jobs:
           xdotool keydown Down
           sleep 1
           xdotool keyup Down
-          # DeSmuME CLI maps s to DS X, not Down; use z for DS B
-          # after directional input to probe a second documented control.
-          xdotool keydown z
+          # DeSmuME CLI maps x to DS A; after Down, enter the
+          # highlighted page to probe a clearly visible transition.
+          xdotool keydown x
           sleep 0.2
-          xdotool keyup z
+          xdotool keyup x
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-down.xwd
           sleep 6
