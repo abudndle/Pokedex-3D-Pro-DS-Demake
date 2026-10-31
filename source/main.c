@@ -315,7 +315,12 @@ int main(void) {
             }
             if(state.page==P3D_PAGE_CHALLENGE){
                 if(quiz.stage==P3D_CHALLENGE_PICKER||quiz.stage==P3D_CHALLENGE_RESULTS){
-                    if(down&KEY_A){p3dChallengeBegin(&quiz,quiz.mode_cursor,1,challenge_answer_total);redraw=1;}
+                    if(down&KEY_A){
+                        /* Preserve the selected region when retrying. */
+                        int mode=quiz.mode_cursor;
+                        if(p3dChallengeBegin(&quiz,mode,1,challenge_answer_total))
+                            redraw=1;
+                    }
                 }else{
                     if((down&KEY_UP)&&quiz.selected>0){quiz.selected--;redraw=1;}
                     if((down&KEY_DOWN)&&quiz.selected<3){quiz.selected++;redraw=1;}
