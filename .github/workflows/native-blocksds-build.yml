@@ -134,6 +134,27 @@ jobs:
           assert len(per_screen[1])>=2, 'Lower DS menu is blank'
           assert len(unique)>=3, 'Both DS screens appear blank'
           PY
+      - name: Compare menu frames around simulated input
+        run: |
+          python3 - <<'PY'
+          import struct
+          from pathlib import Path
+          def read_pixels(path):
+              b=Path(path).read_bytes()
+              h=struct.unpack_from('>25I',b)
+              offset=h[0]+h[19]*12
+              stride=h[11]//8
+              return set(),b[offset:offset+h[12]*h[5]],h[4],h[5],h[12],stride
+          _,a,w,h,row,stride=read_pixels('emulator-before-down.xwd')
+          _,b,w2,h2,row2,stride2=read_pixels('emulator-after-down.xwd')
+          assert (w,h,row,stride)==(w2,h2,row2,stride2)
+          different=sum(a[y*row+x*stride:y*row+x*stride+3] !=
+                        b[y*row+x*stride:y*row+x*stride+3]
+                        for y in range(0,h,2) for x in range(0,w,2))
+          print(f'Menu input changed {different} sampled pixels')
+          if different==0:
+              print('WARNING: Simulated key produced no visible change; button mapping unverified')
+          PY
       - name: Upload emulator visual evidence
         if: always()
         uses: actions/upload-artifact@v4
