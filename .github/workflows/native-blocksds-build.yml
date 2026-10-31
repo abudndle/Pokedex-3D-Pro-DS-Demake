@@ -100,7 +100,15 @@ jobs:
           xdotool keyup z
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
-          sleep 6
+          # The packaged DeSmuME CLI and other frontends document
+          # different defaults. Probe x separately after z and preserve
+          # both captures to identify the effective B binding.
+          xdotool keydown x
+          sleep 1
+          xdotool keyup x
+          sleep 2
+          xwd -id "$window_id" -silent -out emulator-after-alt-back.xwd
+          sleep 4
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
             echo "DeSmuME terminated before the startup smoke test completed" >&2
@@ -182,8 +190,14 @@ jobs:
                        c[y*row+x*stride:y*row+x*stride+3]
                        for y in range(0,h,2) for x in range(0,w,2))
           print(f'After B, pixels different from home menu: {restored}')
-          assert restored<different//2, (
-              'DS B did not visibly return to the original home menu')
+          _,d,w4,h4,row4,stride4=read_pixels('emulator-after-alt-back.xwd')
+          assert (w,h,row,stride)==(w4,h4,row4,stride4)
+          alternate=sum(a[y*row+x*stride:y*row+x*stride+3] !=
+                        d[y*row+x*stride:y*row+x*stride+3]
+                        for y in range(0,h,2) for x in range(0,w,2))
+          print(f'After alternate B probe, pixels different from home: {alternate}')
+          assert min(restored,alternate)<different//2, (
+              'Neither candidate emulator B binding restored the home menu')
           PY
       - name: Upload emulator visual evidence
         if: always()
@@ -196,5 +210,6 @@ jobs:
             emulator-before-down.xwd
             emulator-after-down.xwd
             emulator-after-back.xwd
+            emulator-after-alt-back.xwd
             emulator-windows.txt
           if-no-files-found: warn
