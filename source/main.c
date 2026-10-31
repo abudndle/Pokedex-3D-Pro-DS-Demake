@@ -331,6 +331,11 @@ int main(void) {
                 31,0,true,true);
     consoleInit(&bottom_console,3,BgType_Text4bpp,BgSize_T_256x256,
                 31,0,false,true);
+    /* The 3D engine displays through main BG0. On menu pages its
+     * opaque clear color otherwise covers the upper BG3 text console.
+     * Raise BG3 above BG0; model pages hide BG3 explicitly. */
+    bgSetPriority(3,0);
+    REG_BG0CNT=(REG_BG0CNT & ~3) | 3;
     /* Print a boot sentinel BEFORE any filesystem initialization. If the
      * emulator capture remains blank, the fault precedes normal game logic. */
     consoleSelect(&top_console);
