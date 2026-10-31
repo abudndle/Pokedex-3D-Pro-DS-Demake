@@ -298,9 +298,11 @@ int main(void) {
                 if((down&KEY_RIGHT)&&move_index<558){move_index++;progress_dirty=1;redraw=1;}
             }
         }
+        /* Update page/model state before issuing 3D commands.  Previously
+         * render_model() ran with the prior frame's display_preview flag:
+         * switching between a model and a text page could render a stale
+         * model for one extra frame. */
+        if(redraw)render();
         if(display_preview)render_model();
-        if(redraw){
-            render();
-        }
     }
 }
