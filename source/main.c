@@ -33,6 +33,21 @@ static int progress_dirty=0;
 static int preview_ready=0;
 static int preview_found=0;
 static void reload_preview(void){preview_found=preview_ready&&previewStreamLoad(dex_index);}
+static int display_preview=0;
+static void update_preview_mode(void){display_preview=!home&&state.page==P3D_PAGE_DEX&&preview_found;}
+static void render_model(void){
+    if(!display_preview)return;
+    glViewport(0,0,255,191);
+    glMatrixMode(GL_PROJECTION);glLoadIdentity();
+    gluPerspective(50,256.0/192.0,0.1,20.0);
+    glMatrixMode(GL_MODELVIEW);glLoadIdentity();
+    glTranslatef32(0,0,floattof32(-3));
+    glPolyFmt(POLY_ALPHA(31)|POLY_CULL_NONE);
+    glColor3b(255,255,255);
+    previewStreamDraw();
+    glFlush(0);
+}
+
 #define P3D_SAVE_BASE "fat:/pokedex3d" 
 static void save_progress(void){
     P3DSaveState record;
@@ -43,6 +58,8 @@ static void save_progress(void){
 
 
 static void render(void) {
+    update_preview_mode();
+    if(!display_preview){
     consoleSelect(&top_console);
     consoleClear();
     printf("POKEDEX 3D PRO DS\n");
@@ -104,6 +121,7 @@ static void render(void) {
     else if(save_message==2)printf("Save failed\n");
     else if(save_message==3)printf("Progress restored\n");
 
+    }
     consoleSelect(&bottom_console);
     consoleClear();
     printf("POKEDEX 3D PRO\n");
@@ -146,7 +164,10 @@ static void render(void) {
 }
 int main(void) {
     P3DCapabilities caps=p3dCapabilities(0,0,0);
-    videoSetMode(MODE_0_2D);
+    videoSetMode(MODE_0_3D);
+    glInit();
+    glEnable(GL_ANTIALIAS);
+    glClearColor(4,4,8,31);
     videoSetModeSub(MODE_0_2D);
     vramSetBankA(VRAM_A_MAIN_BG);
     vramSetBankC(VRAM_C_SUB_BG);
@@ -232,6 +253,7 @@ int main(void) {
                 if((down&KEY_RIGHT)&&move_index<558){move_index++;progress_dirty=1;redraw=1;}
             }
         }
+        if(display_preview)render_model();
         if(redraw){
             render();
         }
