@@ -17,6 +17,7 @@ static PrintConsole top_console, bottom_console;
 static P3DMenu state;
 static P3DPage pages[P3D_MENU_MAX];
 static int highlighted=0, count=0, home=1;
+static int dex_index=0, move_index=0;
 
 static void render(void) {
     consoleSelect(&top_console);
@@ -30,8 +31,21 @@ static void render(void) {
         printf("A: OPEN\n");
     } else {
         printf("%s\n\n", p3dPageName(state.page));
-        printf("Native gameplay screen is\n");
-        printf("not integrated yet.\n\n");
+        if(state.page==P3D_PAGE_DEX){
+            printf("Pokemon entry: %03d / 649\n",dex_index+1);
+            printf("LEFT/RIGHT: browse entries\n");
+            printf("Original models pending.\n");
+        } else if(state.page==P3D_PAGE_MOVES){
+            printf("Move entry: %03d / 559\n",move_index+1);
+            printf("LEFT/RIGHT: browse moves\n");
+            printf("Move data asset pending.\n");
+        } else if(state.page==P3D_PAGE_TYPES){
+            printf("Type chart: FIRE -> GRASS\n");
+            printf("Effect: %dx\n",p3dTypeEffect(1,4)/10);
+        } else {
+            printf("Native feature UI pending.\n");
+        }
+        printf("\n");
         printf("B: RETURN TO MENU\n");
     }
     printf("\nDEVELOPMENT BUILD\n");
@@ -94,8 +108,16 @@ int main(void) {
                 if(p3dMenuEnter(&state,caps,pages[highlighted]))home=0;
                 redraw=1;
             }
-        } else if(down&KEY_B) {
-            home=1;redraw=1;
+        } else {
+            if(down&KEY_B){home=1;redraw=1;}
+            if(state.page==P3D_PAGE_DEX){
+                if((down&KEY_LEFT)&&dex_index>0){dex_index--;redraw=1;}
+                if((down&KEY_RIGHT)&&dex_index<648){dex_index++;redraw=1;}
+            }
+            if(state.page==P3D_PAGE_MOVES){
+                if((down&KEY_LEFT)&&move_index>0){move_index--;redraw=1;}
+                if((down&KEY_RIGHT)&&move_index<558){move_index++;redraw=1;}
+            }
         }
         if(redraw)render();
     }
