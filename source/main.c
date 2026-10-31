@@ -23,6 +23,8 @@
 #include "preview_texture_set.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
+#include "dex_text.h"
+#include "dex_search.h"
 #include "photo_album.h"
 #include "records.h"
 #ifdef P3D_HAVE_FAT
@@ -67,6 +69,7 @@ static P3DFormMap alternate_models;
 static P3DFormNames form_names;
 static int selected_form=0;
 static int move_catalog_ready=0;
+static int dex_text_ready=0;
 static int move_text_offset=0;
 static P3DPhotoAlbum photo_album;
 static int album_ready=0;
@@ -229,6 +232,14 @@ static void render(void) {
     } else {
         printf("%s\n\n", p3dPageName(state.page));
         if(state.page==P3D_PAGE_DEX){
+            if(dex_text_ready){
+                P3DDexText entry;
+                if(p3dDexTextRead(dex_index,&entry)){
+                    printf("Original name: %.28s\n",entry.name);
+                    printf("Height %.15s  Weight %.15s\n",entry.height,entry.weight);
+                    printf("%.56s\n",entry.description);
+                }
+            }
             printf("Pokemon entry: %03d / 649\n",dex_index+1);
             printf("LEFT/RIGHT: browse entries\n");
             printf("Form: %s",selected_form?"alternate":"base");
@@ -256,6 +267,13 @@ static void render(void) {
             printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
             printf("X: search this Pokemon\n");
         } else if(state.page==P3D_PAGE_SEARCH){
+            if(dex_text_ready){
+                P3DDexText entry;
+                if(p3dDexTextRead(state.selected_dex,&entry))
+                    printf("Original name: %.28s\n",entry.name);
+                printf("X+UP/DOWN: name initial %c\n",state.search_letter);
+                printf("X+LEFT/RIGHT: find by name\n");
+            }
             printf("Pokemon number: %03d / 649\n",state.selected_dex+1);
             printf("LEFT/RIGHT: +/- 1\n");
             printf("UP/DOWN: +/- 10\n");
@@ -405,6 +423,14 @@ static void render(void) {
     } else {
         printf("\x1b[9;1H%s",p3dPageName(state.page));
         if(state.page==P3D_PAGE_DEX){
+            if(dex_text_ready){
+                P3DDexText entry;
+                if(p3dDexTextRead(dex_index,&entry)){
+                    printf("\x1b[11;1H%.28s",entry.name);
+                    printf("\x1b[21;1HHeight %.10s Wt %.8s",entry.height,entry.weight);
+                    printf("\x1b[23;1H%.28s",entry.description);
+                }
+            }
             printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
             if(selected_form){
@@ -415,6 +441,13 @@ static void render(void) {
             else printf("\x1b[17;1HBase form");
             printf("\x1b[19;1HY: next verified form");
         }else if(state.page==P3D_PAGE_SEARCH){
+            if(dex_text_ready){
+                P3DDexText entry;
+                if(p3dDexTextRead(state.selected_dex,&entry))
+                    printf("\x1b[11;1H%.28s",entry.name);
+                printf("\x1b[21;1HSearch initial: %c",state.search_letter);
+                printf("\x1b[23;1HX+arrows: find by name");
+            }
             printf("\x1b[13;1HSearch #%03d",state.selected_dex+1);
             printf("\x1b[15;1HA: open Pokemon");
             printf("\x1b[17;1HY: toggle favorite");
@@ -590,6 +623,7 @@ int main(void) {
         preview_ready=previewStreamInit();
         /* Moves must remain available even if a model preview is missing. */
         move_catalog_ready=p3dMoveDexInit("nitro:/moves.p3dm");
+        dex_text_ready=p3dDexTextInit("nitro:/data/dex_en.p3dx");
     }
     reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
@@ -729,16 +763,32 @@ int main(void) {
                     state.page=P3D_PAGE_MOVES;
                     redraw=1;
                 }
-                if((down&KEY_X) && !(down&(KEY_A|KEY_Y))){
+                /* X+arrows use the recovered original species-name index.
+                 * Plain X still opens Favorites, and normal arrows retain
+                 * the existing number-based search. */
+                int source_search=(down&KEY_X) && (down&(KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN));
+                if((down&KEY_X) && !(down&(KEY_A|KEY_Y)) && !source_search){
                     state.page=P3D_PAGE_FAVORITES;
                     favorite_index=0;
                     redraw=1;
                 }
                 int next=state.selected_dex;
-                if(down&KEY_LEFT)next--;
-                if(down&KEY_RIGHT)next++;
-                if(down&KEY_UP)next-=10;
-                if(down&KEY_DOWN)next+=10;
+                if(source_search){
+                    if(down&KEY_UP){state.search_letter=state.search_letter=='Z'?'A':state.search_letter+1;redraw=1;}
+                    if(down&KEY_DOWN){state.search_letter=state.search_letter=='A'?'Z':state.search_letter-1;redraw=1;}
+                    if(dex_text_ready && ((down&KEY_LEFT)!=0)!=((down&KEY_RIGHT)!=0)){
+                        char q[2]={state.search_letter,0};
+                        int hit=p3dDexFindScoped(q,state.selected_dex,
+                                    (down&KEY_RIGHT)?1:-1,P3D_DEX_SEARCH_NAME,
+                                    0,P3D_DEX_SCOPE_ALL,&records,&state);
+                        if(hit>=0)next=hit;
+                    }
+                }else{
+                    if(down&KEY_LEFT)next--;
+                    if(down&KEY_RIGHT)next++;
+                    if(down&KEY_UP)next-=10;
+                    if(down&KEY_DOWN)next+=10;
+                }
                 if(next<0)next=0;
                 if(next>648)next=648;
                 if(next!=state.selected_dex){state.selected_dex=next;redraw=1;}
