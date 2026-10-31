@@ -95,8 +95,8 @@
       "id": "original_texture_materials",
       "required_for_release": true,
       "status": "partial",
-      "source": "source/model_materials.c",
-      "gap": "C86 has 538 paired source-derived UV candidate meshes, but original P3MT mesh-to-material associations are unverified; C78 private 4039 textures are staged separately; final texture rendering is incomplete",
+      "source": "tools/c87_original_material_declaration_audit.py",
+      "gap": "C87 recovered 2,556 original material/shader declarations across all 730 C5 models, verified 4,039 texture-name source pointers and identified color/normal/specular/UV-animation capabilities. No original mesh-to-shader or mesh-to-texture binding has yet been verified; authentic rendering is unfinished.",
       "verified_end_to_end": false
     },
     {
