@@ -404,10 +404,20 @@ int main(void) {
                     redraw=1;
                 }
             }
-            if(state.page==P3D_PAGE_SETTINGS && (down&KEY_A)){
-                state.rotate=!state.rotate;
-                progress_dirty=1;
-                redraw=1;
+            if(state.page==P3D_PAGE_SETTINGS){
+                int toggle=(down&KEY_A)!=0;
+                if((down&KEY_TOUCH) && !showing_original_art){
+                    touchPosition point;
+                    touchRead(&point);
+                    /* Touch the visible setting row on the text screen. */
+                    if(point.px>=8 && point.px<248 &&
+                       point.py>=96 && point.py<128)toggle=1;
+                }
+                if(toggle){
+                    state.rotate=!state.rotate;
+                    progress_dirty=1;
+                    redraw=1;
+                }
             }
             if(state.page==P3D_PAGE_TYPES){
                 if(down&KEY_UP){attack_type=(attack_type+16)%17;redraw=1;}
