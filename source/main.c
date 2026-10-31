@@ -337,6 +337,23 @@ int main(void) {
                 }
             }
 
+            /* Touch the four answer rows on the lower screen in text mode.
+             * Keep the original-art layout untouched until its coordinates
+             * have been recovered from the source game. */
+            if(state.page==P3D_PAGE_CHALLENGE &&
+               quiz.stage==P3D_CHALLENGE_QUESTION &&
+               !prefer_original_art && (down&KEY_TOUCH)){
+                touchPosition point;
+                touchRead(&point);
+                if(point.px>=24 && point.px<232 &&
+                   point.py>=80 && point.py<176){
+                    int selected=(point.py-80)/24;
+                    if(selected>=0 && selected<P3D_CHALLENGE_OPTIONS){
+                        quiz.selected=selected;
+                        redraw=1;
+                    }
+                }
+            }
             if(state.page==P3D_PAGE_SEARCH){
                 int next=state.selected_dex;
                 if(down&KEY_LEFT)next--;
