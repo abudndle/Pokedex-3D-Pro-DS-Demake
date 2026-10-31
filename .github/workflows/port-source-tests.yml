@@ -13,6 +13,9 @@ jobs:
       - name: Validate private asset loader contracts
         run: python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 
+      - name: Validate DS3M v1/v2 fixture contracts
+        run: python3 -m unittest discover -s tests -p 'test_inspect_ds3m.py' -v
+
       - name: Verify original geometry preview loader
         run: sh tests/run_preview_stream_fixture.sh
 
