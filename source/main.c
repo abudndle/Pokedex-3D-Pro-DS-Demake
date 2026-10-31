@@ -381,6 +381,10 @@ int main(void) {
                 if(down&KEY_RIGHT){defend_type=(defend_type+1)%17;redraw=1;}
             }
             if(state.page==P3D_PAGE_FAVORITES){
+                /* A corrupted list count must never be used to index a DS
+                 * array, even if the save loader normally rejects it. */
+                if(state.favorites_count<0 || state.favorites_count>P3D_FAVORITES_MAX)
+                    state.favorites_count=0;
                 /* Restored or recently shortened lists can leave the cursor
                  * outside the current count. Clamp before any rendering or
                  * left/right navigation. */
