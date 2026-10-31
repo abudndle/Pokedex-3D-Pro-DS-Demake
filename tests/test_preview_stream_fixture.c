@@ -3,10 +3,11 @@
 #include "preview_stream.h"
 static int emitted;
 static int red_seen,green_seen;
-static int uv_seen;
+static int uv_seen,white_seen;
+static short uv_u[3],uv_v[3];
 
-void glTexCoord2t16(short u,short v){(void)u;(void)v;uv_seen++;}
-void glColor3b(unsigned char r,unsigned char g,unsigned char b){if(r==255&&g==0&&b==0)red_seen++;if(r==0&&g==255&&b==0)green_seen++;}
+void glTexCoord2t16(short u,short v){if(uv_seen<3){uv_u[uv_seen]=u;uv_v[uv_seen]=v;}uv_seen++;}
+void glColor3b(unsigned char r,unsigned char g,unsigned char b){if(r==255&&g==255&&b==255)white_seen++;if(r==255&&g==0&&b==0)red_seen++;if(r==0&&g==255&&b==0)green_seen++;}
 void glBegin(int m){assert(m==1);}
 void glVertex3v16(short x,short y,short z){(void)x;(void)y;(void)z;emitted++;}
 void glEnd(void){}
@@ -18,6 +19,12 @@ int main(void){
  assert(previewStreamOriginalTriangleCount()==42);
  assert(previewStreamHasUv());
  previewStreamDraw();assert(emitted==3 && uv_seen==3);
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawMode(8,16);
+ assert(emitted==3 && uv_seen==3 && white_seen==1);
+ assert(uv_u[0]==0 && uv_v[0]==0);
+ assert(uv_u[1]==128 && uv_v[1]==0);
+ assert(uv_u[2]==0 && uv_v[2]==256);
  assert(previewStreamLoad(1));
  assert(previewStreamTriangleCount()==600);
  assert(!previewStreamHasUv());
