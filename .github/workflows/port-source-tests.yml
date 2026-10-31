@@ -18,3 +18,6 @@ jobs:
 
       - name: Verify touchscreen menu layout
         run: sh tests/run_menu_layout_smoke.sh
+
+      - name: Verify DS and DSi feature availability
+        run: sh tests/run_dsi_feature_gating.sh
