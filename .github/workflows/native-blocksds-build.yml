@@ -34,3 +34,43 @@ jobs:
           path: verified-rom
       - name: Validate ROM header and ARM7/ARM9 sections
         run: python3 tests/verify_nds_rom.py verified-rom/Pokedex3D_DS_BlocksDS.nds
+
+  emulator-smoke:
+    needs: native-rom
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-ds-smoke-rom
+          path: emulator-rom
+      - name: Install Nintendo DS emulator and virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y desmume xvfb imagemagick
+      - name: Attempt ROM startup in DeSmuME
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s emulator-rom/Pokedex3D_DS_BlocksDS.nds
+          cat > /tmp/check_emulator.sh <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          desmume --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          sleep 8
+          if ! kill -0 "$pid" 2>/dev/null; then
+            cat /tmp/desmume.log
+            echo "DeSmuME terminated before the startup smoke test completed" >&2
+            exit 1
+          fi
+          # The virtual X display proves the emulator window was created.
+          xwininfo -root -tree | tee /tmp/emulator-windows.txt
+          if ! grep -Eqi 'DeSmuME|Pokedex3D' /tmp/emulator-windows.txt; then
+            cat /tmp/desmume.log
+            echo "No DeSmuME game window found" >&2
+            exit 1
+          fi
+          SCRIPT
+          chmod +x /tmp/check_emulator.sh
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 35s /tmp/check_emulator.sh
