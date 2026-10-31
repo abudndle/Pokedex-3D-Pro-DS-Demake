@@ -24,6 +24,10 @@ int main(void){
  assert(!previewStreamLoad(4)); /* v2 colors truncated */
  assert(!previewStreamLoad(2)); /* 601 triangles must not overflow the buffer. */
  assert(!previewStreamLoad(721));
+ assert(previewStreamLoad(737));
+ assert(previewStreamTriangleCount()==1);
+ assert(!previewStreamLoad(738));
+ assert(!previewStreamLoad(-1));
  assert(!previewStreamHasModel());
  puts("Original-geometry preview stream: PASS");
  return 0;
