@@ -87,8 +87,8 @@
       "id": "original_pokemon_models",
       "required_for_release": true,
       "status": "partial",
-      "source": "tools/c94_original_obj_uv_alignment.py",
-      "gap": "C94 privately upgrades all 500 C92 browser preview candidates to complete recovered C7 OBJ triangle topology (2,396,500 triangles), with 491 C62 and nine C7 UV-bearing exports matching C7 face/vertex order. It does not change native DS 600-triangle sampling, and inferred UVs, unverified original GPU sampler roles, missing models/animations and original 3DS appearance remain incomplete.",
+      "source": "tools/c95_original_source_lod_quality.py",
+      "gap": "C95 privately rebuilds 500 original-derived 600-triangle DS diagnostic previews using area-stratified original source faces, increasing mean retained source triangle area from 14.47% to 20.14% with zero area-regressing models. Sparse geometry, C92 provisional source colors, unverified GPU sampler/visual parity and unported model resources remain incomplete.",
       "verified_end_to_end": false
     },
     {
