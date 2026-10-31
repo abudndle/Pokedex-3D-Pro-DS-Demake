@@ -1,0 +1,24 @@
+name: Native BlocksDS smoke ROM
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  native-rom:
+    runs-on: ubuntu-latest
+    container:
+      image: skylyrac/blocksds:slim-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile asset-free native Nintendo DS ROM
+        run: make dev-rom
+      - name: Inspect generated ROM
+        run: |
+          test -s Pokedex3D_DS_BlocksDS.nds
+          ls -lh Pokedex3D_DS_BlocksDS.nds
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-ds-smoke-rom
+          path: Pokedex3D_DS_BlocksDS.nds
+          if-no-files-found: error
