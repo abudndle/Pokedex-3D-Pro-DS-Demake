@@ -33,3 +33,6 @@ jobs:
 
       - name: Verify original Move Dex catalog reader
         run: sh tests/run_move_dex_smoke.sh
+
+      - name: Verify photo album browse and delete
+        run: sh tests/run_photo_album_smoke.sh
