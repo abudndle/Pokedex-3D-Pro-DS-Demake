@@ -11,6 +11,8 @@
 
 #define C7_MAX_PREVIEW_TRIANGLES 600
 static int16_t s_xyz[C7_MAX_PREVIEW_TRIANGLES * 9];
+static unsigned char s_face_rgb[C7_MAX_PREVIEW_TRIANGLES * 3];
+static int s_has_face_colors;
 static int s_loaded = 0;
 static int s_triangle_count = 0;
 static int s_original_triangle_count = 0;
@@ -36,10 +38,11 @@ int previewStreamLoad(int resource_index) {
     unsigned char head[16];
     char path[80];
     FILE *f;
-    unsigned int tri_count, j;
+    unsigned int tri_count, j, version;
     s_loaded=0;
     s_triangle_count=0;
     s_original_triangle_count=0;
+    s_has_face_colors=0;
     if (!s_fs_available || resource_index < 0 || resource_index > 729) return 0;
 #ifdef C7_TEST_HOST
     snprintf(path,sizeof(path),"nitrofs/preview/p%03d.ds3m",resource_index);
@@ -49,14 +52,18 @@ int previewStreamLoad(int resource_index) {
     f=fopen(path,"rb");
     if (!f) return 0;
     if (fread(head,1,sizeof(head),f)!=sizeof(head)) {fclose(f);return 0;}
-    if (memcmp(head,"DS3M",4)!=0 || get16(head+4)!=1) {fclose(f);return 0;}
+    version=get16(head+4);
+    if (memcmp(head,"DS3M",4)!=0 || (version!=1 && version!=2)) {fclose(f);return 0;}
     tri_count=get16(head+6);
     if (tri_count<1 || tri_count>C7_MAX_PREVIEW_TRIANGLES) {fclose(f);return 0;}
     if (fread(s_xyz,sizeof(s_xyz[0]),tri_count*9,f)!=(size_t)tri_count*9) {fclose(f);return 0;}
+    /* v2 contract: packed RGB888 triplets, one per triangle, after all XYZ. */
+    if (version==2 && fread(s_face_rgb,3,tri_count,f)!=(size_t)tri_count) {fclose(f);return 0;}
     if (fgetc(f)!=EOF) {fclose(f);return 0;}
     fclose(f);
     s_triangle_count=(int)tri_count;
     s_original_triangle_count=(int)get32(head+12);
+    s_has_face_colors=(version==2);
     s_loaded=1;
     /* Native Nintendo DS ARM9 runs little-endian, matching DS3M data. */
     for (j=0;j<(unsigned int)(s_triangle_count*9);j++) {
@@ -73,7 +80,14 @@ void previewStreamDraw(void) {
     if (!s_loaded) return;
     glColor3b(192,224,232);
     glBegin(GL_TRIANGLES);
-    for (i=0;i<s_triangle_count*9;i+=3)
+    for (i=0;i<s_triangle_count*9;i+=9) {
+        if (s_has_face_colors) {
+            int c=(i/9)*3;
+            glColor3b(s_face_rgb[c],s_face_rgb[c+1],s_face_rgb[c+2]);
+        }
         glVertex3v16((v16)s_xyz[i],(v16)s_xyz[i+1],(v16)s_xyz[i+2]);
+        glVertex3v16((v16)s_xyz[i+3],(v16)s_xyz[i+4],(v16)s_xyz[i+5]);
+        glVertex3v16((v16)s_xyz[i+6],(v16)s_xyz[i+7],(v16)s_xyz[i+8]);
+    }
     glEnd();
 }
