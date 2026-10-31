@@ -8,6 +8,10 @@ int main(void){
  pixels.ready=1;pixels.width=8;pixels.height=8;
  assert(p3dDsTextureUpload(&pixels,&id));
  assert(id>0);
+ pixels.width=7;assert(!p3dDsTextureUpload(&pixels,&id));
+ pixels.width=12;assert(!p3dDsTextureUpload(&pixels,&id));
+ pixels.width=256;pixels.height=256;assert(p3dDsTextureUpload(&pixels,&id));
+ pixels.width=8;pixels.height=8;
  assert(!p3dDsTextureUpload(NULL,&id));
  assert(!p3dDsTextureUpload(&pixels,NULL));
  puts("DS texture upload interface: PASS");
