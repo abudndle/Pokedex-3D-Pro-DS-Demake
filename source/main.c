@@ -23,6 +23,8 @@
 #include "preview_texture_set.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
+#include "dex_search.h"
+#include "dex_text.h"
 #include "photo_album.h"
 #ifdef P3D_HAVE_FAT
 #include <fat.h>
@@ -62,6 +64,15 @@ static P3DFormMap alternate_models;
 static P3DFormNames form_names;
 static int selected_form=0;
 static int move_catalog_ready=0;
+static int dex_catalog_ready=0;
+static char search_query[13];
+static int search_no_match=0;
+static void search_name(int direction){
+    int found=p3dDexFindPrefix(search_query,state.selected_dex,direction);
+    search_no_match=found<0;
+    if(found>=0)state.selected_dex=found;
+}
+
 static int move_text_offset=0;
 static P3DPhotoAlbum photo_album;
 static int album_ready=0;
@@ -228,7 +239,15 @@ static void render(void) {
             printf("X: search this Pokemon\n");
         } else if(state.page==P3D_PAGE_SEARCH){
             printf("Pokemon number: %03d / 649\n",state.selected_dex+1);
-            printf("LEFT/RIGHT: +/- 1\n");
+            P3DDexText entry;
+            if(dex_catalog_ready && p3dDexTextRead(state.selected_dex,&entry))
+                printf("%.31s\n",entry.name);
+            else printf("Original names unavailable.\n");
+            printf("Name prefix: %s\n",search_query[0]?search_query:"(none)");
+            if(search_no_match)printf("No matching name.\n");
+            if(search_query[0])printf("LEFT/RIGHT: cycle matches\n");
+            if(dex_catalog_ready)printf("Touch letters to search.\n");
+            else printf("LEFT/RIGHT: +/- 1\n");
             printf("UP/DOWN: +/- 10\n");
             printf("A: open this Pokemon\n");
             printf("Y: toggle favorite (%s)\n",p3dFavoriteContains(&state,state.selected_dex)?"saved":"not saved");
@@ -354,10 +373,16 @@ static void render(void) {
             else printf("\x1b[17;1HBase form");
             printf("\x1b[19;1HY: next verified form");
         }else if(state.page==P3D_PAGE_SEARCH){
-            printf("\x1b[13;1HSearch #%03d",state.selected_dex+1);
-            printf("\x1b[15;1HA: open Pokemon");
-            printf("\x1b[17;1HY: toggle favorite");
-            printf("\x1b[19;1HX: open Favorites");
+            printf("\x1b[10;1H#%03d Name: %.12s",state.selected_dex+1,search_query);
+            printf("\x1b[12;1H< Previous          Next >");
+            if(dex_catalog_ready){
+                printf("\x1b[14;1HA   B   C   D   E   F   G   H");
+                printf("\x1b[16;1HI   J   K   L   M   N   O   P");
+                printf("\x1b[18;1HQ   R   S   T   U   V   W   X");
+                printf("\x1b[20;1HY   Z   DEL CLR");
+            }else printf("\x1b[14;1HOriginal name catalog missing");
+            printf("\x1b[22;1HA: open  Y: favorite");
+            printf("\x1b[23;1HX: Favorites  L: Moves R: Setup");
         }else if(state.page==P3D_PAGE_MOVES){
             printf("\x1b[11;1HMove %03d of 559",move_index+1);
             if(move_catalog_ready){
@@ -425,6 +450,7 @@ static void render(void) {
         }
         if(state.page==P3D_PAGE_CHALLENGE && quiz.stage==P3D_CHALLENGE_QUESTION)
             printf("\x1b[24;1HB: Return to menu");
+        else if(state.page==P3D_PAGE_SEARCH)printf("\x1b[24;1HB: Return to menu");
         else printf("\x1b[17;1HPress B to go back");
     }
 }
@@ -498,6 +524,7 @@ int main(void) {
         preview_ready=previewStreamInit();
         /* Moves must remain available even if a model preview is missing. */
         move_catalog_ready=p3dMoveDexInit("nitro:/moves.p3dm");
+        dex_catalog_ready=p3dDexTextInit("nitro:/dex.p3dx");
     }
     reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
@@ -537,14 +564,14 @@ int main(void) {
                 int hit=p3dMenuTouchIndex(point.px,point.py,count,highlighted);
                 if(hit>=0) {
                     highlighted=hit;
-                    if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);if(state.page==P3D_PAGE_SEARCH)state.selected_dex=dex_index;}
+                    if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);if(state.page==P3D_PAGE_SEARCH){state.selected_dex=dex_index;search_query[0]=0;search_no_match=0;}}
                     redraw=1;
                 }
             }
             /* A menu tap already opens an entry; do not let a simultaneous
              * A press open the next highlighted entry in the same frame. */
             if((down&KEY_A)&&!(down&KEY_TOUCH)&&highlighted>=0&&highlighted<count) {
-                if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);if(state.page==P3D_PAGE_SEARCH)state.selected_dex=dex_index;}
+                if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);if(state.page==P3D_PAGE_SEARCH){state.selected_dex=dex_index;search_query[0]=0;search_no_match=0;}}
                 redraw=1;
             }
         } else {
@@ -633,10 +660,46 @@ int main(void) {
                     redraw=1;
                 }
                 int next=state.selected_dex;
-                if(down&KEY_LEFT)next--;
-                if(down&KEY_RIGHT)next++;
+                if(state.page==P3D_PAGE_SEARCH && search_query[0]){
+                    if(down&KEY_LEFT)search_name(-1);
+                    if(down&KEY_RIGHT)search_name(1);
+                    next=state.selected_dex;
+                }else{
+                    if(down&KEY_LEFT)next--;
+                    if(down&KEY_RIGHT)next++;
+                }
                 if(down&KEY_UP)next-=10;
                 if(down&KEY_DOWN)next+=10;
+                if(down&(KEY_UP|KEY_DOWN)){search_query[0]=0;search_no_match=0;}
+                if(down&(KEY_LEFT|KEY_RIGHT))redraw=1;
+                if(state.page==P3D_PAGE_SEARCH &&
+                   !showing_original_art && (down&KEY_TOUCH)){
+                    touchPosition point;
+                    touchRead(&point);
+                    int key=dex_catalog_ready?p3dDexSearchTouchKey(point.px,point.py):0;
+                    if(point.py>=88 && point.py<104){
+                        int direction=point.px<96?-1:(point.px>=160?1:0);
+                        if(direction){
+                            if(search_query[0]){search_name(direction);next=state.selected_dex;}
+                            else next+=direction;
+                            redraw=1;
+                        }
+                    }
+                    int changed=0;
+                    if(key==8){changed=search_query[0]!=0;p3dDexQueryBackspace(search_query);}
+                    else if(key==127){changed=search_query[0]!=0;search_query[0]=0;}
+                    else if(key)changed=p3dDexQueryAppend(search_query,(char)key);
+                    if(changed){
+                        search_no_match=0;
+                        /* Include the current entry when the prefix changes. */
+                        if(search_query[0]){
+                            int found=p3dDexFindPrefix(search_query,state.selected_dex-1,1);
+                            search_no_match=found<0;
+                            if(found>=0)next=found;
+                        }
+                        redraw=1;
+                    }
+                }
                 if(next<0)next=0;
                 if(next>648)next=648;
                 if(next!=state.selected_dex){state.selected_dex=next;redraw=1;}
@@ -710,7 +773,7 @@ int main(void) {
             }
             if(state.page==P3D_PAGE_SETTINGS){
                 if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH))){
-                    state.selected_dex=dex_index;
+                    state.selected_dex=dex_index;search_query[0]=0;search_no_match=0;
                     state.page=P3D_PAGE_SEARCH;
                     redraw=1;
                 }
@@ -758,7 +821,7 @@ int main(void) {
                     if(state.favorites_count>0){
                         state.selected_dex=state.favorites[favorite_index];
                     }else{
-                        state.selected_dex=dex_index;
+                        state.selected_dex=dex_index;search_query[0]=0;search_no_match=0;
                     }
                     state.page=P3D_PAGE_SEARCH;
                     redraw=1;
@@ -794,7 +857,7 @@ int main(void) {
              * Pokédex A/LEFT/RIGHT input again on the same frame; otherwise
              * X+A could immediately remove the just-opened favorite. */
             if(state.page==P3D_PAGE_DEX && (down&KEY_X) && !(down&(KEY_A|KEY_Y))){
-                state.selected_dex=dex_index;
+                state.selected_dex=dex_index;search_query[0]=0;search_no_match=0;
                 state.page=P3D_PAGE_SEARCH;
                 redraw=1;
             }
@@ -840,12 +903,6 @@ int main(void) {
                             dex_index=next;selected_form=0;reload_preview();
                             progress_dirty=1;redraw=1;
                         }
-                    } else if(state.page==P3D_PAGE_SEARCH && direction){
-                        int next=state.selected_dex+direction;
-                        if(next>=0 && next<649){
-                            state.selected_dex=next;
-                            redraw=1;
-                        }
                     } else if(state.page==P3D_PAGE_MOVES && direction){
                         int next=move_index+direction;
                         if(next>=0 && next<559){
@@ -856,7 +913,7 @@ int main(void) {
             }
             if(state.page==P3D_PAGE_MOVES){
                 if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
-                    state.selected_dex=dex_index;
+                    state.selected_dex=dex_index;search_query[0]=0;search_no_match=0;
                     state.page=P3D_PAGE_SEARCH;
                     redraw=1;
                 }
