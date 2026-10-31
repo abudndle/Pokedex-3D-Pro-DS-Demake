@@ -239,6 +239,7 @@ static void render(void) {
         } else if(state.page==P3D_PAGE_SETTINGS){
             printf("Automatic model rotation: %s\n",state.rotate?"ON":"OFF");
             printf("A: toggle automatic rotation\n");
+            printf("Y: open Pokemon Search\n");
             printf("L/R: rotate manually in Pokedex\n");
         } else if(state.page==P3D_PAGE_FAVORITES){
             printf("Saved favorites: %d / %d\n",state.favorites_count,P3D_FAVORITES_MAX);
@@ -675,6 +676,11 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_SETTINGS){
+                if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH))){
+                    state.selected_dex=dex_index;
+                    state.page=P3D_PAGE_SEARCH;
+                    redraw=1;
+                }
                 int toggle=(down&KEY_A)!=0;
                 if((down&KEY_TOUCH) && !showing_original_art){
                     touchPosition point;
