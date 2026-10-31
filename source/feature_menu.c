@@ -2,7 +2,7 @@
 #include <string.h>
 static const P3DPage menu[]={P3D_PAGE_DEX,P3D_PAGE_SEARCH,P3D_PAGE_MOVES,P3D_PAGE_TYPES,P3D_PAGE_FAVORITES,P3D_PAGE_CHALLENGE,P3D_PAGE_SETTINGS,P3D_PAGE_ALBUM,P3D_PAGE_AR};
 static const char *names[]={"MAIN MENU","POKEDEX","SEARCH","MOVE DEX","TYPE CHART","FAVORITES","CHALLENGE","SETTINGS","PHOTO ALBUM","AR CAMERA"};
-const char *p3dPageName(P3DPage p){return p<P3D_PAGE_COUNT?names[p]:"UNKNOWN";}
+const char *p3dPageName(P3DPage p){return (unsigned)p<(unsigned)P3D_PAGE_COUNT?names[p]:"UNKNOWN";}
 void p3dMenuReset(P3DMenu *s){if(!s)return;memset(s,0,sizeof(*s));s->search_letter='A';s->type_defend2=-1;s->rotate=1;for(int i=0;i<P3D_FAVORITES_MAX;i++)s->favorites[i]=-1;}
 size_t p3dMenuEntries(P3DCapabilities caps,P3DPage out[P3D_MENU_MAX]){size_t n=0;for(size_t i=0;i<sizeof(menu)/sizeof(menu[0]);i++){P3DPage p=menu[i];if(p==P3D_PAGE_AR&&!p3dCanEnterFeature(caps,P3D_FEATURE_AR))continue;if(out)out[n]=p;n++;}return n;}
 int p3dMenuEnter(P3DMenu *s,P3DCapabilities caps,P3DPage page){if(!s||page>=P3D_PAGE_COUNT)return 0;if(page==P3D_PAGE_AR&&!p3dCanEnterFeature(caps,P3D_FEATURE_AR))return 0;s->page=page;s->cursor=0;return 1;}
