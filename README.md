@@ -27,3 +27,8 @@ See `docs/PROJECT_HANDOFF.md` and `docs/MODEL_RESTORATION_STATUS.md`.
 4. Integrate verified models into the DS renderer, compile with BlocksDS, and test in melonDS.
 
 GitHub Actions checks do not themselves prove the project can boot on Nintendo DS hardware.
+
+## Final-build asset policy
+The original Pokédex 3D Pro game assets are **not required during ordinary source development, automated tests, or intermediate CI builds**. The user will supply their own extracted original assets **only at the final build stage**, after code, non-camera gameplay features, interface behavior, and asset-loading interfaces are completed and tested with synthetic fixtures.
+
+The final build must **fail with a clear missing-assets message** if the required original assets are not supplied. It must not silently replace missing models or textures with inaccurate replicas. The original game dump and extracted proprietary assets must never be uploaded to GitHub or committed to source control. Native DS test builds may use neutral test assets; an asset-integrated final build is a separate last step. DSi camera AR is also reserved for the final feature milestone.
