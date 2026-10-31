@@ -59,4 +59,5 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c91_color_name_vram_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c92_diagnostic_textured_preview_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c93_private_browser_bundle_audit.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c94_original_obj_uv_alignment.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
