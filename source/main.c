@@ -385,6 +385,12 @@ int main(void) {
                             dex_index=next;reload_preview();
                             progress_dirty=1;redraw=1;
                         }
+                    } else if(state.page==P3D_PAGE_SEARCH && direction){
+                        int next=state.selected_dex+direction;
+                        if(next>=0 && next<649){
+                            state.selected_dex=next;
+                            redraw=1;
+                        }
                     } else if(state.page==P3D_PAGE_MOVES && direction){
                         int next=move_index+direction;
                         if(next>=0 && next<559){
