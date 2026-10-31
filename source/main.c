@@ -490,8 +490,11 @@ int main(void) {
                     if((down&KEY_TOUCH) && !showing_original_art){
                         touchPosition point;
                         touchRead(&point);
-                        if(point.py>=150 && point.py<192)
-                            direction=point.px<64?-1:(point.px>=192?1:direction);
+                        /* Only corner taps navigate; center taps select a
+                         * filename, even in the bottom two rows. */
+                        if(point.py>=150 && point.py<192 &&
+                           (point.px<64 || point.px>=192))
+                            direction=point.px<64?-1:1;
                         /* The five visible filename rows start at console row
                          * 13, then advance two 8-pixel rows per filename. */
                         if(point.px>=64 && point.px<192 &&
