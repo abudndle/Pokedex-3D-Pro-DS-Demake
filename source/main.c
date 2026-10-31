@@ -61,6 +61,8 @@ static void prepare_original_art(void){
          * that the console also uses. Keep the text console hidden only while
          * the original full-screen artwork is active. */
         if(!showing_original_art){
+            /* Mode 5 is needed only for the original 16-bit bitmap. */
+            videoSetModeSub(MODE_5_2D);
             bgInitSub(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
             bgHide(3);
             bgShow(2);
@@ -69,6 +71,7 @@ static void prepare_original_art(void){
         showing_original_art=1;
     }else if(showing_original_art){
         bgHide(2);
+        videoSetModeSub(MODE_0_2D);
         consoleInit(&bottom_console,3,BgType_Text4bpp,BgSize_T_256x256,31,0,false,true);
         showing_original_art=0;
     }
@@ -320,7 +323,8 @@ int main(void) {
     glEnable(GL_BLEND);
     glClearDepth(GL_MAX_DEPTH);
     glClearColor(4,4,8,31);
-    videoSetModeSub(MODE_5_2D);
+    /* Mode 0 exposes BG3 as a tiled text background for consoleInit. */
+    videoSetModeSub(MODE_0_2D);
     vramSetBankA(VRAM_A_MAIN_BG);
     vramSetBankC(VRAM_C_SUB_BG);
     consoleInit(&top_console,3,BgType_Text4bpp,BgSize_T_256x256,
