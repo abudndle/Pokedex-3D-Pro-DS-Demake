@@ -12,3 +12,6 @@ jobs:
         run: sh tests/run_source_smoke.sh
       - name: Validate private asset loader contracts
         run: python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
+
+      - name: Verify original geometry preview loader
+        run: sh tests/run_preview_stream_fixture.sh
