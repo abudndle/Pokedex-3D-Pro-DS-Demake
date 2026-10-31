@@ -355,7 +355,10 @@ int main(void) {
                     redraw=1;
                 }
             }
-            if(state.page==P3D_PAGE_DEX){
+            /* Selecting a favorite is a navigation action. Do not process
+             * Pokédex A/LEFT/RIGHT input again on the same frame; otherwise
+             * X+A could immediately remove the just-opened favorite. */
+            if(state.page==P3D_PAGE_DEX && !(down&KEY_X)){
                 /* Held shoulder buttons rotate continuously rather than taking
                  * only one step per press.  The model is drawn each frame, so
                  * rotation needs no expensive full-console redraw. */
