@@ -2,10 +2,10 @@
 #include <string.h>
 static const P3DPage menu[]={P3D_PAGE_DEX,P3D_PAGE_SEARCH,P3D_PAGE_MOVES,P3D_PAGE_TYPES,P3D_PAGE_FAVORITES,P3D_PAGE_CHALLENGE,P3D_PAGE_SETTINGS,P3D_PAGE_ALBUM,P3D_PAGE_AR};
 static const char *names[]={"MAIN MENU","POKEDEX","SEARCH","MOVE DEX","TYPE CHART","FAVORITES","CHALLENGE","SETTINGS","PHOTO ALBUM","AR CAMERA"};
-const char *p3dPageName(P3DPage p){return p>=0&&p<P3D_PAGE_COUNT?names[p]:"UNKNOWN";}
+const char *p3dPageName(P3DPage p){return p<P3D_PAGE_COUNT?names[p]:"UNKNOWN";}
 void p3dMenuReset(P3DMenu *s){if(!s)return;memset(s,0,sizeof(*s));s->search_letter='A';s->type_defend2=-1;s->rotate=1;for(int i=0;i<P3D_FAVORITES_MAX;i++)s->favorites[i]=-1;}
 size_t p3dMenuEntries(P3DCapabilities caps,P3DPage out[P3D_MENU_MAX]){size_t n=0;for(size_t i=0;i<sizeof(menu)/sizeof(menu[0]);i++){P3DPage p=menu[i];if(p==P3D_PAGE_AR&&!p3dCanEnterFeature(caps,P3D_FEATURE_AR))continue;if(out)out[n]=p;n++;}return n;}
-int p3dMenuEnter(P3DMenu *s,P3DCapabilities caps,P3DPage page){if(!s||page<0||page>=P3D_PAGE_COUNT)return 0;if(page==P3D_PAGE_AR&&!p3dCanEnterFeature(caps,P3D_FEATURE_AR))return 0;s->page=page;s->cursor=0;return 1;}
+int p3dMenuEnter(P3DMenu *s,P3DCapabilities caps,P3DPage page){if(!s||page>=P3D_PAGE_COUNT)return 0;if(page==P3D_PAGE_AR&&!p3dCanEnterFeature(caps,P3D_FEATURE_AR))return 0;s->page=page;s->cursor=0;return 1;}
 int p3dFavoriteContains(const P3DMenu *s,int model){if(!s||model<0||model>=738||s->favorites_count<0||s->favorites_count>P3D_FAVORITES_MAX)return 0;for(int i=0;i<s->favorites_count;i++)if(s->favorites[i]==model)return 1;return 0;}
 int p3dFavoriteToggle(P3DMenu *s,int model){if(!s||model<0||model>=738||s->favorites_count<0||s->favorites_count>P3D_FAVORITES_MAX)return 0;for(int i=0;i<s->favorites_count;i++)if(s->favorites[i]==model){for(int j=i;j+1<s->favorites_count;j++)s->favorites[j]=s->favorites[j+1];s->favorites[--s->favorites_count]=-1;if(s->favorite_cursor>=s->favorites_count)s->favorite_cursor=0;return -1;}if(s->favorites_count>=P3D_FAVORITES_MAX)return 0;s->favorites[s->favorites_count++]=model;return 1;}
 static const char *types[]={"NORMAL","FIRE","WATER","ELECTRIC","GRASS","ICE","FIGHTING","POISON","GROUND","FLYING","PSYCHIC","BUG","ROCK","GHOST","DRAGON","DARK","STEEL"};
