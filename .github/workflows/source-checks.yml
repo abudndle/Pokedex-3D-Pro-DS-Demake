@@ -1,0 +1,26 @@
+name: Source checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  source-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify project documentation
+        run: |
+          test -s README.md
+          test -s docs/PROJECT_HANDOFF.md
+          test -s docs/MODEL_RESTORATION_STATUS.md
+      - name: Check Python scripts if present
+        run: |
+          python3 - <<'PY'
+          import compileall
+          from pathlib import Path
+          scripts = Path("tools")
+          if scripts.is_dir():
+              assert compileall.compile_dir(str(scripts), quiet=1), "Python syntax check failed"
+          print("Source check passed; native ROM build not configured yet.")
+          PY
