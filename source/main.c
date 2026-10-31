@@ -651,7 +651,9 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_MOVES){
-                if(move_catalog_ready && (down&(KEY_L|KEY_R))){
+                /* L and R are dedicated to description scrolling, but a
+                 * simultaneous shoulder press must not scroll twice. */
+                if(move_catalog_ready && ((down&KEY_L)!=0)!=((down&KEY_R)!=0)){
                     P3DMove entry;
                     if(p3dMoveDexRead(move_index,&entry)){
                         int length=(int)strlen(entry.description);
