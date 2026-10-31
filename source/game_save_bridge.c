@@ -15,9 +15,12 @@ int p3dGameSaveCapture(P3DSaveState *dst,const P3DMenu *menu,int dex_index,int m
 int p3dGameSaveRestore(const P3DSaveState *src,P3DMenu *menu,int *dex_index,int *move_index){
  if(!p3dSaveStateValid(src)||!menu||!dex_index||!move_index)return 0;
  p3dMenuReset(menu);
- menu->favorites_count=src->favorite_count;
  menu->backdrop=src->backdrop;menu->rotate=src->rotate;
- for(int i=0;i<src->favorite_count;i++)menu->favorites[i]=src->favorites[i];
+ /* Some legacy saves contain resource IDs outside the 649-entry native Dex.
+    Omit only those entries; do not allow an unreachable favorite to open. */
+ for(int i=0;i<src->favorite_count;i++)
+  if(src->favorites[i]<P3D_NATIVE_DEX_ENTRIES)
+   menu->favorites[menu->favorites_count++]=src->favorites[i];
  /* Older save files may carry a larger original-resource index. Keep the
     record usable while clamping its selection to the native 649-entry Dex. */
  *dex_index=src->selected_model<P3D_NATIVE_DEX_ENTRIES?src->selected_model:P3D_NATIVE_DEX_ENTRIES-1;
