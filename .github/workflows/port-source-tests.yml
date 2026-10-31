@@ -36,3 +36,6 @@ jobs:
 
       - name: Verify photo album browse and delete
         run: sh tests/run_photo_album_smoke.sh
+
+      - name: Verify optional DS-mode image selection
+        run: sh tests/run_custom_images.sh
