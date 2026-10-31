@@ -74,12 +74,14 @@ jobs:
           # Wait until the home menu is present, then compare before/after input.
           sleep 12
           xwd -id "$window_id" -silent -out emulator-before-down.xwd
-          xdotool windowactivate --sync "$window_id" || true
-          # Hold Down across multiple emulated DS frames so scanKeys()
-          # can observe the press instead of a potentially missed tap.
-          xdotool keydown --window "$window_id" Down
+          # SDL may ignore XSendEvent targeted at a window. Focus the
+          # emulator and use XTEST keyboard injection instead.
+          xdotool windowfocus --sync "$window_id"
+          xdotool mousemove --window "$window_id" 128 190
+          xdotool click 1
+          xdotool keydown Down
           sleep 1
-          xdotool keyup --window "$window_id" Down
+          xdotool keyup Down
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-down.xwd
           sleep 6
