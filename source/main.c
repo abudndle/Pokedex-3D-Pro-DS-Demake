@@ -432,9 +432,12 @@ int main(void) {
                !showing_original_art && (down&KEY_TOUCH)){
                 touchPosition point;
                 touchRead(&point);
+                /* Choices are drawn at console rows 11,14,17,20:
+                 * y=88,112,136,160. Keep the four 24px hitboxes
+                 * aligned with their visible labels. */
                 if(point.px>=24 && point.px<232 &&
-                   point.py>=80 && point.py<176){
-                    int selected=(point.py-80)/24;
+                   point.py>=88 && point.py<184){
+                    int selected=(point.py-88)/24;
                     if(selected>=0 && selected<P3D_CHALLENGE_OPTIONS){
                         quiz.selected=selected;
                         int result=p3dChallengeAnswer(&quiz,selected);
