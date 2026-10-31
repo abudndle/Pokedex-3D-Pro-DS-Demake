@@ -154,6 +154,14 @@
       "source": "Makefile.native",
       "gap": "Smoke ROM CI is not end-to-end emulator and real DS/DSi proof",
       "verified_end_to_end": false
+    },
+    {
+      "id": "original_localizations",
+      "required_for_release": true,
+      "status": "missing",
+      "source": "source/main.c",
+      "gap": "Source game contains multiple languages; native menu/text language switching and verified localization parity are not implemented",
+      "verified_end_to_end": false
     }
   ]
 }
