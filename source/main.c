@@ -474,13 +474,18 @@ int main(void) {
                 if(!shown)album_selected=0;
                 else if(album_selected>=shown)album_selected=shown-1;
                 if(album_confirm_delete){
-                    if(down&KEY_A){
+                    /* A deletion must not be confirmed under an invisible
+                     * bitmap-overlay prompt or after a simultaneous selection. */
+                    if((down&KEY_A) && !showing_original_art &&
+                       !(down&(KEY_UP|KEY_DOWN|KEY_LEFT|KEY_RIGHT|KEY_TOUCH))){
                         if(shown && p3dPhotoAlbumDelete(&photo_album,names[album_selected]))
                             redraw=1;
                         album_confirm_delete=0;
                         redraw=1;
                     }
-                    if(down&KEY_X){album_confirm_delete=0;redraw=1;}
+                    if((down&KEY_X) || showing_original_art){
+                        album_confirm_delete=0;redraw=1;
+                    }
                 }else{
                     if((down&KEY_UP) && album_selected>0){album_selected--;redraw=1;}
                     if((down&KEY_DOWN) && album_selected+1<shown){album_selected++;redraw=1;}
