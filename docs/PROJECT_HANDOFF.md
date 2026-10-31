@@ -32,3 +32,6 @@ Keep source code, scripts, manifests without copyrighted payload data, documenta
 - The final asset-enabled build must explicitly validate the required assets and stop with a clear error if they are absent; do not substitute replicas or invent missing original assets.
 - Keep original proprietary game assets out of GitHub. Local historical restoration research may have used originals, but that does not change their role in future build requirements.
 - Verify the asset-integrated build in melonDS and, where possible, real hardware before claiming final completion.
+
+## Revised original-asset requirement (latest user instruction)
+The goal is to finish porting **the actual game with its original assets**, not produce a generic lookalike. Original assets may be used during development, restoration, and test builds as needed to faithfully implement and verify the port. The previous final-build-only timing requirement is superseded. Keep the decrypted game image and proprietary asset payloads out of GitHub source control; use the user's private local assets during source builds and tests. Missing required originals must be reported explicitly, never substituted with inaccurate replicas.
