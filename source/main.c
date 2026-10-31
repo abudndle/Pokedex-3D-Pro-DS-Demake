@@ -116,10 +116,10 @@ static void render(void) {
             else printf("Source mesh unavailable\n");
             printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
         } else if(state.page==P3D_PAGE_SEARCH){
-            printf("Pokemon number: %03d / 649\\n",state.selected_dex+1);
-            printf("LEFT/RIGHT: +/- 1\\n");
-            printf("UP/DOWN: +/- 10\\n");
-            printf("A: open this Pokemon\\n");
+            printf("Pokemon number: %03d / 649\n",state.selected_dex+1);
+            printf("LEFT/RIGHT: +/- 1\n");
+            printf("UP/DOWN: +/- 10\n");
+            printf("A: open this Pokemon\n");
         } else if(state.page==P3D_PAGE_MOVES){
             printf("Move entry: %03d / 559\n",move_index+1);
             printf("LEFT/RIGHT: browse moves\n");
@@ -196,6 +196,9 @@ static void render(void) {
         if(state.page==P3D_PAGE_DEX){
             printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
+        }else if(state.page==P3D_PAGE_SEARCH){
+            printf("\x1b[13;1HSearch #%03d",state.selected_dex+1);
+            printf("\x1b[15;1HA: open Pokemon");
         }else if(state.page==P3D_PAGE_MOVES){
             printf("\x1b[13;1HMove %03d of 559",move_index+1);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
