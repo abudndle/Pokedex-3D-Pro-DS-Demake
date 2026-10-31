@@ -384,6 +384,8 @@ int main(void) {
                 if((down&KEY_LEFT)&&favorite_index>0){favorite_index--;redraw=1;}
                 if((down&KEY_RIGHT)&&favorite_index<state.favorites_count-1){favorite_index++;redraw=1;}
                 if((down&KEY_A)&&state.favorites_count>0){
+                    if(favorite_index<0 || favorite_index>=state.favorites_count)
+                        favorite_index=0;
                     int removed=p3dFavoriteToggle(&state,state.favorites[favorite_index]);
                     if(removed){
                         progress_dirty=1;
