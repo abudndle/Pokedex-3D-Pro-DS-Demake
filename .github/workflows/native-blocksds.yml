@@ -1,0 +1,27 @@
+name: Native BlocksDS build readiness
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'source/**'
+      - 'Makefile'
+      - 'Makefile.native'
+      - '.github/workflows/native-blocksds.yml'
+jobs:
+  source-readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check full native game source is present
+        run: make verify-source
+  build:
+    if: github.event_name == 'workflow_dispatch'
+    needs: source-readiness
+    runs-on: ubuntu-latest
+    container: skylyrac/blocksds:slim-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile private-asset integrated ROM if assets provided
+        run: |
+          echo 'Original proprietary NitroFS content is intentionally excluded from GitHub.'
+          make
