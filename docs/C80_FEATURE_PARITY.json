@@ -87,8 +87,8 @@
       "id": "original_pokemon_models",
       "required_for_release": true,
       "status": "partial",
-      "source": "tools/c93_private_browser_bundle_audit.py",
-      "gap": "C93 privately renders 500 original-derived material candidates in a standalone interactive offline browser, with seven full recovered source OBJ reference meshes and 493 600-face samples. Actual DS visual parity, original 3DS shader texture-channel semantics, animations and complete original mesh geometry across all 730 remain unverified.",
+      "source": "tools/c94_original_obj_uv_alignment.py",
+      "gap": "C94 privately upgrades all 500 C92 browser preview candidates to complete recovered C7 OBJ triangle topology (2,396,500 triangles), with 491 C62 and nine C7 UV-bearing exports matching C7 face/vertex order. It does not change native DS 600-triangle sampling, and inferred UVs, unverified original GPU sampler roles, missing models/animations and original 3DS appearance remain incomplete.",
       "verified_end_to_end": false
     },
     {
