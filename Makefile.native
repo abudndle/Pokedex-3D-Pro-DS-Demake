@@ -23,5 +23,4 @@ build/%.o: source/%.c
 build/$(NAME).elf: $(OBJS)
 	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 $(NAME).nds: build/$(NAME).elf
-	@test -f $(GAME_ICON) || { echo "ERROR: DS ROM icon missing"; exit 1; }
-	$(BLOCKSDS)/tools/ndstool/ndstool -c $@ -7 $(ARM7ELF) -9 $< -b $(GAME_ICON) "$(GAME_TITLE);$(GAME_SUBTITLE);$(GAME_AUTHOR)" -d $(NITROFSDIR)
+	$(BLOCKSDS)/tools/ndstool/ndstool -c $@ -7 $(ARM7ELF) -9 $< $(if $(strip $(NITROFSDIR)),-d $(NITROFSDIR),)
