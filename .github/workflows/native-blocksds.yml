@@ -30,5 +30,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: Pokedex3D-native-development-smoke-only
+      - name: Run ROM layout regression tests
+        run: python3 -m unittest discover -s tests -p 'test_nds_rom_layout.py'
       - name: Validate native ARM9 and ARM7 ROM sections
         run: python3 tools/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
