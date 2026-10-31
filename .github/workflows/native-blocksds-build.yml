@@ -166,8 +166,8 @@ jobs:
                         b[y*row+x*stride:y*row+x*stride+3]
                         for y in range(0,h,2) for x in range(0,w,2))
           print(f'Menu input changed {different} sampled pixels')
-          if different==0:
-              print('WARNING: Simulated key produced no visible change; button mapping unverified')
+          assert different>100, (
+              'Simulated Down/A sequence did not visibly open a menu page')
           PY
       - name: Upload emulator visual evidence
         if: always()
