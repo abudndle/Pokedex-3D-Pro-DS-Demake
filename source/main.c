@@ -136,11 +136,11 @@ static void render_model(void){
     glTranslatef32(0,0,floattof32(-3));
     glRotateYi(model_yaw);
     if(preview_animation.ready){
-        int frame=p3dAnimationFrameAt(&preview_animation,animation_tick);
-        if(frame>=0){
-            glRotateXi(preview_animation.frames[frame].pitch);
-            glRotateYi(preview_animation.frames[frame].yaw);
-            glRotateZi(preview_animation.frames[frame].roll);
+        P3DAnimationFrame pose;
+        if(p3dAnimationPoseAt(&preview_animation,animation_tick,&pose)){
+            glRotateXi(pose.pitch);
+            glRotateYi(pose.yaw);
+            glRotateZi(pose.roll);
         }
     }
     glPolyFmt(POLY_ALPHA(31)|POLY_CULL_NONE);
@@ -213,7 +213,7 @@ static void render(void) {
             else printf("Source mesh unavailable\n");
             if(preview_found){
                 if(preview_animation.ready)
-                    printf("Animation: %u frames, %u ticks\n",preview_animation.count,preview_animation.total_ticks);
+                    printf("Animation: %u frames, %u ticks (%s)\n",preview_animation.count,preview_animation.total_ticks,preview_animation.version==2?"smooth":"held");
                 else printf("Animation: static (no clip)\n");
             }
             printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
