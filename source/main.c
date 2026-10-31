@@ -382,8 +382,17 @@ int main(void) {
     reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
     render();
+    unsigned frame_counter=0;
     while(1) {
         swiWaitForVBlank();
+        ++frame_counter;
+        /* Keep a visible frame heartbeat while investigating emulator
+         * input after a page transition. If this changes but B/Right does
+         * not, the main loop is alive and key mapping is the issue. */
+        if(!home && (frame_counter%60)==0) {
+            consoleSelect(&top_console);
+            iprintf("\x1b[22;0HLoop: %lu   ",(unsigned long)(frame_counter/60));
+        }
         challenge_seed+=0x9E3779B9u; /* Vary each game session's quiz sequence. */
         scanKeys();
         unsigned down=keysDown();
