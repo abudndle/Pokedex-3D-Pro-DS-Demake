@@ -330,6 +330,27 @@ int main(void) {
                 if((down&KEY_LEFT)&&dex_index>0){dex_index--;reload_preview();progress_dirty=1;redraw=1;}
                 if((down&KEY_RIGHT)&&dex_index<648){dex_index++;reload_preview();progress_dirty=1;redraw=1;}
             }
+            /* In text navigation mode, the bottom corners also browse entries.
+             * Original-art mode retains its artwork without guessed hitboxes. */
+            if(!prefer_original_art && (down&KEY_TOUCH)){
+                touchPosition point;
+                touchRead(&point);
+                if(point.py>=150 && point.py<192){
+                    int direction=point.px<64?-1:(point.px>=192?1:0);
+                    if(state.page==P3D_PAGE_DEX && direction){
+                        int next=dex_index+direction;
+                        if(next>=0 && next<649){
+                            dex_index=next;reload_preview();
+                            progress_dirty=1;redraw=1;
+                        }
+                    } else if(state.page==P3D_PAGE_MOVES && direction){
+                        int next=move_index+direction;
+                        if(next>=0 && next<559){
+                            move_index=next;progress_dirty=1;redraw=1;
+                        }
+                    }
+                }
+            }
             if(state.page==P3D_PAGE_MOVES){
                 if((down&KEY_LEFT)&&move_index>0){move_index--;progress_dirty=1;redraw=1;}
                 if((down&KEY_RIGHT)&&move_index<558){move_index++;progress_dirty=1;redraw=1;}
