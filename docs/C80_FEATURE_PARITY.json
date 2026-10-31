@@ -24,7 +24,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/dex_search.c",
-      "gap": "C82 restores original-English names/description substring search, regional ranges and viewed/favorites scopes, with X+arrows initial-letter navigation; complete original touchscreen keyboard and UI search filters remain incomplete",
+      "gap": "C83 adds an A-Z text-mode touchscreen query, name/description matching, region and viewed/favorites scope controls, and previous/next results, but original 3DS art hitboxes and final visual/UI parity remain unverified",
       "verified_end_to_end": false
     },
     {
@@ -143,8 +143,8 @@
       "id": "touch_and_buttons",
       "required_for_release": true,
       "status": "partial",
-      "source": "source/main.c",
-      "gap": "Navigation exists; full original touch-target parity not verified",
+      "source": "source/search_touch.c",
+      "gap": "Native DS touch keyboard and scoped search implemented in safe text mode; recovered original-art touch target mapping and complete original controls not verified",
       "verified_end_to_end": false
     },
     {
