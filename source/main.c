@@ -14,6 +14,7 @@
 #include "game_save_bridge.h"
 #include "preview_stream.h"
 #include "species_model_map.h"
+#include "form_model_map.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
 #include "photo_album.h"
@@ -42,6 +43,8 @@ static int progress_dirty=0;
 static int preview_ready=0;
 static int preview_found=0;
 static P3DModelMap species_models;
+static P3DFormMap alternate_models;
+static int selected_form=0;
 static int move_catalog_ready=0;
 static int move_text_offset=0;
 static P3DPhotoAlbum photo_album;
@@ -80,7 +83,7 @@ static void prepare_original_art(void){
 }
 
 static void reload_preview(void){
-    int resource=p3dModelMapResolve(&species_models,dex_index);
+    int resource=selected_form?p3dFormResolve(&alternate_models,dex_index,selected_form):p3dModelMapResolve(&species_models,dex_index);
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
 }
 static int display_preview=0;
@@ -358,7 +361,10 @@ int main(void) {
     BG_PALETTE_SUB[0]=RGB15(0,0,0);
     /* Mount the ROM filesystem before accessing original pages, models, or moves. */
     nitro_ready=nitroFSInit(NULL)?1:0;
-    if(nitro_ready) p3dModelMapLoad(&species_models,"nitro:/models/species_map.p3sm");
+    if(nitro_ready){
+        p3dModelMapLoad(&species_models,"nitro:/models/species_map.p3sm");
+        p3dFormMapLoad(&alternate_models,"nitro:/models/forms.p3fm");
+    }
     p3dMenuReset(&state);
     p3dChallengeReset(&quiz);
     /* FAT/DLDI storage is optional in DS mode; no media means volatile progress. */
@@ -511,6 +517,7 @@ int main(void) {
                 if(next!=state.selected_dex){state.selected_dex=next;redraw=1;}
                 if(down&KEY_A){
                     dex_index=state.selected_dex;
+                    selected_form=0;
                     state.page=P3D_PAGE_DEX;
                     reload_preview();
                     progress_dirty=1;
@@ -628,6 +635,7 @@ int main(void) {
                     if(favorite_index<0 || favorite_index>=state.favorites_count)
                         favorite_index=0;
                     dex_index=state.favorites[favorite_index];
+                    selected_form=0;
                     state.page=P3D_PAGE_DEX;
                     reload_preview();
                     progress_dirty=1;
@@ -650,8 +658,9 @@ int main(void) {
                         model_yaw=(model_yaw+64)&32767;
                 }
                 if(down&KEY_A){if(p3dFavoriteToggle(&state,dex_index))progress_dirty=1;redraw=1;}
-                if((down&KEY_LEFT)&&dex_index>0){dex_index--;reload_preview();progress_dirty=1;redraw=1;}
-                if((down&KEY_RIGHT)&&dex_index<648){dex_index++;reload_preview();progress_dirty=1;redraw=1;}
+                if((down&KEY_Y)){selected_form=p3dFormNext(&alternate_models,dex_index,selected_form);reload_preview();redraw=1;}
+                if((down&KEY_LEFT)&&dex_index>0){dex_index--;selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
+                if((down&KEY_RIGHT)&&dex_index<648){dex_index++;selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
             }
             /* In text navigation mode, the bottom corners also browse entries.
              * Original-art mode retains its artwork without guessed hitboxes. */
@@ -663,7 +672,7 @@ int main(void) {
                     if(state.page==P3D_PAGE_DEX && direction){
                         int next=dex_index+direction;
                         if(next>=0 && next<649){
-                            dex_index=next;reload_preview();
+                            dex_index=next;selected_form=0;reload_preview();
                             progress_dirty=1;redraw=1;
                         }
                     } else if(state.page==P3D_PAGE_SEARCH && direction){
