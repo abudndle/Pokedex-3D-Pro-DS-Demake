@@ -178,6 +178,12 @@ jobs:
                         b[y*row+x*stride:y*row+x*stride+3]
                         for y in range(0,h,2) for x in range(0,w,2))
           print(f'Menu input changed {different} sampled pixels')
+          _,right,wright,hright,rowright,strideright=read_pixels('emulator-after-right.xwd')
+          assert (w,h,row,stride)==(wright,hright,rowright,strideright)
+          moved=sum(b[y*row+x*stride:y*row+x*stride+3] !=
+                    right[y*row+x*stride:y*row+x*stride+3]
+                    for y in range(0,h,2) for x in range(0,w,2))
+          print(f'Pokédex Right input changed {moved} sampled pixels')
           assert different>100, (
               'Simulated Down/A sequence did not visibly open a menu page')
           _,c,w3,h3,row3,stride3=read_pixels('emulator-after-back.xwd')
