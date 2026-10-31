@@ -29,6 +29,7 @@ static int highlighted=0, count=0, home=1;
 static int dex_index=0, move_index=0;
 static int attack_type=1, defend_type=4;
 static P3DChallenge quiz;
+static int challenge_correct_total=0, challenge_answer_total=0;
 static int favorite_index=0;
 static int storage_ready=0;
 static int nitro_ready=0;
@@ -86,7 +87,7 @@ static void render_model(void){
 static int save_progress(void){
     P3DSaveState record;
     if(!storage_ready){save_message=2;return 0;}
-    if(!p3dGameSaveCapture(&record,&state,dex_index,move_index,0,0)){
+    if(!p3dGameSaveCapture(&record,&state,dex_index,move_index,challenge_correct_total,challenge_answer_total)){
         save_message=2;
         return 0;
     }
@@ -245,8 +246,11 @@ int main(void) {
     if(storage_ready){
         P3DSaveState record;
         if(p3dSaveLoad(P3D_SAVE_BASE,&record)){
-            p3dGameSaveRestore(&record,&state,&dex_index,&move_index);
-            save_message=3;
+            if(p3dGameSaveRestore(&record,&state,&dex_index,&move_index)){
+                challenge_correct_total=(int)record.challenge_correct;
+                challenge_answer_total=(int)record.challenge_total;
+                save_message=3;
+            }
         }
     }
     if(nitro_ready){
@@ -303,11 +307,19 @@ int main(void) {
             } else {
             if(state.page==P3D_PAGE_CHALLENGE){
                 if(quiz.stage==P3D_CHALLENGE_PICKER||quiz.stage==P3D_CHALLENGE_RESULTS){
-                    if(down&KEY_A){p3dChallengeBegin(&quiz,0,1,0);redraw=1;}
+                    if(down&KEY_A){p3dChallengeBegin(&quiz,0,1,challenge_answer_total);redraw=1;}
                 }else{
                     if((down&KEY_UP)&&quiz.selected>0){quiz.selected--;redraw=1;}
                     if((down&KEY_DOWN)&&quiz.selected<3){quiz.selected++;redraw=1;}
-                    if(down&KEY_A){p3dChallengeAnswer(&quiz,quiz.selected);redraw=1;}
+                    if(down&KEY_A){
+                        int result=p3dChallengeAnswer(&quiz,quiz.selected);
+                        if(result>=0 && challenge_answer_total<100000000){
+                            challenge_answer_total++;
+                            if(result)challenge_correct_total++;
+                            progress_dirty=1;
+                        }
+                        redraw=1;
+                    }
                 }
             }
             if(state.page==P3D_PAGE_SEARCH){
