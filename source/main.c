@@ -30,6 +30,7 @@ static int dex_index=0, move_index=0;
 static int attack_type=1, defend_type=4;
 static P3DChallenge quiz;
 static int challenge_correct_total=0, challenge_answer_total=0;
+static unsigned int challenge_seed=0x13579BDFu;
 static int favorite_index=0;
 static int storage_ready=0;
 static int nitro_ready=0;
@@ -281,6 +282,7 @@ int main(void) {
     render();
     while(1) {
         swiWaitForVBlank();
+        challenge_seed+=0x9E3779B9u; /* Vary each game session's quiz sequence. */
         scanKeys();
         unsigned down=keysDown();
         unsigned held=keysHeld();
@@ -339,7 +341,7 @@ int main(void) {
                     if(down&KEY_A){
                         /* Preserve the selected region when retrying. */
                         int mode=quiz.mode_cursor;
-                        if(p3dChallengeBegin(&quiz,mode,1,challenge_answer_total))
+                        if(p3dChallengeBegin(&quiz,mode,challenge_seed,challenge_answer_total))
                             redraw=1;
                     }
                 }else{
