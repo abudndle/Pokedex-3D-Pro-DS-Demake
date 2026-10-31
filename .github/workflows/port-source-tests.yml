@@ -16,6 +16,9 @@ jobs:
       - name: Validate DS3M v1/v2 fixture contracts
         run: python3 -m unittest discover -s tests -p 'test_inspect_ds3m.py' -v
 
+      - name: Verify DS texture upload interface
+        run: sh tests/run_ds_texture_upload.sh
+
       - name: Verify RGB555 texture payload against manifest
         run: sh tests/run_texture_asset.sh
 
