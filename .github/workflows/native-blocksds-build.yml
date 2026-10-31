@@ -123,9 +123,8 @@ jobs:
           assert ratio>=0.05, 'Emulator window is mostly black'
           # The menu uses monochrome console text. Count color diversity
           # as a diagnostic, but white text on black is valid gameplay.
-          assert len(per_screen[1])>=2, 'Lower DS menu not visible'
-          if len(per_screen[0])<2:
-              print('WARNING: Upper DS screen is still blank; investigate main BG3')
+          assert len(per_screen[0])>=2, 'Upper DS console is blank'
+          assert len(per_screen[1])>=2, 'Lower DS menu is blank'
           assert len(unique)>=3, 'Both DS screens appear blank'
           PY
       - name: Upload emulator visual evidence
