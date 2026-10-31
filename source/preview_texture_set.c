@@ -42,7 +42,10 @@ int p3dPreviewTextureSetLoad(P3DPreviewTextureSet *set,
    unsigned id=materials->ranges[i].texture_id;
    const P3DTextureEntry *entry=p3dTextureFind(manifest,id);
    int found=0;
-   if(!entry||entry->width<8||entry->height<8)return 0;
+   if(!entry||entry->width<8||entry->height<8){
+     p3dPreviewTextureSetRelease(set);
+     return 0;
+   }
    for(unsigned j=0;j<set->count;j++)
      if(set->entries[j].id==id){found=1;break;}
    if(found)continue;
