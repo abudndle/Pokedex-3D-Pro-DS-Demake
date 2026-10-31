@@ -247,9 +247,13 @@ static void render(void) {
                 P3DMove entry;
                 if(p3dMoveDexRead(move_index,&entry)){
                     printf("\x1b[13;1H%.28s",entry.name);
-                    printf("\x1b[15;1H%.28s",entry.description);
-                    if(strlen(entry.description)>28)
-                        printf("\x1b[17;1H%.28s",entry.description+28);
+                    /* Clip each fragment to the console's 32-character
+                     * width and display the available 84 characters. */
+                    for(size_t part=0;part<3;part++){
+                        size_t offset=part*28;
+                        if(strlen(entry.description)<=offset)break;
+                        printf("\x1b[%d;1H%.28s",15+(int)part*2,entry.description+offset);
+                    }
                 }
             }
             printf("\x1b[19;1HL/R: +/-1  U/D: +/-10");
