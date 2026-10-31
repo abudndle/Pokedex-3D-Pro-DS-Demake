@@ -39,6 +39,7 @@ check-host:
 		echo "Running $$test"; sh "tests/$$test"; \
 	done
 	@python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
+	@python3 -m unittest discover -s tests -p 'test_inspect_ds3m.py' -v
 	@python3 tests/test_private_ui_packager.py
 	@tmp=$$(mktemp); trap 'rm -f "$$tmp"' EXIT; \
 		cc -std=c11 -Wall -Wextra -Werror -Isource \
