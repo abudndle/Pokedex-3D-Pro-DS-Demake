@@ -11,6 +11,7 @@
 #include "challenge.h"
 #include "game_save_bridge.h"
 #include "preview_stream.h"
+#include "move_dex.h"
 #ifdef P3D_HAVE_FAT
 #include <fat.h>
 #endif
@@ -32,6 +33,7 @@ static int save_message=0;
 static int progress_dirty=0;
 static int preview_ready=0;
 static int preview_found=0;
+static int move_catalog_ready=0;
 static void reload_preview(void){preview_found=preview_ready&&previewStreamLoad(dex_index);}
 static int display_preview=0;
 static int model_yaw=0;
@@ -82,7 +84,13 @@ static void render(void) {
         } else if(state.page==P3D_PAGE_MOVES){
             printf("Move entry: %03d / 559\n",move_index+1);
             printf("LEFT/RIGHT: browse moves\n");
-            printf("Move data asset pending.\n");
+            if(move_catalog_ready){
+                P3DMove entry;
+                if(p3dMoveDexRead(move_index,&entry)){
+                    printf("%s\n",entry.name);
+                    printf("%.48s\n",entry.description);
+                }else printf("Move record unavailable.\n");
+            }else printf("Original Move Dex unavailable.\n");
         } else if(state.page==P3D_PAGE_TYPES){
             int effect=p3dTypeEffect(attack_type,defend_type);
             printf("Attack: %s\n",p3dTypeName(attack_type));
@@ -195,6 +203,7 @@ int main(void) {
         }
     }
     preview_ready=previewStreamInit();
+    if(preview_ready)move_catalog_ready=p3dMoveDexInit("nitro:/moves.p3dm");
     reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
     render();
