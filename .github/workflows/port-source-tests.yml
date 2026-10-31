@@ -1,0 +1,12 @@
+name: Port source tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run asset-free C source smoke test
+        run: sh tests/run_source_smoke.sh
