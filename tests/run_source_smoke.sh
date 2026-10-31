@@ -13,3 +13,8 @@ with open(sys.argv[1],'wb') as f:
 PY
 cc -std=c11 -Wall -Wextra -Werror -O2 -Isource source/dex_search.c source/dex_text.c tests/test_dex_search_smoke.c -o "$tmp/dex_test"
 "$tmp/dex_test" "$tmp/dex.bin"
+
+cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
+    source/feature_menu.c source/dsi_features.c \
+    tests/test_feature_menu_bounds.c -o "$tmp/menu_test"
+"$tmp/menu_test"
