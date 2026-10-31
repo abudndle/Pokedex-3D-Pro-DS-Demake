@@ -35,7 +35,7 @@ check-host:
 		run_photo_album_smoke.sh run_custom_images.sh \
 		run_bmp_loader.sh run_image_background.sh \
 		run_settings_images.sh run_menu_navigation.sh \
-		run_game_save_bridge.sh; do \
+		run_game_save_bridge.sh run_c81_records_smoke.sh; do \
 		echo "Running $$test"; sh "tests/$$test"; \
 	done
 	@python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
