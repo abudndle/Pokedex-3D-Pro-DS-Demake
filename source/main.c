@@ -418,7 +418,7 @@ int main(void) {
             }
             /* In text navigation mode, the bottom corners also browse entries.
              * Original-art mode retains its artwork without guessed hitboxes. */
-            if(!prefer_original_art && (down&KEY_TOUCH)){
+            if(!showing_original_art && (down&KEY_TOUCH)){
                 touchPosition point;
                 touchRead(&point);
                 if(point.py>=150 && point.py<192){
