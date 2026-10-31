@@ -60,13 +60,18 @@ jobs:
           trap 'kill "$pid" 2>/dev/null || true' EXIT
           # Give NitroFS/FAT startup and the DS CPU more time to draw frames.
           # Record the early hardware palette probe and the later menu.
-          sleep 1
-          xwininfo -root -tree > emulator-windows.txt
-          window_id="$(awk '/"Desmume/{print $1; exit}' emulator-windows.txt)"
-          if [ -n "$window_id" ]; then
-            xwd -id "$window_id" -silent -out emulator-early.xwd
-          fi
-          sleep 19
+          window_id=""
+          for attempt in $(seq 1 20); do
+            xwininfo -root -tree > emulator-windows.txt
+            window_id="$(awk '/"Desmume/{print $1; exit}' emulator-windows.txt)"
+            if [ -n "$window_id" ]; then break; fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.5
+          done
+          test -n "$window_id" || { cat /tmp/desmume.log; echo "No emulator window"; exit 1; }
+          xwd -id "$window_id" -silent -out emulator-early.xwd
+          test -s emulator-early.xwd
+          sleep 20
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
             echo "DeSmuME terminated before the startup smoke test completed" >&2
@@ -83,7 +88,7 @@ jobs:
           tail -30 /tmp/desmume.log || true
           SCRIPT
           chmod +x /tmp/check_emulator.sh
-          xvfb-run -a -s '-screen 0 1024x768x24' timeout 35s /tmp/check_emulator.sh
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 50s /tmp/check_emulator.sh
       - name: Reject mostly blank emulator display
         run: |
           python3 - <<'PY'
