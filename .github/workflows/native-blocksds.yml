@@ -5,6 +5,7 @@ on:
       - 'source/**'
       - 'Makefile'
       - 'Makefile.native'
+      - 'tools/verify_nds_rom.py'
       - '.github/workflows/native-blocksds.yml'
   workflow_dispatch:
 jobs:
@@ -16,10 +17,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Compile asset-free native development shell
         run: make dev-rom
-      - name: Validate generated NDS ROM structure
-        run: python3 tools/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
       - uses: actions/upload-artifact@v4
         with:
           name: Pokedex3D-native-development-smoke-only
           path: Pokedex3D_DS_BlocksDS.nds
           retention-days: 7
+  validate-rom:
+    needs: native-dev-rom
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Pokedex3D-native-development-smoke-only
+      - name: Validate native ARM9 and ARM7 ROM sections
+        run: python3 tools/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
