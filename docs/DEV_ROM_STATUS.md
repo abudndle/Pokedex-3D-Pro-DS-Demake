@@ -16,3 +16,9 @@ The GitHub Actions **Native BlocksDS development ROM** job produces a boot-forma
 - Complete native gameplay.
 
 The private original game assets must not be committed to GitHub. Final game ROM assembly will be done using the asset integration process with the user's own originals.
+
+## Native name-prefix search
+The Search screen now uses the existing seekable P3DX private text catalog for
+name-prefix matching, controller/text-screen input and previous/next results.
+Numeric search remains available without original text. See
+[Native Pokémon name search](NAME_SEARCH.md) for controls and catalog format.

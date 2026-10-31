@@ -10,6 +10,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: Verify native name-prefix search and private catalog failures
+        run: sh tests/run_name_search.sh
+
       - name: Validate private asset loader contracts
         run: python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 

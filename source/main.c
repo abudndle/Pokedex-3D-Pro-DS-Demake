@@ -7,6 +7,8 @@
 #include <string.h>
 #include <filesystem.h>
 #include "feature_menu.h"
+#include "dex_text.h"
+#include "name_search.h"
 #include "menu_layout.h"
 #include "menu_navigation.h"
 #include "dsi_features.h"
@@ -37,6 +39,9 @@ static P3DMenu state;
 static P3DPage pages[P3D_MENU_MAX];
 static int highlighted=0, count=0, home=1;
 static int dex_index=0, move_index=0;
+static int dex_text_ready=0;
+static int search_name_mode=0;
+static P3DNameSearch name_search;
 static int attack_type=1, defend_type=4, defend_type2=-1;
 static P3DChallenge quiz;
 static int challenge_correct_total=0, challenge_answer_total=0;
@@ -227,14 +232,24 @@ static void render(void) {
             printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
             printf("X: search this Pokemon\n");
         } else if(state.page==P3D_PAGE_SEARCH){
-            printf("Pokemon number: %03d / 649\n",state.selected_dex+1);
-            printf("LEFT/RIGHT: +/- 1\n");
-            printf("UP/DOWN: +/- 10\n");
-            printf("A: open this Pokemon\n");
-            printf("Y: toggle favorite (%s)\n",p3dFavoriteContains(&state,state.selected_dex)?"saved":"not saved");
-            printf("X: open Favorites\n");
-            printf("L: open Move Dex\n");
-            printf("R: open Settings\n");
+            P3DDexText entry;
+            printf("L+R: switch number/name search\n");
+            if(search_name_mode){
+                printf("Prefix: %s_\n",name_search.query);
+                printf("Letter: %c  UP/DOWN: change\n",name_search.letter);
+                printf("RIGHT: add  LEFT: erase\n");
+                printf("L/R: previous/next match\n");
+            }else{
+                printf("Pokemon number: %03d / 649\n",state.selected_dex+1);
+                printf("LEFT/RIGHT: +/- 1\n");
+                printf("UP/DOWN: +/- 10\n");
+                printf("L: Move Dex  R: Settings\n");
+            }
+            if(!dex_text_ready)printf("Original name catalog unavailable.\n");
+            else if(search_name_mode && !name_search.query[0])printf("Enter a name prefix.\n");
+            else if(search_name_mode && name_search.match<0)printf("No matching Pokemon.\n");
+            else if(p3dDexTextRead(state.selected_dex,&entry))printf("#%03d %s\n",state.selected_dex+1,entry.name);
+            printf("A: open  Y: favorite  X: Favorites\n");
         } else if(state.page==P3D_PAGE_MOVES){
             printf("Move entry: %03d / 559\n",move_index+1);
             printf("LEFT/RIGHT: +/- 1 move\n");
@@ -354,10 +369,24 @@ static void render(void) {
             else printf("\x1b[17;1HBase form");
             printf("\x1b[19;1HY: next verified form");
         }else if(state.page==P3D_PAGE_SEARCH){
-            printf("\x1b[13;1HSearch #%03d",state.selected_dex+1);
-            printf("\x1b[15;1HA: open Pokemon");
-            printf("\x1b[17;1HY: toggle favorite");
-            printf("\x1b[19;1HX: open Favorites");
+            printf("\x1b[11;1H[%s] L+R / tap: switch",search_name_mode?"Name":"Number");
+            if(search_name_mode){
+                P3DDexText entry;
+                printf("\x1b[13;1HPrefix: %s_",name_search.query);
+                printf("\x1b[15;1HLetter: <%c>  UP/DOWN",name_search.letter);
+                printf("\x1b[17;1H[Erase]          [Add letter]");
+                if(!dex_text_ready)printf("\x1b[19;1HOriginal names unavailable");
+                else if(!name_search.query[0])printf("\x1b[19;1HEnter a prefix");
+                else if(name_search.match<0)printf("\x1b[19;1HNo match");
+                else if(p3dDexTextRead(name_search.match,&entry))printf("\x1b[19;1H%03d %.27s",name_search.match+1,entry.name);
+                printf("\x1b[21;1H[L: Previous]    [R: Next]");
+                printf("\x1b[23;1HA:open Y:favorite X:favorites");
+            }else{
+                printf("\x1b[13;1HSearch #%03d",state.selected_dex+1);
+                printf("\x1b[15;1HA: open Pokemon");
+                printf("\x1b[17;1HY: toggle favorite");
+                printf("\x1b[19;1HX: open Favorites");
+            }
         }else if(state.page==P3D_PAGE_MOVES){
             printf("\x1b[11;1HMove %03d of 559",move_index+1);
             if(move_catalog_ready){
@@ -423,7 +452,8 @@ static void render(void) {
         }else{
             printf("\x1b[13;1HFeature implementation pending");
         }
-        if(state.page==P3D_PAGE_CHALLENGE && quiz.stage==P3D_CHALLENGE_QUESTION)
+        if(state.page==P3D_PAGE_SEARCH ||
+           (state.page==P3D_PAGE_CHALLENGE && quiz.stage==P3D_CHALLENGE_QUESTION))
             printf("\x1b[24;1HB: Return to menu");
         else printf("\x1b[17;1HPress B to go back");
     }
@@ -474,6 +504,7 @@ int main(void) {
         p3dFormNamesLoad(&form_names,"nitro:/models/form_names.p3fn");
     }
     p3dMenuReset(&state);
+    p3dNameSearchReset(&name_search);
     p3dChallengeReset(&quiz);
     /* FAT/DLDI storage is optional in DS mode; no media means volatile progress. */
     #ifdef P3D_HAVE_FAT
@@ -495,6 +526,7 @@ int main(void) {
      * directory only when the device is actually available. */
     if(storage_ready)album_ready=p3dPhotoAlbumOpen(&photo_album,"fat:/Pokedex 3D Pro/Photos");
     if(nitro_ready){
+        dex_text_ready=p3dDexTextInit("nitro:/dex.p3dx");
         preview_ready=previewStreamInit();
         /* Moves must remain available even if a model preview is missing. */
         move_catalog_ready=p3dMoveDexInit("nitro:/moves.p3dm");
@@ -509,6 +541,7 @@ int main(void) {
         unsigned down=keysDown();
         unsigned held=keysHeld();
         int redraw=0;
+        int search_navigation=0;
         /* SELECT makes the text navigation available even with a full-screen
          * recovered UI image. Press SELECT again to restore original art. */
         if(down&KEY_SELECT){
@@ -537,14 +570,14 @@ int main(void) {
                 int hit=p3dMenuTouchIndex(point.px,point.py,count,highlighted);
                 if(hit>=0) {
                     highlighted=hit;
-                    if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);if(state.page==P3D_PAGE_SEARCH)state.selected_dex=dex_index;}
+                    if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);if(state.page==P3D_PAGE_SEARCH){state.selected_dex=dex_index;search_name_mode=0;}}
                     redraw=1;
                 }
             }
             /* A menu tap already opens an entry; do not let a simultaneous
              * A press open the next highlighted entry in the same frame. */
             if((down&KEY_A)&&!(down&KEY_TOUCH)&&highlighted>=0&&highlighted<count) {
-                if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);if(state.page==P3D_PAGE_SEARCH)state.selected_dex=dex_index;}
+                if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);if(state.page==P3D_PAGE_SEARCH){state.selected_dex=dex_index;search_name_mode=0;}}
                 redraw=1;
             }
         } else {
@@ -619,38 +652,55 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_SEARCH){
-                if((down&KEY_R) && !(down&(KEY_A|KEY_X|KEY_Y|KEY_L))){
-                    state.page=P3D_PAGE_SETTINGS;
-                    redraw=1;
+                int switch_mode=((down&(KEY_L|KEY_R)) && (held&KEY_L) && (held&KEY_R));
+                int touch_x=-1,touch_y=-1;
+                if(!showing_original_art && (down&KEY_TOUCH)){
+                    touchPosition point;touchRead(&point);
+                    touch_x=point.px;touch_y=point.py;
+                    if(touch_x>=0 && touch_x<256 && touch_y>=80 && touch_y<96)switch_mode=1;
                 }
-                if((down&KEY_L) && !(down&(KEY_A|KEY_X|KEY_Y))){
-                    state.page=P3D_PAGE_MOVES;
+                if(switch_mode){
+                    search_name_mode=!search_name_mode;
+                    if(search_name_mode && name_search.match>=0)state.selected_dex=name_search.match;
                     redraw=1;
-                }
-                if((down&KEY_X) && !(down&(KEY_A|KEY_Y))){
-                    state.page=P3D_PAGE_FAVORITES;
-                    favorite_index=0;
-                    redraw=1;
-                }
-                int next=state.selected_dex;
-                if(down&KEY_LEFT)next--;
-                if(down&KEY_RIGHT)next++;
-                if(down&KEY_UP)next-=10;
-                if(down&KEY_DOWN)next+=10;
-                if(next<0)next=0;
-                if(next>648)next=648;
-                if(next!=state.selected_dex){state.selected_dex=next;redraw=1;}
-                if((down&KEY_Y) && !(down&KEY_A)){
-                    if(p3dFavoriteToggle(&state,state.selected_dex))progress_dirty=1;
-                    redraw=1;
-                }
-                if(down&KEY_A){
-                    dex_index=state.selected_dex;
-                    selected_form=0;
-                    state.page=P3D_PAGE_DEX;
-                    reload_preview();
-                    progress_dirty=1;
-                    redraw=1;
+                }else{
+                    if(search_name_mode){
+                        int action=p3dNameSearchTouchAction(touch_x,touch_y);
+                        if(action>=0)p3dNameSearchApply(&name_search,(P3DNameAction)action);
+                        else if(down&KEY_UP)p3dNameSearchApply(&name_search,P3D_NAME_UP);
+                        else if(down&KEY_DOWN)p3dNameSearchApply(&name_search,P3D_NAME_DOWN);
+                        else if(down&KEY_LEFT)p3dNameSearchApply(&name_search,P3D_NAME_ERASE);
+                        else if(down&KEY_RIGHT)p3dNameSearchApply(&name_search,P3D_NAME_APPEND);
+                        else if(down&KEY_L)p3dNameSearchApply(&name_search,P3D_NAME_PREVIOUS);
+                        else if(down&KEY_R)p3dNameSearchApply(&name_search,P3D_NAME_NEXT);
+                        if(name_search.match>=0)state.selected_dex=name_search.match;
+                        if(action>=0 || (down&(KEY_UP|KEY_DOWN|KEY_LEFT|KEY_RIGHT|KEY_L|KEY_R)))redraw=1;
+                    }else{
+                        if((down&KEY_R) && !(down&(KEY_A|KEY_X|KEY_Y|KEY_L))){state.page=P3D_PAGE_SETTINGS;redraw=1;search_navigation=1;}
+                        if((down&KEY_L) && !(down&(KEY_A|KEY_X|KEY_Y))){state.page=P3D_PAGE_MOVES;redraw=1;search_navigation=1;}
+                        int next=state.selected_dex;
+                        if(down&KEY_LEFT)next--;
+                        if(down&KEY_RIGHT)next++;
+                        if(down&KEY_UP)next-=10;
+                        if(down&KEY_DOWN)next+=10;
+                        if(next<0)next=0;
+                        if(next>648)next=648;
+                        if(next!=state.selected_dex){state.selected_dex=next;redraw=1;}
+                    }
+                    if((down&KEY_X) && !(down&(KEY_A|KEY_Y))){
+                        state.page=P3D_PAGE_FAVORITES;favorite_index=0;redraw=1;search_navigation=1;
+                    }
+                    /* Empty/no-match queries cannot act on an old selection. */
+                    int actionable=!search_name_mode || (dex_text_ready && name_search.match>=0);
+                    if(actionable && (down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH))){
+                        if(p3dFavoriteToggle(&state,state.selected_dex))progress_dirty=1;
+                        redraw=1;
+                    }
+                    if(actionable && (down&KEY_A) && !(down&KEY_TOUCH)){
+                        dex_index=state.selected_dex;selected_form=0;
+                        state.page=P3D_PAGE_DEX;reload_preview();
+                        progress_dirty=1;redraw=1;search_navigation=1;
+                    }
                 }
             }
             if(state.page==P3D_PAGE_ALBUM && album_ready){
@@ -708,10 +758,11 @@ int main(void) {
                     }
                 }
             }
-            if(state.page==P3D_PAGE_SETTINGS){
+            if(state.page==P3D_PAGE_SETTINGS && !search_navigation){
                 if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH))){
                     state.selected_dex=dex_index;
                     state.page=P3D_PAGE_SEARCH;
+                    search_name_mode=0;
                     redraw=1;
                 }
                 int toggle=(down&KEY_A)!=0;
@@ -744,7 +795,7 @@ int main(void) {
                     if(down&KEY_R){defend_type2=(defend_type2+1)%17;redraw=1;}
                 }
             }
-            if(state.page==P3D_PAGE_FAVORITES){
+            if(state.page==P3D_PAGE_FAVORITES && !search_navigation){
                 /* A corrupted list count must never be used to index a DS
                  * array, even if the save loader normally rejects it. */
                 if(state.favorites_count<0 || state.favorites_count>P3D_FAVORITES_MAX)
@@ -761,6 +812,7 @@ int main(void) {
                         state.selected_dex=dex_index;
                     }
                     state.page=P3D_PAGE_SEARCH;
+                    search_name_mode=0;
                     redraw=1;
                 }
                 if((down&KEY_LEFT)&&favorite_index>0){favorite_index--;redraw=1;}
@@ -793,12 +845,13 @@ int main(void) {
             /* Selecting a favorite is a navigation action. Do not process
              * Pokédex A/LEFT/RIGHT input again on the same frame; otherwise
              * X+A could immediately remove the just-opened favorite. */
-            if(state.page==P3D_PAGE_DEX && (down&KEY_X) && !(down&(KEY_A|KEY_Y))){
+            if(state.page==P3D_PAGE_DEX && !search_navigation && (down&KEY_X) && !(down&(KEY_A|KEY_Y))){
                 state.selected_dex=dex_index;
                 state.page=P3D_PAGE_SEARCH;
+                search_name_mode=0;
                 redraw=1;
             }
-            if(state.page==P3D_PAGE_DEX && !(down&KEY_X)){
+            if(state.page==P3D_PAGE_DEX && !(down&KEY_X) && !search_navigation){
                 /* Cycle only existing verified optional animation files;
                  * reset playback at the new keyframe sequence. */
                 if(preview_found && preview_animation_library.ready &&
@@ -829,7 +882,7 @@ int main(void) {
             }
             /* In text navigation mode, the bottom corners also browse entries.
              * Original-art mode retains its artwork without guessed hitboxes. */
-            if(!showing_original_art && (down&KEY_TOUCH)){
+            if(!showing_original_art && !search_navigation && (down&KEY_TOUCH)){
                 touchPosition point;
                 touchRead(&point);
                 if(point.py>=150 && point.py<192){
@@ -840,7 +893,7 @@ int main(void) {
                             dex_index=next;selected_form=0;reload_preview();
                             progress_dirty=1;redraw=1;
                         }
-                    } else if(state.page==P3D_PAGE_SEARCH && direction){
+                    } else if(state.page==P3D_PAGE_SEARCH && !search_name_mode && direction){
                         int next=state.selected_dex+direction;
                         if(next>=0 && next<649){
                             state.selected_dex=next;
@@ -854,10 +907,11 @@ int main(void) {
                     }
                 }
             }
-            if(state.page==P3D_PAGE_MOVES){
+            if(state.page==P3D_PAGE_MOVES && !search_navigation){
                 if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
                     state.selected_dex=dex_index;
                     state.page=P3D_PAGE_SEARCH;
+                    search_name_mode=0;
                     redraw=1;
                 }
                 /* L and R are dedicated to description scrolling, but a
