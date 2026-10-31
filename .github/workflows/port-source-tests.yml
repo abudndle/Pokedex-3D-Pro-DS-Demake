@@ -42,3 +42,6 @@ jobs:
 
       - name: Verify DS custom BMP decoding
         run: sh tests/run_bmp_loader.sh
+
+      - name: Verify custom background runtime loading
+        run: sh tests/run_image_background.sh
