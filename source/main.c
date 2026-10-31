@@ -15,6 +15,7 @@
 #include "preview_stream.h"
 #include "species_model_map.h"
 #include "form_model_map.h"
+#include "form_names.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
 #include "photo_album.h"
@@ -44,6 +45,7 @@ static int preview_ready=0;
 static int preview_found=0;
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
+static P3DFormNames form_names;
 static int selected_form=0;
 static int move_catalog_ready=0;
 static int move_text_offset=0;
@@ -138,7 +140,11 @@ static void render(void) {
             printf("Pokemon entry: %03d / 649\n",dex_index+1);
             printf("LEFT/RIGHT: browse entries\n");
             printf("Form: %s",selected_form?"alternate":"base");
-            if(selected_form)printf(" #%d",selected_form);
+            if(selected_form){
+                const char *name=p3dFormName(&form_names,dex_index,selected_form);
+                if(name)printf(" %s",name);
+                else printf(" #%d",selected_form);
+            }
             printf("\nY: cycle verified forms\n");
             if(preview_found)printf("Source mesh: %d tris\n",previewStreamTriangleCount());
             else printf("Source mesh unavailable\n");
@@ -253,7 +259,11 @@ static void render(void) {
         if(state.page==P3D_PAGE_DEX){
             printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
-            if(selected_form)printf("\x1b[17;1HAlternate form #%d",selected_form);
+            if(selected_form){
+                const char *name=p3dFormName(&form_names,dex_index,selected_form);
+                if(name)printf("\x1b[17;1HForm: %.24s",name);
+                else printf("\x1b[17;1HAlternate form #%d",selected_form);
+            }
             else printf("\x1b[17;1HBase form");
             printf("\x1b[19;1HY: next verified form");
         }else if(state.page==P3D_PAGE_SEARCH){
@@ -370,6 +380,7 @@ int main(void) {
     if(nitro_ready){
         p3dModelMapLoad(&species_models,"nitro:/models/species_map.p3sm");
         p3dFormMapLoad(&alternate_models,"nitro:/models/forms.p3fm");
+        p3dFormNamesLoad(&form_names,"nitro:/models/form_names.p3fn");
     }
     p3dMenuReset(&state);
     p3dChallengeReset(&quiz);
