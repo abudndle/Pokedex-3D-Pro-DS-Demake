@@ -95,8 +95,8 @@
       "id": "original_texture_materials",
       "required_for_release": true,
       "status": "partial",
-      "source": "tools/c91_color_name_vram_audit.py",
-      "gap": "C91 matched original color-name/shader candidates on all sampled material ranges in 500 of 538 UV-equipped models and privately generated 1,152 budget-safe diagnostic color textures (464 model sets downscaled). Original sampler-channel routing is still unverified, 38 models have ambiguous ranges, and no P3MT or visually verified complete textured models exist.",
+      "source": "tools/c92_diagnostic_textured_preview_audit.py",
+      "gap": "C92 staged 500 private experimental source-matched DS3M/P3UV/P3MT/P3TX previews (2,147 sampled material ranges, 1,152 original-derived low-resolution color textures) from original C88/C90 indices and canonical color-name hints. Actual 3DS GPU sampler routing is still unverified, 38 models require review, and no production material binding was approved.",
       "verified_end_to_end": false
     },
     {
