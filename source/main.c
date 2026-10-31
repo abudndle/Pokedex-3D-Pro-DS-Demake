@@ -204,6 +204,7 @@ static void render(void) {
             printf("LEFT/RIGHT: +/- 1\n");
             printf("UP/DOWN: +/- 10\n");
             printf("A: open this Pokemon\n");
+            printf("Y: toggle favorite (%s)\n",p3dFavoriteContains(&state,state.selected_dex)?"saved":"not saved");
         } else if(state.page==P3D_PAGE_MOVES){
             printf("Move entry: %03d / 559\n",move_index+1);
             printf("LEFT/RIGHT: +/- 1 move\n");
@@ -319,6 +320,7 @@ static void render(void) {
         }else if(state.page==P3D_PAGE_SEARCH){
             printf("\x1b[13;1HSearch #%03d",state.selected_dex+1);
             printf("\x1b[15;1HA: open Pokemon");
+            printf("\x1b[17;1HY: toggle favorite");
         }else if(state.page==P3D_PAGE_MOVES){
             printf("\x1b[11;1HMove %03d of 559",move_index+1);
             if(move_catalog_ready){
@@ -582,6 +584,10 @@ int main(void) {
                 if(next<0)next=0;
                 if(next>648)next=648;
                 if(next!=state.selected_dex){state.selected_dex=next;redraw=1;}
+                if((down&KEY_Y) && !(down&KEY_A)){
+                    if(p3dFavoriteToggle(&state,state.selected_dex))progress_dirty=1;
+                    redraw=1;
+                }
                 if(down&KEY_A){
                     dex_index=state.selected_dex;
                     selected_form=0;
