@@ -88,7 +88,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/preview_stream.c",
-      "gap": "Low-poly native samples, not all faithful original textured geometry",
+      "gap": "C86 privately stages 726 source-derived DS3M previews (14 provisional colored models neutralized) and 538 separately matched UV/geometry candidates; these are sampled faces, not complete native fidelity, and p730–p733 lack previews",
       "verified_end_to_end": false
     },
     {
@@ -96,7 +96,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/model_materials.c",
-      "gap": "Private 4039 textures converted; verified mesh/material binds are still missing",
+      "gap": "C86 has 538 paired source-derived UV candidate meshes, but original P3MT mesh-to-material associations are unverified; C78 private 4039 textures are staged separately; final texture rendering is incomplete",
       "verified_end_to_end": false
     },
     {
