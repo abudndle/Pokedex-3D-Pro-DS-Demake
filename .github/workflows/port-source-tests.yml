@@ -15,3 +15,6 @@ jobs:
 
       - name: Verify original geometry preview loader
         run: sh tests/run_preview_stream_fixture.sh
+
+      - name: Verify touchscreen menu layout
+        run: sh tests/run_menu_layout_smoke.sh
