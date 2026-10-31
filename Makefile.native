@@ -10,17 +10,33 @@ NITROFSDIR ?= nitrofs
 ARM7ELF := $(BLOCKSDS)/sys/arm7/main_core/arm7_maxmod.elf
 CC := $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/arm-none-eabi-gcc
 CFILES := $(wildcard source/*.c)
+# BlocksDS supplies NitroFS and FatFS in libnds (no separate -lfat needed).
+# Keep native smoke builds separate from original-asset release builds.
 OBJS := $(patsubst source/%.c,build/%.o,$(CFILES))
+DEPS := $(OBJS:.o=.d)
+.DEFAULT_GOAL := rom
 ARCH := -mthumb -mcpu=arm946e-s+nofp
 SPECS := $(BLOCKSDS)/sys/crts/ds_arm9.specs
-CFLAGS := -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__ -Isource -I$(BLOCKSDS)/libs/libnds/include
+CFLAGS := -MMD -MP -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__ -DP3D_HAVE_FAT -Isource -I$(BLOCKSDS)/libs/libnds/include
 LDFLAGS := $(ARCH) -L$(BLOCKSDS)/libs/libnds/lib -Wl,-Map,build/$(NAME).map -Wl,--gc-sections -Wl,--start-group -lnds9 -lc -Wl,--end-group -specs=$(SPECS)
-.PHONY: rom
-rom: $(NAME).nds
-build/%.o: source/%.c
+.PHONY: rom verify-toolchain
+rom: verify-toolchain $(NAME).nds
+verify-toolchain:
+	@test -x "$(CC)" || { echo "ERROR: BlocksDS ARM9 compiler missing: $(CC)" >&2; exit 1; }
+	@test -f "$(SPECS)" || { echo "ERROR: BlocksDS ARM9 specs missing: $(SPECS)" >&2; exit 1; }
+	@test -f "$(BLOCKSDS)/libs/libnds/include/nds.h" || { echo "ERROR: BlocksDS libnds headers missing" >&2; exit 1; }
+	@test -x "$(BLOCKSDS)/tools/ndstool/ndstool" || { echo "ERROR: BlocksDS ndstool missing" >&2; exit 1; }
+build/%.o: source/%.c | verify-toolchain
 	@mkdir -p build
 	$(CC) $(CFLAGS) -c -o $@ $<
 build/$(NAME).elf: $(OBJS)
 	$(CC) -o $@ $(OBJS) $(LDFLAGS)
-$(NAME).nds: build/$(NAME).elf
+$(NAME).nds: build/$(NAME).elf $(if $(strip $(NITROFSDIR)),$(shell find $(NITROFSDIR) -type f 2>/dev/null),)
+	@test -f "$(ARM7ELF)" || { echo "ERROR: BlocksDS ARM7 core missing: $(ARM7ELF)" >&2; exit 1; }
+	@if [ -n "$(strip $(NITROFSDIR))" ]; then \
+	  test -d "$(NITROFSDIR)" || { echo "ERROR: required NitroFS asset directory missing: $(NITROFSDIR)" >&2; exit 1; }; \
+	fi
 	$(BLOCKSDS)/tools/ndstool/ndstool -c $@ -7 $(ARM7ELF) -9 $< $(if $(strip $(NITROFSDIR)),-d $(NITROFSDIR),)
+
+# Recompile objects when included headers change, not just when .c files change.
+-include $(DEPS)

@@ -4,7 +4,6 @@
  * Requires BlocksDS/libnds and an .nds with nitrofs/ packaged correctly.
  */
 #include <nds.h>
-#include <filesystem.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -28,7 +27,8 @@ int previewStreamInit(void) {
 #ifdef C7_TEST_HOST
     s_fs_available = 1;
 #else
-    s_fs_available = nitroFSInit(NULL) ? 1 : 0;
+    /* main() owns NitroFS mounting; never initialize the filesystem twice. */
+    s_fs_available = 1;
 #endif
     return s_fs_available;
 }

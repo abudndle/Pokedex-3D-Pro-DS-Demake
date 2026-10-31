@@ -30,6 +30,10 @@ void p3dOriginalUiPageDraw(void){
     unsigned short *dst;
     if(!page_ready)return;
     dst=(unsigned short*)BG_BMP_RAM_SUB(0);
-    for(int y=0;y<192;y++)
-        dmaCopyHalfWords(3,page_pixels+(size_t)y*256,dst+y*256,256*2);
+    /* DS 16-bit bitmap backgrounds use bit 15 as the visible/opaque flag.\n     * Original RGB555 pixels may have that bit cleared: without setting it,\n     * valid artwork renders transparent on real DS hardware. */
+    for(int y=0;y<192;y++) {
+        unsigned short *row=dst+y*256;
+        const unsigned short *src=page_pixels+(size_t)y*256;
+        for(int x=0;x<256;x++)row[x]=(unsigned short)(src[x]|0x8000u);
+    }
 }

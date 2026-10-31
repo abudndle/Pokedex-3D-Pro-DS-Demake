@@ -22,3 +22,24 @@ clean:
 .PHONY: dev-rom
 dev-rom:
 	@$(MAKE) -f Makefile.native NITROFSDIR= rom
+
+# Run portable host-side regression tests without Docker, assets, or Actions.
+# DS-Homebrew builds similarly keep development tooling reproducible locally.
+.PHONY: check-host
+check-host:
+	@set -eu; for test in \
+		run_source_smoke.sh run_preview_stream_fixture.sh \
+		run_menu_layout_smoke.sh run_dsi_feature_gating.sh \
+		run_feature_menu_smoke.sh run_save_store_smoke.sh \
+		run_challenge_smoke.sh run_move_dex_smoke.sh \
+		run_photo_album_smoke.sh run_custom_images.sh \
+		run_bmp_loader.sh run_image_background.sh \
+		run_settings_images.sh run_menu_navigation.sh \
+		run_game_save_bridge.sh; do \
+		echo "Running $$test"; sh "tests/$$test"; \
+	done
+	@python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
+	@python3 tests/test_private_ui_packager.py
+	@tmp=$$(mktemp); trap 'rm -f "$$tmp"' EXIT; \
+		cc -std=c11 -Wall -Wextra -Werror -Isource \
+		tests/test_save_recovery.c source/save_store.c -o "$$tmp"; "$$tmp"
