@@ -14,6 +14,7 @@
 #include "preview_stream.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
+#include "photo_album.h"
 #ifdef P3D_HAVE_FAT
 #include <fat.h>
 #endif
@@ -39,6 +40,9 @@ static int progress_dirty=0;
 static int preview_ready=0;
 static int preview_found=0;
 static int move_catalog_ready=0;
+static P3DPhotoAlbum photo_album;
+static int album_ready=0;
+static size_t album_offset=0;
 static int art_page=-1;
 static int showing_original_art=0;
 static int original_art_available=0;
@@ -158,6 +162,18 @@ static void render(void) {
                 printf("LEFT/RIGHT: browse\n");
                 printf("A: remove favorite\n");
             }else printf("No favorites yet.\n");
+        } else if(state.page==P3D_PAGE_ALBUM){
+            if(!storage_ready)printf("Photo Album needs FAT storage.\\n");
+            else if(!album_ready)printf("Photo folder unavailable.\\n");
+            else {
+                char photos[P3D_ALBUM_PAGE_MAX][32];
+                size_t total=0;
+                size_t shown=p3dPhotoAlbumPage(&photo_album,photos,P3D_ALBUM_PAGE_MAX,album_offset,&total);
+                printf("Photos: %u\\n",(unsigned)total);
+                if(!shown)printf("No saved AR photos.\\n");
+                for(size_t i=0;i<shown;i++)printf("%s\\n",photos[i]);
+                printf("LEFT/RIGHT: browse page\\n");
+            }
         } else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
                 printf("Mode: %s\n",p3dChallengeName(quiz.mode_cursor));
@@ -236,6 +252,18 @@ static void render(void) {
         }else if(state.page==P3D_PAGE_FAVORITES){
             printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
             printf("\x1b[15;1HChoose in Pokedex");
+        }else if(state.page==P3D_PAGE_ALBUM){
+            if(!storage_ready)printf("\\x1b[13;1HFAT storage unavailable");
+            else if(!album_ready)printf("\\x1b[13;1HPhoto folder unavailable");
+            else {
+                size_t total=0;
+                char names[P3D_ALBUM_PAGE_MAX][32];
+                size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
+                printf("\\x1b[11;1HPhotos: %u",(unsigned)total);
+                for(size_t i=0;i<shown && i<5;i++)
+                    printf("\\x1b[%d;1H%s",13+(int)i*2,names[i]);
+                printf("\\x1b[24;1HLEFT/RIGHT: page");
+            }
         }else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
                 printf("\x1b[13;1H%s",p3dChallengeName(quiz.mode_cursor));
@@ -293,6 +321,7 @@ int main(void) {
             }
         }
     }
+    if(storage_ready)album_ready=p3dPhotoAlbumOpen(&photo_album,"fat:/Pokedex 3D Pro/Photos");
     if(nitro_ready){
         preview_ready=previewStreamInit();
         /* Moves must remain available even if a model preview is missing. */
@@ -418,6 +447,18 @@ int main(void) {
                     reload_preview();
                     progress_dirty=1;
                     redraw=1;
+                }
+            }
+            if(state.page==P3D_PAGE_ALBUM && album_ready){
+                if((down&KEY_LEFT) && album_offset>=P3D_ALBUM_PAGE_MAX){
+                    album_offset-=P3D_ALBUM_PAGE_MAX;redraw=1;
+                }
+                if(down&KEY_RIGHT){
+                    size_t total=0;
+                    p3dPhotoAlbumPage(&photo_album,NULL,0,0,&total);
+                    if(album_offset+P3D_ALBUM_PAGE_MAX<total){
+                        album_offset+=P3D_ALBUM_PAGE_MAX;redraw=1;
+                    }
                 }
             }
             if(state.page==P3D_PAGE_SETTINGS){
