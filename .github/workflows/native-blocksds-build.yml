@@ -100,7 +100,9 @@ jobs:
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-right.xwd
           xdotool keydown z
-          sleep 1
+          sleep 0.5
+          xwd -id "$window_id" -silent -out emulator-during-back.xwd
+          sleep 0.5
           xdotool keyup z
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
@@ -211,5 +213,6 @@ jobs:
             emulator-after-down.xwd
             emulator-after-right.xwd
             emulator-after-back.xwd
+            emulator-during-back.xwd
             emulator-windows.txt
           if-no-files-found: warn
