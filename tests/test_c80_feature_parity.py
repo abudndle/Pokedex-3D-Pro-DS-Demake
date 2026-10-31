@@ -14,7 +14,7 @@ from check_feature_parity import check
 class ParityGateTests(unittest.TestCase):
     def test_all_required_features_present(self):
         data=check(ROOT/"docs"/"C80_FEATURE_PARITY.json",ROOT)
-        self.assertGreaterEqual(len(data["features"]),19)
+        self.assertGreaterEqual(len(data["features"]),20)
         self.assertIn("records",{r["id"] for r in data["features"]})
     def test_release_gate_refuses_incomplete_game(self):
         result=subprocess.run([sys.executable,str(ROOT/"tools"/"check_feature_parity.py"),
@@ -33,6 +33,13 @@ class ParityGateTests(unittest.TestCase):
         entry["status"]="verified_complete"
         with tempfile.TemporaryDirectory() as directory:
             p=pathlib.Path(directory)/"bad.json"
+            p.write_text(json.dumps(data))
+            with self.assertRaises(ValueError):check(p,ROOT)
+    def test_required_feature_cannot_be_omitted(self):
+        data=json.loads((ROOT/"docs"/"C80_FEATURE_PARITY.json").read_text())
+        data["features"]=[row for row in data["features"] if row["id"]!="original_localizations"]
+        with tempfile.TemporaryDirectory() as directory:
+            p=pathlib.Path(directory)/"missing.json"
             p.write_text(json.dumps(data))
             with self.assertRaises(ValueError):check(p,ROOT)
     def test_duplicate_feature_id_rejected(self):
