@@ -13,8 +13,8 @@ CFILES := $(wildcard source/*.c)
 OBJS := $(patsubst source/%.c,build/%.o,$(CFILES))
 ARCH := -mthumb -mcpu=arm946e-s+nofp
 SPECS := $(BLOCKSDS)/sys/crts/ds_arm9.specs
-CFLAGS := -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__ -Isource -I$(BLOCKSDS)/libs/libnds/include
-LDFLAGS := $(ARCH) -L$(BLOCKSDS)/libs/libnds/lib -Wl,-Map,build/$(NAME).map -Wl,--gc-sections -Wl,--start-group -lnds9 -lc -Wl,--end-group -specs=$(SPECS)
+CFLAGS := -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__ -Isource -I$(BLOCKSDS)/libs/libnds/include -I$(BLOCKSDS)/libs/libfat/include -I$(BLOCKSDS)/libs/libfilesystem/include
+LDFLAGS := $(ARCH) -L$(BLOCKSDS)/libs/libnds/lib -L$(BLOCKSDS)/libs/libfat/lib -L$(BLOCKSDS)/libs/libfilesystem/lib -Wl,-Map,build/$(NAME).map -Wl,--gc-sections -Wl,--start-group -lfat -lfilesystem -lnds9 -lc -Wl,--end-group -specs=$(SPECS)
 .PHONY: rom
 rom: $(NAME).nds
 build/%.o: source/%.c
