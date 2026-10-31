@@ -134,7 +134,8 @@ static void render(void) {
             printf("A: open this Pokemon\n");
         } else if(state.page==P3D_PAGE_MOVES){
             printf("Move entry: %03d / 559\n",move_index+1);
-            printf("LEFT/RIGHT: browse moves\n");
+            printf("LEFT/RIGHT: +/- 1 move\n");
+            printf("UP/DOWN: +/- 10 moves\n");
             if(move_catalog_ready){
                 P3DMove entry;
                 if(p3dMoveDexRead(move_index,&entry)){
@@ -634,8 +635,18 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_MOVES){
-                if((down&KEY_LEFT)&&move_index>0){move_index--;progress_dirty=1;redraw=1;}
-                if((down&KEY_RIGHT)&&move_index<558){move_index++;progress_dirty=1;redraw=1;}
+                int next=move_index;
+                if(down&KEY_LEFT)next--;
+                if(down&KEY_RIGHT)next++;
+                if(down&KEY_UP)next-=10;
+                if(down&KEY_DOWN)next+=10;
+                if(next<0)next=0;
+                if(next>558)next=558;
+                if(next!=move_index){
+                    move_index=next;
+                    progress_dirty=1;
+                    redraw=1;
+                }
             }
             } /* Do not process page-specific input after B returns home. */
         }
