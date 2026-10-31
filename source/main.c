@@ -345,8 +345,9 @@ int main(void) {
                         redraw=1;
                     }
                 }
-                /* X opens a saved Pokémon without deleting it. */
-                if((down&KEY_X)&&state.favorites_count>0){
+                /* If A removed the last favorite, X must not act on the
+                 * entry that has just shifted in the same input frame. */
+                if((down&KEY_X)&&!(down&KEY_A)&&state.favorites_count>0){
                     dex_index=state.favorites[favorite_index];
                     state.page=P3D_PAGE_DEX;
                     reload_preview();
