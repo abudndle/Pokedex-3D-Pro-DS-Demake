@@ -21,6 +21,7 @@ static int highlighted=0, count=0, home=1;
 static int dex_index=0, move_index=0;
 static int attack_type=1, defend_type=4;
 static P3DChallenge quiz;
+static int favorite_index=0;
 
 static void render(void) {
     consoleSelect(&top_console);
@@ -38,6 +39,7 @@ static void render(void) {
             printf("Pokemon entry: %03d / 649\n",dex_index+1);
             printf("LEFT/RIGHT: browse entries\n");
             printf("Original models pending.\n");
+            printf("A: toggle favorite (%s)\n",p3dFavoriteContains(&state,dex_index)?"saved":"not saved");
         } else if(state.page==P3D_PAGE_MOVES){
             printf("Move entry: %03d / 559\n",move_index+1);
             printf("LEFT/RIGHT: browse moves\n");
@@ -51,6 +53,13 @@ static void render(void) {
             else if(effect==20)printf("Effect: super effective (2x)\n");
             else printf("Effect: normal (1x)\n");
             printf("Arrows: change types\n");
+        } else if(state.page==P3D_PAGE_FAVORITES){
+            printf("Saved favorites: %d / %d\n",state.favorites_count,P3D_FAVORITES_MAX);
+            if(state.favorites_count>0){
+                printf("Pokemon #%03d\n",state.favorites[favorite_index]+1);
+                printf("LEFT/RIGHT: browse\n");
+                printf("A: remove favorite\n");
+            }else printf("No favorites yet.\n");
         } else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
                 printf("A: Start Unova quiz\n");
@@ -99,6 +108,9 @@ static void render(void) {
         }else if(state.page==P3D_PAGE_TYPES){
             printf("\x1b[13;1H%s vs %s",p3dTypeName(attack_type),p3dTypeName(defend_type));
             printf("\x1b[15;1HArrows: choose types");
+        }else if(state.page==P3D_PAGE_FAVORITES){
+            printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
+            printf("\x1b[15;1HChoose in Pokedex");
         }else if(state.page==P3D_PAGE_CHALLENGE){
             printf("\x1b[13;1HChallenge: %d / %d",quiz.question, P3D_CHALLENGE_QUESTIONS);
             printf("\x1b[15;1HA: select   B: return");
@@ -161,7 +173,17 @@ int main(void) {
                 if(down&KEY_LEFT){defend_type=(defend_type+16)%17;redraw=1;}
                 if(down&KEY_RIGHT){defend_type=(defend_type+1)%17;redraw=1;}
             }
+            if(state.page==P3D_PAGE_FAVORITES){
+                if((down&KEY_LEFT)&&favorite_index>0){favorite_index--;redraw=1;}
+                if((down&KEY_RIGHT)&&favorite_index<state.favorites_count-1){favorite_index++;redraw=1;}
+                if((down&KEY_A)&&state.favorites_count>0){
+                    p3dFavoriteToggle(&state,state.favorites[favorite_index]);
+                    if(favorite_index>=state.favorites_count)favorite_index=state.favorites_count?state.favorites_count-1:0;
+                    redraw=1;
+                }
+            }
             if(state.page==P3D_PAGE_DEX){
+                if(down&KEY_A){p3dFavoriteToggle(&state,dex_index);redraw=1;}
                 if((down&KEY_LEFT)&&dex_index>0){dex_index--;redraw=1;}
                 if((down&KEY_RIGHT)&&dex_index<648){dex_index++;redraw=1;}
             }
