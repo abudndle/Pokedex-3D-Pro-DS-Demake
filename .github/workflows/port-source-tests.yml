@@ -51,3 +51,6 @@ jobs:
 
       - name: Verify native menu touchscreen row mapping
         run: sh tests/run_menu_navigation.sh
+
+      - name: Verify native gameplay save conversion
+        run: sh tests/run_game_save_bridge.sh
