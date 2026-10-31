@@ -43,7 +43,7 @@ int previewStreamLoad(int resource_index) {
     s_triangle_count=0;
     s_original_triangle_count=0;
     s_has_face_colors=0;
-    if (!s_fs_available || resource_index < 0 || resource_index > 729) return 0;
+    if (!s_fs_available || resource_index < 0 || resource_index >= 738) return 0;
 #ifdef C7_TEST_HOST
     snprintf(path,sizeof(path),"nitrofs/preview/p%03d.ds3m",resource_index);
 #else
