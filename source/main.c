@@ -268,10 +268,12 @@ static void render(void) {
                 printf("Mode: %s\n",p3dChallengeName(quiz.mode_cursor));
                 printf("LEFT/RIGHT: select region\n");
                 printf("A: Start quiz\n");
+                printf("Y: Type Matchups\n");
             }else if(quiz.stage==P3D_CHALLENGE_RESULTS){
                 printf("Quiz complete: %d / %d\n",quiz.score,P3D_CHALLENGE_QUESTIONS);
                 printf("Total correct: %d / %d\n",challenge_correct_total,challenge_answer_total);
                 printf("A: Try again\n");
+                printf("Y: Type Matchups\n");
             }else{
                 printf("Question %d / %d\n",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
                 printf("Choose Pokemon number:\n");
@@ -534,6 +536,10 @@ int main(void) {
                 if((down&KEY_RIGHT)&&quiz.mode_cursor<available-1){quiz.mode_cursor++;redraw=1;}
             }
             if(state.page==P3D_PAGE_CHALLENGE){
+                if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH)) && quiz.stage!=P3D_CHALLENGE_QUESTION){
+                    state.page=P3D_PAGE_TYPES;
+                    redraw=1;
+                }
                 if(quiz.stage==P3D_CHALLENGE_PICKER||quiz.stage==P3D_CHALLENGE_RESULTS){
                     if(down&KEY_A){
                         /* Preserve the selected region when retrying. */
