@@ -85,29 +85,18 @@ jobs:
           xdotool keydown Down
           sleep 1
           xdotool keyup Down
-          # DeSmuME CLI maps x to DS A; after Down, enter the
-          # highlighted page to probe a clearly visible transition.
-          xdotool keydown x
-          sleep 0.2
-          xdotool keyup x
-          sleep 2
-          xwd -id "$window_id" -silent -out emulator-after-down.xwd
-          # Press DS B to return from Pokédex to the home menu.
-          # Hold B across several DS VBlanks, as for the A/Down probe.
-          # A very brief key can be missed by the DS keysDown edge scanner.
+          # Linux desmume-cli manual maps z=A, x=B. Test a clean
+          # open-and-return sequence without competing key presses.
           xdotool keydown z
           sleep 1
           xdotool keyup z
           sleep 2
-          xwd -id "$window_id" -silent -out emulator-after-back.xwd
-          # The packaged DeSmuME CLI and other frontends document
-          # different defaults. Probe x separately after z and preserve
-          # both captures to identify the effective B binding.
+          xwd -id "$window_id" -silent -out emulator-after-down.xwd
           xdotool keydown x
           sleep 1
           xdotool keyup x
           sleep 2
-          xwd -id "$window_id" -silent -out emulator-after-alt-back.xwd
+          xwd -id "$window_id" -silent -out emulator-after-back.xwd
           sleep 4
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
@@ -190,14 +179,8 @@ jobs:
                        c[y*row+x*stride:y*row+x*stride+3]
                        for y in range(0,h,2) for x in range(0,w,2))
           print(f'After B, pixels different from home menu: {restored}')
-          _,d,w4,h4,row4,stride4=read_pixels('emulator-after-alt-back.xwd')
-          assert (w,h,row,stride)==(w4,h4,row4,stride4)
-          alternate=sum(a[y*row+x*stride:y*row+x*stride+3] !=
-                        d[y*row+x*stride:y*row+x*stride+3]
-                        for y in range(0,h,2) for x in range(0,w,2))
-          print(f'After alternate B probe, pixels different from home: {alternate}')
-          assert min(restored,alternate)<different//2, (
-              'Neither candidate emulator B binding restored the home menu')
+          assert restored<different//2, (
+              'DS B did not return to home using Linux CLI key mapping')
           PY
       - name: Upload emulator visual evidence
         if: always()
@@ -210,6 +193,5 @@ jobs:
             emulator-before-down.xwd
             emulator-after-down.xwd
             emulator-after-back.xwd
-            emulator-after-alt-back.xwd
             emulator-windows.txt
           if-no-files-found: warn
