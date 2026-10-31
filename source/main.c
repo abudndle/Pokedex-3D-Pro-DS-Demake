@@ -391,7 +391,7 @@ int main(void) {
          * not, the main loop is alive and key mapping is the issue. */
         if(!home && (frame_counter%60)==0) {
             consoleSelect(&top_console);
-            iprintf("\x1b[22;0HLoop: %lu   ",(unsigned long)(frame_counter/60));
+            printf("\x1b[22;0HLoop: %lu   ",(unsigned long)(frame_counter/60));
         }
         challenge_seed+=0x9E3779B9u; /* Vary each game session's quiz sequence. */
         scanKeys();
