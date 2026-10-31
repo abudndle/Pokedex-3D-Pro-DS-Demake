@@ -54,3 +54,6 @@ jobs:
 
       - name: Verify native gameplay save conversion
         run: sh tests/run_game_save_bridge.sh
+
+      - name: Validate private original UI packaging
+        run: python3 tests/test_private_ui_packager.py
