@@ -153,7 +153,9 @@ static void render(void) {
             }else printf("No favorites yet.\n");
         } else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
-                printf("A: Start Unova quiz\n");
+                printf("Mode: %s\n",p3dChallengeName(quiz.mode_cursor));
+                printf("LEFT/RIGHT: select region\n");
+                printf("A: Start quiz\n");
             }else if(quiz.stage==P3D_CHALLENGE_RESULTS){
                 printf("Quiz complete: %d / %d\n",quiz.score,P3D_CHALLENGE_QUESTIONS);
                 printf("Total correct: %d / %d\n",challenge_correct_total,challenge_answer_total);
@@ -218,8 +220,16 @@ static void render(void) {
             printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
             printf("\x1b[15;1HChoose in Pokedex");
         }else if(state.page==P3D_PAGE_CHALLENGE){
-            printf("\x1b[13;1HChallenge: %d / %d",quiz.question, P3D_CHALLENGE_QUESTIONS);
-            printf("\x1b[15;1HA: select   B: return");
+            if(quiz.stage==P3D_CHALLENGE_PICKER){
+                printf("\x1b[13;1H%s",p3dChallengeName(quiz.mode_cursor));
+                printf("\x1b[15;1HLEFT/RIGHT: choose");
+            }else if(quiz.stage==P3D_CHALLENGE_RESULTS){
+                printf("\x1b[13;1HScore: %d / %d",quiz.score,P3D_CHALLENGE_QUESTIONS);
+                printf("\x1b[15;1HA: replay challenge");
+            }else{
+                printf("\x1b[13;1HQuestion: %d / %d",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
+                printf("\x1b[15;1HUP/DOWN: choose answer");
+            }
         }else{
             printf("\x1b[13;1HFeature implementation pending");
         }
