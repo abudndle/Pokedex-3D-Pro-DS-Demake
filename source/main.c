@@ -494,7 +494,7 @@ int main(void) {
                             direction=point.px<64?-1:(point.px>=192?1:direction);
                         /* The five visible filename rows start at console row
                          * 13, then advance two 8-pixel rows per filename. */
-                        if(point.px>=8 && point.px<248 &&
+                        if(point.px>=64 && point.px<192 &&
                            point.py>=104 && point.py<184){
                             int hit=((int)point.py-104)/16;
                             if(hit>=0 && hit<5 && (size_t)hit<shown){
