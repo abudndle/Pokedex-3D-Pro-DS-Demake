@@ -27,7 +27,7 @@ static P3DMenu state;
 static P3DPage pages[P3D_MENU_MAX];
 static int highlighted=0, count=0, home=1;
 static int dex_index=0, move_index=0;
-static int attack_type=1, defend_type=4;
+static int attack_type=1, defend_type=4, defend_type2=-1;
 static P3DChallenge quiz;
 static int challenge_correct_total=0, challenge_answer_total=0;
 static unsigned int challenge_seed=0x13579BDFu;
@@ -133,14 +133,20 @@ static void render(void) {
                 }else printf("Move record unavailable.\n");
             }else printf("Original Move Dex unavailable.\n");
         } else if(state.page==P3D_PAGE_TYPES){
-            int effect=p3dTypeEffect(attack_type,defend_type);
+            int effect=defend_type2<0?p3dTypeEffect(attack_type,defend_type):
+                       p3dTypeEffectDual(attack_type,defend_type,defend_type2);
             printf("Attack: %s\n",p3dTypeName(attack_type));
             printf("Defend: %s\n",p3dTypeName(defend_type));
+            if(defend_type2>=0)printf("Second: %s\n",p3dTypeName(defend_type2));
             if(effect==0)printf("Effect: immune (0x)\n");
             else if(effect==5)printf("Effect: resisted (0.5x)\n");
             else if(effect==20)printf("Effect: super effective (2x)\n");
+            else if(effect==40)printf("Effect: double weak (4x)\n");
+            else if(effect==2)printf("Effect: double resist (0.25x)\n");
             else printf("Effect: normal (1x)\n");
             printf("Arrows: change types\n");
+            printf("X: second type ON/OFF\n");
+            printf("L/R: second type\n");
         } else if(state.page==P3D_PAGE_SETTINGS){
             printf("Automatic model rotation: %s\n",state.rotate?"ON":"OFF");
             printf("A: toggle automatic rotation\n");
@@ -424,6 +430,11 @@ int main(void) {
                 if(down&KEY_DOWN){attack_type=(attack_type+1)%17;redraw=1;}
                 if(down&KEY_LEFT){defend_type=(defend_type+16)%17;redraw=1;}
                 if(down&KEY_RIGHT){defend_type=(defend_type+1)%17;redraw=1;}
+                if(down&KEY_X){defend_type2=defend_type2<0?0:-1;redraw=1;}
+                if(defend_type2>=0){
+                    if(down&KEY_L){defend_type2=(defend_type2+16)%17;redraw=1;}
+                    if(down&KEY_R){defend_type2=(defend_type2+1)%17;redraw=1;}
+                }
             }
             if(state.page==P3D_PAGE_FAVORITES){
                 /* A corrupted list count must never be used to index a DS
