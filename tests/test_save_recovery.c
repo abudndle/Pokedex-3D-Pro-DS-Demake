@@ -26,6 +26,15 @@ int main(void){
     assert(fputc(0xff,f)!=EOF);
     assert(fclose(f)==0);
     assert(p3dSaveLoad(base,&got)&&got.selected_model==25);
+    /* A subsequent save must restore redundancy after the damaged B slot. */
+    assert(p3dSaveStore(base,&two));
+    assert(p3dSaveLoad(base,&got)&&got.selected_model==151);
+    /* Truncating B must also recover the older valid A generation. */
+    f=fopen(b,"wb");
+    assert(f);
+    assert(fputc(0,f)!=EOF);
+    assert(fclose(f)==0);
+    assert(p3dSaveLoad(base,&got)&&got.selected_model==25);
     remove(a);remove(b);
     puts("Dual-slot save recovery: PASS");
     return 0;
