@@ -696,6 +696,15 @@ int main(void) {
                  * left/right navigation. */
                 if(favorite_index<0 || favorite_index>=state.favorites_count)
                     favorite_index=0;
+                if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
+                    if(state.favorites_count>0){
+                        state.selected_dex=state.favorites[favorite_index];
+                    }else{
+                        state.selected_dex=dex_index;
+                    }
+                    state.page=P3D_PAGE_SEARCH;
+                    redraw=1;
+                }
                 if((down&KEY_LEFT)&&favorite_index>0){favorite_index--;redraw=1;}
                 if((down&KEY_RIGHT)&&favorite_index<state.favorites_count-1){favorite_index++;redraw=1;}
                 if((down&KEY_A)&&state.favorites_count>0){
