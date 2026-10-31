@@ -17,27 +17,27 @@ static int on_home=1;
 
 static void draw_shell(void) {
     consoleClear();
-    iprintf("POKEDEX 3D PRO - DS\n");
-    iprintf("PORT DEVELOPMENT BUILD\n");
-    iprintf("-----------------------\n");
+    printf("POKEDEX 3D PRO - DS\n");
+    printf("PORT DEVELOPMENT BUILD\n");
+    printf("-----------------------\n");
     if (on_home) {
         size_t start=p3dMenuVisibleStart((size_t)page_count,selected);
-        iprintf("A: Open  B: Back\n");
-        iprintf("Up/Down: Navigate\n\n");
+        printf("A: Open  B: Back\n");
+        printf("Up/Down: Navigate\n\n");
         for (int row=0;row<P3D_MENU_VISIBLE_ROWS;row++) {
             size_t i=start+(size_t)row;
             if (i>=(size_t)page_count) break;
-            iprintf("%c %s\n",selected==(int)i?'>':' ',p3dPageName(pages[i]));
+            printf("%c %s\n",selected==(int)i?'>':' ',p3dPageName(pages[i]));
         }
     } else {
-        iprintf("%s\n\n",p3dPageName(menu_state.page));
-        iprintf("Gameplay screen migration\n");
-        iprintf("still in progress.\n");
-        iprintf("Original asset renderer\n");
-        iprintf("not yet connected.\n");
-        iprintf("\nB: Return to main menu\n");
+        printf("%s\n\n",p3dPageName(menu_state.page));
+        printf("Gameplay screen migration\n");
+        printf("still in progress.\n");
+        printf("Original asset renderer\n");
+        printf("not yet connected.\n");
+        printf("\nB: Return to main menu\n");
     }
-    iprintf("\nNOT THE FINAL GAME\n");
+    printf("\nNOT THE FINAL GAME\n");
 }
 int main(void){
     /* No DSi camera UI until camera capability and feature are implemented. */
