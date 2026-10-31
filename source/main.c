@@ -234,6 +234,7 @@ static void render(void) {
             else printf("Effect: normal (1x)\n");
             printf("Arrows: change types\n");
             printf("X: second type ON/OFF\n");
+            printf("Y: open Challenge\n");
             printf("L/R: second type\n");
         } else if(state.page==P3D_PAGE_SETTINGS){
             printf("Automatic model rotation: %s\n",state.rotate?"ON":"OFF");
@@ -683,6 +684,11 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_TYPES){
+                if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
+                    state.page=P3D_PAGE_CHALLENGE;
+                    p3dChallengeReset(&quiz);
+                    redraw=1;
+                }
                 if(down&KEY_UP){attack_type=(attack_type+16)%17;redraw=1;}
                 if(down&KEY_DOWN){attack_type=(attack_type+1)%17;redraw=1;}
                 if(down&KEY_LEFT){defend_type=(defend_type+16)%17;redraw=1;}
