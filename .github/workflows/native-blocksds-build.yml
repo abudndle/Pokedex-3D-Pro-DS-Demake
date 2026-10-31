@@ -79,9 +79,15 @@ jobs:
           xdotool windowfocus --sync "$window_id"
           xdotool mousemove --window "$window_id" 128 190
           xdotool click 1
+          # Send several common DeSmuME directional bindings while
+          # collecting evidence. Keyboard layout and emulator bindings
+          # differ between frontends, so no gameplay claim is implied.
           xdotool keydown Down
           sleep 1
           xdotool keyup Down
+          xdotool keydown s
+          sleep 1
+          xdotool keyup s
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-down.xwd
           sleep 6
