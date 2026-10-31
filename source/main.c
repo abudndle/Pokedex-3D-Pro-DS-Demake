@@ -327,6 +327,13 @@ int main(void) {
                 31,0,true,true);
     consoleInit(&bottom_console,3,BgType_Text4bpp,BgSize_T_256x256,
                 31,0,false,true);
+    /* Print a boot sentinel BEFORE any filesystem initialization. If the
+     * emulator capture remains blank, the fault precedes normal game logic. */
+    consoleSelect(&top_console);
+    iprintf("POKEDEX DS BOOT\\n");
+    consoleSelect(&bottom_console);
+    iprintf("Initializing game...\\n");
+    swiWaitForVBlank();
     /* Mount the ROM filesystem before accessing original pages, models, or moves. */
     nitro_ready=nitroFSInit(NULL)?1:0;
     p3dMenuReset(&state);
