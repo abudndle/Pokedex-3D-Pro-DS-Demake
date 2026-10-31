@@ -40,11 +40,12 @@ static int move_catalog_ready=0;
 static int art_page=-1;
 static int showing_original_art=0;
 static int original_art_available=0;
+static int prefer_original_art=1;
 static void prepare_original_art(void){
     int page=home?P3D_PAGE_HOME:(int)state.page;
     if(page==art_page)return;
     art_page=page;
-    original_art_available=nitro_ready&&p3dOriginalUiPageLoad(page);
+    original_art_available=prefer_original_art&&nitro_ready&&p3dOriginalUiPageLoad(page);
     if(original_art_available){
         /* Reuse the existing bitmap layer; changing pages must not reset VRAM
          * that the console also uses. Keep the text console hidden only while
@@ -253,6 +254,13 @@ int main(void) {
         scanKeys();
         unsigned down=keysDown();
         int redraw=0;
+        /* SELECT makes the text navigation available even with a full-screen
+         * recovered UI image. Press SELECT again to restore original art. */
+        if(down&KEY_SELECT){
+            prefer_original_art=!prefer_original_art;
+            art_page=-1; /* force re-evaluation of the same page */
+            redraw=1;
+        }
         if(home) {
             if((down&KEY_UP)&&highlighted>0){highlighted--;redraw=1;}
             if((down&KEY_DOWN)&&highlighted<count-1){highlighted++;redraw=1;}
