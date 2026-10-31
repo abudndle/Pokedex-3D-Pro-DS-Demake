@@ -16,8 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Compile asset-free native development shell
         run: make dev-rom
-      - name: Check output is a nonempty ROM
-        run: test -s Pokedex3D_DS_BlocksDS.nds
+      - name: Validate generated NDS ROM structure
+        run: python3 tools/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
       - uses: actions/upload-artifact@v4
         with:
           name: Pokedex3D-native-development-smoke-only
