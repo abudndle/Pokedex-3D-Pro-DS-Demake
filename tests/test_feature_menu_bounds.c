@@ -23,5 +23,23 @@ int main(void) {
     assert(!p3dMenuEnter(&state,ds,P3D_PAGE_AR));
     assert(p3dMenuEnter(&state,dsi,P3D_PAGE_AR));
     assert(state.page==P3D_PAGE_AR);
+    /* Corrupt or out-of-range page IDs cannot index the menu label table. */
+    assert(!strcmp(p3dPageName((P3DPage)-1),"UNKNOWN"));
+    assert(!p3dMenuEnter(&state,dsi,(P3DPage)-1));
+    assert(!p3dMenuEnter(&state,dsi,P3D_PAGE_COUNT));
+    assert(state.page==P3D_PAGE_AR);
+    /* Filling favorites must never write beyond its fixed DS capacity. */
+    for(int i=0;i<P3D_FAVORITES_MAX;i++) {
+        assert(p3dFavoriteToggle(&state,i)==1);
+        assert(p3dFavoriteContains(&state,i)==1);
+    }
+    assert(state.favorites_count==P3D_FAVORITES_MAX);
+    assert(p3dFavoriteToggle(&state,100)==0);
+    assert(!p3dFavoriteContains(&state,100));
+    assert(p3dFavoriteToggle(&state,2)==-1);
+    assert(!p3dFavoriteContains(&state,2));
+    assert(state.favorites_count==P3D_FAVORITES_MAX-1);
+    assert(p3dFavoriteToggle(&state,100)==1);
+    assert(state.favorites_count==P3D_FAVORITES_MAX);
     return 0;
 }
