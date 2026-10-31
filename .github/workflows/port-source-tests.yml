@@ -16,6 +16,9 @@ jobs:
       - name: Validate DS3M v1/v2 fixture contracts
         run: python3 -m unittest discover -s tests -p 'test_inspect_ds3m.py' -v
 
+      - name: Validate bounded model material ranges
+        run: sh tests/run_model_materials.sh
+
       - name: Verify model transform animation clips
         run: sh tests/run_model_animation.sh
 
