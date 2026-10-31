@@ -30,7 +30,11 @@ static int readslot(const char *base,int slot,P3DSaveState *s,uint32_t *seq){
  if(!slotpath(path,base,slot)||(f=fopen(path,"rb"))==NULL)return 0;
  ok=fread(b,1,SAVE_SIZE,f)==SAVE_SIZE&&fgetc(f)==EOF;fclose(f);return ok&&decode(b,s,seq);
 }
-static int newer(uint32_t a,uint32_t b){return (int32_t)(a-b)>0;}
+/* Serial-number comparison with wraparound (RFC 1982-style half-range rule).\n * Avoid implementation-defined unsigned-to-signed conversion on ARM and host. */
+static int newer(uint32_t a,uint32_t b){
+ uint32_t delta=a-b;
+ return delta!=0u && delta<0x80000000u;
+}
 int p3dSaveLoad(const char *base,P3DSaveState *out){
  P3DSaveState a,b;uint32_t sa=0,sb=0;int va,vb;if(!out)return 0;
  va=readslot(base,0,&a,&sa);vb=readslot(base,1,&b,&sb);if(!va&&!vb)return 0;
