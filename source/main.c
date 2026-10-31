@@ -10,7 +10,9 @@
 #include "dsi_features.h"
 #include "challenge.h"
 #include "game_save_bridge.h"
+#ifdef P3D_HAVE_FAT
 #include <fat.h>
+#endif
 
 #define MENU_TOUCH_Y 88
 #define MENU_TOUCH_STEP 16
@@ -149,7 +151,11 @@ int main(void) {
     p3dMenuReset(&state);
     p3dChallengeReset(&quiz);
     /* FAT/DLDI storage is optional in DS mode; no media means volatile progress. */
+    #ifdef P3D_HAVE_FAT
     storage_ready=fatInitDefault()?1:0;
+    #else
+    storage_ready=0; /* slim development toolchain excludes libfat */
+    #endif
     if(storage_ready){
         P3DSaveState record;
         if(p3dSaveLoad(P3D_SAVE_BASE,&record)){
