@@ -24,3 +24,12 @@ TWiLight Menu++ documents devkitARM, libnds, grit and mmutil via devkitPro, and 
 ## Current limitation
 
 These references do not themselves fix GitHub Actions runner failures. Recent source/port/native jobs returned failures with empty step lists and inaccessible job logs; diagnose Actions permissions, usage/billing, and runner startup independently of game logic.
+
+## Reproducible local verification
+
+Run `make check-host` using a host C compiler and Python 3 to execute the
+asset-free project regression suite without requiring GitHub Actions.
+Run `make dev-rom` separately with BlocksDS to compile the test-only ROM.
+Neither command validates the proprietary model assets or replaces emulator
+and real-hardware testing. If Actions jobs fail before emitting any steps,
+the local host tests help separate source problems from runner provisioning.
