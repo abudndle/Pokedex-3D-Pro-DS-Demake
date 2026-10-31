@@ -28,7 +28,7 @@ dev-rom:
 .PHONY: check-host
 check-host:
 	@set -eu; for test in \
-		run_source_smoke.sh run_preview_stream_fixture.sh \
+		run_challenge_text.sh run_dex_info.sh run_name_search.sh run_source_smoke.sh run_preview_stream_fixture.sh \
 		run_menu_layout_smoke.sh run_dsi_feature_gating.sh \
 		run_feature_menu_smoke.sh run_save_store_smoke.sh \
 		run_challenge_smoke.sh run_move_dex_smoke.sh \
