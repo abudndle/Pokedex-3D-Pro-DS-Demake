@@ -31,7 +31,7 @@ build/%.o: source/%.c | verify-toolchain
 	$(CC) $(CFLAGS) -c -o $@ $<
 build/$(NAME).elf: $(OBJS)
 	$(CC) -o $@ $(OBJS) $(LDFLAGS)
-$(NAME).nds: build/$(NAME).elf
+$(NAME).nds: build/$(NAME).elf $(if $(strip $(NITROFSDIR)),$(shell find $(NITROFSDIR) -type f 2>/dev/null),)
 	@test -f "$(ARM7ELF)" || { echo "ERROR: BlocksDS ARM7 core missing: $(ARM7ELF)" >&2; exit 1; }
 	@if [ -n "$(strip $(NITROFSDIR))" ]; then \
 	  test -d "$(NITROFSDIR)" || { echo "ERROR: required NitroFS asset directory missing: $(NITROFSDIR)" >&2; exit 1; }; \
