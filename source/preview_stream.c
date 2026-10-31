@@ -86,7 +86,8 @@ int previewStreamHasModel(void) { return s_loaded; }
 int previewStreamHasUv(void) { return s_loaded && s_uv.ready; }
 int previewStreamTriangleCount(void) { return s_triangle_count; }
 int previewStreamOriginalTriangleCount(void) { return s_original_triangle_count; }
-void previewStreamDrawMode(int textured) {
+void previewStreamDrawMode(int texture_width,int texture_height) {
+    int textured=texture_width>0 && texture_height>0;
     int i;
     if (!s_loaded) return;
     glColor3b(textured ? 255 : 192,textured ? 255 : 224,textured ? 255 : 232);
@@ -96,14 +97,14 @@ void previewStreamDrawMode(int textured) {
             int c=(i/9)*3;
             glColor3b(s_face_rgb[c],s_face_rgb[c+1],s_face_rgb[c+2]);
         }
-        if(s_uv.ready)glTexCoord2t16((t16)s_uv.uv[(i/9)*6],(t16)s_uv.uv[(i/9)*6+1]);
+        if(s_uv.ready)glTexCoord2t16((t16)(textured ? (int)s_uv.uv[(i/9)*6]*texture_width/256 : s_uv.uv[(i/9)*6]),(t16)(textured ? (int)s_uv.uv[(i/9)*6+1]*texture_height/256 : s_uv.uv[(i/9)*6+1]));
         glVertex3v16((v16)s_xyz[i],(v16)s_xyz[i+1],(v16)s_xyz[i+2]);
-        if(s_uv.ready)glTexCoord2t16((t16)s_uv.uv[(i/9)*6+2],(t16)s_uv.uv[(i/9)*6+3]);
+        if(s_uv.ready)glTexCoord2t16((t16)(textured ? (int)s_uv.uv[(i/9)*6+2]*texture_width/256 : s_uv.uv[(i/9)*6+2]),(t16)(textured ? (int)s_uv.uv[(i/9)*6+3]*texture_height/256 : s_uv.uv[(i/9)*6+3]));
         glVertex3v16((v16)s_xyz[i+3],(v16)s_xyz[i+4],(v16)s_xyz[i+5]);
-        if(s_uv.ready)glTexCoord2t16((t16)s_uv.uv[(i/9)*6+4],(t16)s_uv.uv[(i/9)*6+5]);
+        if(s_uv.ready)glTexCoord2t16((t16)(textured ? (int)s_uv.uv[(i/9)*6+4]*texture_width/256 : s_uv.uv[(i/9)*6+4]),(t16)(textured ? (int)s_uv.uv[(i/9)*6+5]*texture_height/256 : s_uv.uv[(i/9)*6+5]));
         glVertex3v16((v16)s_xyz[i+6],(v16)s_xyz[i+7],(v16)s_xyz[i+8]);
     }
     glEnd();
 }
 
-void previewStreamDraw(void) { previewStreamDrawMode(0); }
+void previewStreamDraw(void) { previewStreamDrawMode(0,0); }
