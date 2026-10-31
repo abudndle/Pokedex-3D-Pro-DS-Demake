@@ -95,8 +95,8 @@
       "id": "original_texture_materials",
       "required_for_release": true,
       "status": "partial",
-      "source": "tools/c87_original_material_declaration_audit.py",
-      "gap": "C87 recovered 2,556 original material/shader declarations across all 730 C5 models, verified 4,039 texture-name source pointers and identified color/normal/specular/UV-animation capabilities. No original mesh-to-shader or mesh-to-texture binding has yet been verified; authentic rendering is unfinished.",
+      "source": "tools/c88_original_material_references.py",
+      "gap": "C88 validated 3,473 original materials with source shader indices and 4,592 source texture-reference slots across all 730 C5 records. Exact mesh face-to-material ranges, GPU sampler channel semantics, four missing archived source texture groups, and visually faithful DS render remain incomplete.",
       "verified_end_to_end": false
     },
     {
