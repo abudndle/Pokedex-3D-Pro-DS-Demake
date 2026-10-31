@@ -65,4 +65,22 @@ int p3dTypeEffect(int a,int d){if(a<0||a>=17||d<0||d>=17)return -1;for(size_t i=
 int p3dTypeEffectDual(int a,int d1,int d2){int p=p3dTypeEffect(a,d1);if(p<0)return -1;if(d2<0)return p;
  int q=p3dTypeEffect(a,d2);
  return q<0?-1:p*q/10;}
-int p3dSearchNext(const char *const labels[],size_t count,int from,char initial,int dir){if(!labels||!count||!dir)return -1;if(initial>='a'&&initial<='z')initial=(char)(initial-('a'-'A'));for(size_t i=0;i<count;i++){int at=(int)(((long long)from+(long long)(i+1)*(dir>0?1:-1)+(long long)count*(count+2))%(long long)count);if(labels[at]){unsigned char c=(unsigned char)labels[at][0];if(c>='a'&&c<='z')c=(unsigned char)(c-('a'-'A'));if(c==(unsigned char)initial)return at;}}return -1;}
+int p3dSearchNext(const char *const labels[],size_t count,int from,char initial,int dir){
+    if(!labels||!count||!dir||count>2147483647u)return -1;
+    if(initial>='a'&&initial<='z')initial=(char)(initial-('a'-'A'));
+    /* Normalize even INT_MIN correctly. Adding count*(count+2) to a
+     * negative offset is not enough when callers pass a corrupt index. */
+    long long base=(long long)from%(long long)count;
+    if(base<0)base+=(long long)count;
+    for(size_t i=0;i<count;i++){
+        size_t step=(i+1)%count;
+        size_t at=dir>0?((size_t)base+step)%count:
+                         ((size_t)base+count-step)%count;
+        if(labels[at]){
+            unsigned char c=(unsigned char)labels[at][0];
+            if(c>='a'&&c<='z')c=(unsigned char)(c-('a'-'A'));
+            if(c==(unsigned char)initial)return (int)at;
+        }
+    }
+    return -1;
+}
