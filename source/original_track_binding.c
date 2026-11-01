@@ -4,9 +4,11 @@ int p3dOriginalTrackBind(const P3DOriginalSkeleton *rig,
                          const P3DOriginalTrackOwner *owners,
                          unsigned count,uint16_t *resolved){
     unsigned char seen[P3D_SKELETON_MAX_NODES]={0};
+    /* Reject impossible counts before touching an unknown caller buffer.
+     * For all valid bounded counts, failure leaves every slot unbound. */
+    if(count>P3D_SKELETON_MAX_NODES)return 0;
     if(resolved){
-        for(unsigned i=0;i<count && i<=P3D_SKELETON_MAX_NODES;i++)
-            resolved[i]=0xffffu;
+        for(unsigned i=0;i<count;i++)resolved[i]=0xffffu;
     }
     if(!rig||!rig->ready||rig->node_count==0||
        rig->node_count>P3D_SKELETON_MAX_NODES||
