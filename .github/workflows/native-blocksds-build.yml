@@ -255,4 +255,5 @@ jobs:
             emulator-after-back.xwd
             emulator-during-back.xwd
             emulator-windows.txt
+            probe-*.xwd
           if-no-files-found: warn
