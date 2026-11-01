@@ -46,6 +46,9 @@ jobs:
       - name: Verify C145 source packed quaternion-like animation keys
         run: python3 -m unittest discover -s tests -p 'test_c145_c5_packed_quaternions.py' -v
 
+      - name: Verify C146 original source owner, key-count and time controls
+        run: python3 -m unittest discover -s tests -p 'test_c146_c5_owner_control_fields.py' -v
+
       # Public-source x86_64 host executable only. NO private Nintendo data.
       - name: Compile portable C138 host probe for private offline asset test
         run: |
