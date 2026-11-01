@@ -87,8 +87,8 @@
       "id": "original_pokemon_models",
       "required_for_release": true,
       "status": "partial",
-      "source": "source/preview_chunk_stream.c",
-      "gap": "C97 batch-reads the C96 private 500-model P3CS geometry without changing any of 893,666 sampled triangles or original source UVs. Five-run host benchmark shows 94.88% fewer fread calls and 50.66% lower median host CPU time; real DS FPS, original sampler roles, complete source geometry and original game visual parity are still unverified.",
+      "source": "tools/c99_linux_visual_evidence_audit.py",
+      "gap": "C99 validates 500 original-derived chunked models with Linux native C source reader and six new DS-resolution software QA screenshots of three source models. Real melonDS capture and private ARM ROM build were unavailable locally; DS hardware performance, source topology holes, 3DS GPU sampler semantics, original animation and gameplay remain unfinished.",
       "verified_end_to_end": false
     },
     {

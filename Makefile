@@ -61,5 +61,6 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c93_private_browser_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c94_original_obj_uv_alignment.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c96_native_chunk_stream.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c99_linux_visual_evidence_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c97_batched_chunk_io.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
