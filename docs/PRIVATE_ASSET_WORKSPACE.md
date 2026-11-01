@@ -565,3 +565,63 @@ animation/bone tracks and independently decode keyframe timestamps, values
 and skeleton attachment before generating DS animation files. Original
 face-to-material indices and shader/sampler bindings remain a distinct,
 unresolved investigation; no certified textured model is produced.
+
+## C144 — original C5 timestamped vector keyframe recovery
+
+The source-only `tools/c144_c5_timed_vectors.py` independently decodes the
+SECOND and THIRD C5 track records in each exact C143 triplet as little-endian
+**16-byte float32 tuples**: `(integer time tag, float X, float Y, float Z)`.
+This was verified in ALL THREE original C56 ZIP parts, bound by SHA-256 and
+the existing C143 track aggregate provenance.
+
+Private full-roster C144 results (2026-11-01):
+
+| Finding | Verified total |
+|---|---:|
+| Original C56 models | 730 / 730 |
+| Matched three-track channel groups | 25,956 |
+| Source `time+float3` streams | 51,912 |
+| First vector-stream keys | 298,549 |
+| Second vector-stream keys | 626,150 |
+| Total validated time+vector keys | 924,699 |
+| Paired streams with matching final timestamp | 25,956 |
+| Paired streams with identical complete time grids | 19,478 |
+| Maximum source time tag | 802 |
+
+Each of the 51,912 streams is finite, begins at **0** and has strictly
+increasing non-negative integral time tags. The first control-code payload
+has lengths divisible by 10 for 15,444 groups and congruent to 2 for
+10,512 groups; its encoding remains **uninterpreted**.
+
+**Important original-data exception:** model `p163` contains three
+finite but extreme components approximately `1e10` in one source
+time+float3 record. C144 reports these explicitly; they are **not**
+converted into a DS animation or trusted as ordinary coordinates.
+No source bone IDs, quaternion meaning, component roles, frame-per-second
+rate, interpolation, action names or hierarchy have been established.
+Nothing is enabled in the Nintendo DS renderer or saved as P3AN yet.
+
+Reproduce locally with owner-only private source files:
+
+```sh
+python3 tools/c144_c5_timed_vectors.py \
+  --parts \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_2_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --c143-summary private/reports/C143_PRIVATE_CHANNEL_GROUP_SUMMARY.json \
+  --report private/reports/C144_PRIVATE_TIMED_VEC3_SUMMARY.json
+```
+
+For **private forensic inspection only**, add `--detailed-model p000`
+and use a separate private output report: includes individual time/value
+records for the selected model. The script rejects duplicate/unknown C5 ZIP
+members, displaced model IDs, inconsistent C143 track hashes, nonfinite
+float values, unordered timestamps and invalid 16-byte stream lengths.
+Reports cannot overwrite existing files. CI runs four wholly synthetic
+tests, including a full 730-model fixture.
+
+This recovery establishes a valid source data **encoding**, but cannot
+claim the original Pokémon skeletal animations have been faithfully ported.
+C139 material/shader/texture eligibility remains fail-closed.
