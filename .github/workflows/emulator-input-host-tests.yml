@@ -1,0 +1,16 @@
+name: Emulator input regression host tests
+on:
+  push:
+    paths:
+      - 'tools/emulator_transition_check.py'
+      - 'tests/test_emulator_transition_check.py'
+      - '.github/workflows/emulator-input-host-tests.yml'
+  pull_request:
+  workflow_dispatch:
+jobs:
+  synthetic-xwd-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify fail-closed raw XWD screenshot comparisons
+        run: python3 -m unittest discover -s tests -p 'test_emulator_transition_check.py' -v
