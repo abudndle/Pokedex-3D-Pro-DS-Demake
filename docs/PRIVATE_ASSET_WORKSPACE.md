@@ -712,3 +712,47 @@ synthetic regressions include the complete 730-model cross-stage suite.
 C146 provides verified **control-word semantics** but not an executable
 DS animation rig, shader-to-mesh associations or original C5 sampler
 roles. No guessed animations or texture bindings are activated.
+
+## C147 — original C5 named animation transform tracks
+
+This milestone resolves the **high 16 bits of each original C5 owner word**
+as an offset into that same C5 model's verified original string table.
+It explicitly supports source string *suffix interning*: not all pointers
+target the first character of a NUL-delimited string.
+
+Across all three original C56 archives, SHA-cross-checked with C146:
+
+- **730 / 730** original source models validated.
+- **25,956 / 25,956** packed-Q/two-float3 triplet groups resolve to
+  null-terminated, printable original source node/transform names.
+- **25,831** source owner pointers resolve to the beginning of a string.
+- **125** point into an existing original string, reusing a valid suffix.
+  These are intentional original C5 string-pointer shapes; rejecting
+  them as malformed would lose original source node labels.
+- Every source track owner name is unique within its original C5 model.
+  The record index/token, original name offset and resolved source name
+  are exported to a **private** diagnostic report only on opt-in.
+
+```sh
+python3 tools/c147_c5_named_nodes.py \
+  --parts \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_2_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --c146-summary private/reports/C146_PRIVATE_SOURCE_NODE_CONTROL_SUMMARY.json \
+  --report private/reports/C147_PRIVATE_NAMED_SOURCE_TRACKS_SUMMARY.json
+
+# To inspect original source node names for a single model privately,
+# add --detailed-model p000, using a NEW private --report filename.
+```
+
+Four synthetic regressions verify exact node-name mapping, suffix interning,
+unsafe/out-of-range pointers, source SHA mismatches and all 730 model IDs.
+
+These source-verified names establish **which original C5 named node is
+associated with each packed rotation + vector triplet**. They do **not**
+yet provide original parent-child hierarchy, mesh skin weights, clip
+transitions/action names or motion interpretation; no skeleton animation is
+enabled on DS until that missing data is verified. The source-material
+to-shader/texture bindings remain separate and unverified.

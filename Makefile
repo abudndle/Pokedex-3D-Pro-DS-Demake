@@ -66,6 +66,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c144_c5_timed_vectors.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c145_c5_packed_quaternions.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c146_c5_owner_control_fields.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c147_c5_named_nodes.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v
