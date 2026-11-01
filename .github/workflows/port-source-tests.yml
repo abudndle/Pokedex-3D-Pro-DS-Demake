@@ -25,6 +25,9 @@ jobs:
       - name: Verify C137 private NitroFS preflight and staging safety
         run: python3 -m unittest discover -s tests -p 'test_c137_private_asset_integration.py' -v
 
+      - name: Exercise C138 real native C preview loader for 730 synthetic models and UVs
+        run: python3 -m unittest discover -s tests -p 'test_c138_native_preview_probe.py' -v
+
       - name: Verify material-to-texture cross-references
         run: sh tests/run_model_material_texture.sh
 
