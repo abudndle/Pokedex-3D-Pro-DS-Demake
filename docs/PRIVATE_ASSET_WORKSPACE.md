@@ -61,3 +61,13 @@ The 528/162 export figures do **not** imply 690 finished textured Pokémon model
 - Never commit any of the listed ZIP files, private staging directories, game dumps, converted Nintendo textures/models or screenshot source art to this public repository.
 - Run `python3 tools/check_private_release_assets.py --help` and the repository's tests when preparing an asset-integrated build. Keep missing features as explicit blockers.
 - All 649 entries, accurate meshes/textures, source sampler roles, original dual-screen UI, animation/audio, 36 challenges and DSi-only AR still need verification; the port is **unfinished**.
+
+## Audit private recovery inputs (C132)
+
+Place the named ZIPs under `private/recovery/` and `private/packages/` according to the table above. The C7 validated OBJ collection is an additional required recovery input. Then run:
+
+```sh
+python3 tools/audit_private_recovery_workspace.py --root private --strict
+```
+
+This reads local archive metadata and CRCs, rejects duplicate/unsafe ZIP entries, and reports missing or invalid inputs. The public CI does not have access to original assets; `--strict` is for a privately staged asset workspace, not the asset-free CI ROM. No archive is unpacked or uploaded by this audit.

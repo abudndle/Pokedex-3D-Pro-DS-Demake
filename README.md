@@ -31,10 +31,9 @@ See `docs/PROJECT_HANDOFF.md` and `docs/MODEL_RESTORATION_STATUS.md`.
 
 GitHub Actions checks do not themselves prove the project can boot on Nintendo DS hardware.
 
-## Final-build asset policy
-The original Pokédex 3D Pro game assets are **not required during ordinary source development, automated tests, or intermediate CI builds**. The user will supply their own extracted original assets **only at the final build stage**, after code, non-camera gameplay features, interface behavior, and asset-loading interfaces are completed and tested with synthetic fixtures.
+## Original-asset development policy
 
-The final build must **fail with a clear missing-assets message** if the required original assets are not supplied. It must not silently replace missing models or textures with inaccurate replicas. The original game dump and extracted proprietary assets must never be uploaded to GitHub or committed to source control. Native DS test builds may use neutral test assets; an asset-integrated final build is a separate last step. DSi camera AR is also reserved for the final feature milestone.
+The original 3DS-derived assets may be used for **private development and testing at every milestone**. They are not distributed from this public GitHub repository. Asset-free CI/dev ROM checks are separate from private original-asset integration tests. Missing model, UV, texture, artwork, or audio data must fail the relevant validation rather than be replaced by inaccurate replicas.
 
 ## Revised original-asset requirement (latest user instruction)
 The goal is to finish porting **the actual game with its original assets**, not produce a generic lookalike. Original assets may be used during development, restoration, and test builds as needed to faithfully implement and verify the port. The previous final-build-only timing requirement is superseded. Keep the decrypted game image and proprietary asset payloads out of GitHub source control; use the user's private local assets during source builds and tests. Missing required originals must be reported explicitly, never substituted with inaccurate replicas.
