@@ -10,7 +10,7 @@ import unittest
 import zipfile
 import importlib.util
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[0]))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'tools'))
 from c135_recover_missing_previews import (
     build_ds3m_v2, combine_private_nitrofs, read_c56_reference,
     _validate_c86_missing, MISSING, NEUTRAL_RGB,
