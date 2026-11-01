@@ -8,7 +8,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/feature_menu.c",
-      "gap": "C105 adds independent private original-art loaders for both DS upper and lower screens across all 11 native pages, requires 22 staged UI bitmaps, and switches native BG modes to retain the Pokémon 3D engine on model pages. Authentic 3DS per-pixel visuals, top-screen model overlays, source hitboxes, animations, transitions, and asset-bearing emulator parity are not verified.",
+      "gap": "C106 now supports source-alpha-masked original upper Dex HUD composited on BG2 over live native BG0 Pokémon 3D, while C105 retains independently sourced upper/lower UI artwork for 11 destinations. The private release audit requires a separate original Dex HUD cutout, but actual recovered overlay/3DS visual accuracy, source-proven touch regions, model placement, animations, original full gameplay, and asset-bearing emulator parity remain unverified.",
       "verified_end_to_end": false
     },
     {
