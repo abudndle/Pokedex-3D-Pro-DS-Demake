@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Prepare private 3DS top and bottom UI pages for DS NitroFS; never distribute assets."""
 import argparse
+import json
+import zlib
 import pathlib
 import struct
 import sys
@@ -72,6 +74,51 @@ def main() -> int:
             convert(source, destination)
             print(f"{source} -> {destination}")
             count += 1
+    # C117: only a PRIVATE source-derived title sequence may animate the
+    # already recovered original frame-zero title. This is explicitly
+    # provided source timing, never guessed from the DS refresh rate.
+    timing = args.source / "title_timeline.json"
+    if timing.is_file():
+        if not all(title_sources):
+            raise ValueError("original 3DS title timeline requires both frame-zero screens")
+        manifest = json.loads(timing.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict) or set(manifest) != {"loop", "frames"}:
+            raise ValueError("invalid private 3DS title timing schema")
+        if type(manifest["loop"]) is not bool or not isinstance(manifest["frames"], list):
+            raise ValueError("invalid original title looping or frame sequence")
+        frames = manifest["frames"]
+        if not 2 <= len(frames) <= 16:
+            raise ValueError("original title animation requires 2..16 frames")
+        durations = []
+        selected = []
+        for i,frame in enumerate(frames):
+            if not isinstance(frame,dict) or set(frame)!={"ticks"} or (
+                type(frame["ticks"]) is not int or not 1 <= frame["ticks"] <= 3600):
+                raise ValueError("invalid source original title frame duration")
+            durations.append(frame["ticks"])
+            if i==0:continue
+            pair=[]
+            for screen,subfolder in ((0,"bottom"),(1,"top")):
+                options=[args.source/"title_frames"/subfolder/f"{i:02d}{ext}"
+                         for ext in (".rgb555",".rgba")]
+                found=next((p for p in options if p.is_file()),None)
+                if found is None or found.stat().st_size not in (SIZE,PIXELS*4):
+                    raise ValueError(f"original 3DS title frame {i} lacks source {subfolder} art")
+                pair.append(found)
+            selected.append((i,pair))
+        title_output = args.output.parent / "title"
+        for frame_id,pair in selected:
+            for screen,source in enumerate(pair):
+                destination=title_output / f"t{screen}_{frame_id:02d}_title.rgb555"
+                convert(source,destination)
+                count+=1
+                print(f"{source} -> {destination}")
+        records=b"".join(struct.pack("<HH",i,ticks)
+                         for i,ticks in enumerate(durations))
+        timeline=struct.pack("<4s4HI",b"P3TL",1,len(frames),
+                             int(manifest["loop"]),0,zlib.crc32(records))+records
+        (title_output/"timeline.p3tl").write_bytes(timeline)
+        print(f"{timing} -> {title_output/'timeline.p3tl'}")
     # An original masked HUD is distinct from the full upper Dex page.
     # Preserve the source alpha bit: clear pixels reveal native BG0 3D.
     # Do not fabricate transparency by guessing at original artwork.
