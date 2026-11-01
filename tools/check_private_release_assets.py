@@ -103,6 +103,22 @@ def audit(src):
             mat,shader,t0,t1,flags=struct.unpack_from("<5H",b,16+10*i)
             if mat!=i or flags&~7:return False
         return True
+    def original_source_words(a,p,model_id):
+        """P3SW preserves 13 original C5 material dwords; no decoded roles."""
+        b=a.read(p)
+        if len(b)<16:return False
+        magic,version,mid,count,reserved,crc=struct.unpack_from("<4s4HI",b,0)
+        if (magic!=b"P3SW" or version!=1 or mid!=model_id or
+                reserved!=0 or not 1<=count<=256 or
+                len(b)!=16+count*52 or zlib.crc32(b[16:])!=crc):
+            return False
+        for i in range(count):
+            w=struct.unpack_from("<13I",b,16+52*i)
+            # Shader/source texture slots are declared indices. Their GPU
+            # operation roles remain unverified until shader decode.
+            if w[0]&65535>=256:
+                return False
+        return True
     categories={
         "mesh_previews":"preview/p%03d.ds3m",
         "verified_uv":"preview/p%03d.p3uv",
@@ -110,7 +126,8 @@ def audit(src):
         "original_texture_manifests":"materials/p%03d.p3tx",
         "original_texture_catalogs":"catalogs/p%03d.p3tm",
         "source_C5_material_provenance":"materials/p%03d.p3mr",
-        "source_C5_shader_capabilities":"materials/p%03d.p3sc"
+        "source_C5_shader_capabilities":"materials/p%03d.p3sc",
+        "source_C5_operation_words":"materials/p%03d.p3sw"
     }
     counts={}
     for category,pattern in categories.items():
@@ -119,7 +136,10 @@ def audit(src):
             path=pattern%ident
             if src.exists(path):
                 count+=1
-                if category=="source_C5_shader_capabilities":
+                if category=="source_C5_operation_words":
+                    if not original_source_words(src,path,ident):
+                        invalid.append(path+": invalid original C5 material operation words or CRC")
+                elif category=="source_C5_shader_capabilities":
                     if not source_shader_caps(src,path,ident):
                         invalid.append(path+": invalid C5 shader capability declarations or CRC")
                 elif category=="source_C5_material_provenance":
