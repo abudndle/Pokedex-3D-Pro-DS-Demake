@@ -26,9 +26,9 @@ source_overlay[256*96+128] = 0x0042
 # Title is a separate original source boot asset on BOTH 3DS screens.
 title = Path(sys.argv[1]) / "nitro:" / "ui" / "title"
 (title / "t0_title.rgb555").write_bytes(
-    struct.pack("<H",0x1234) * (256*192))
+    struct.pack("<H",0x4b21) * (256*192))
 (title / "t1_title.rgb555").write_bytes(
-    struct.pack("<H",0x2345) * (256*192))
+    struct.pack("<H",0x54ab) * (256*192))
 # An all-opaque overlay must never hide the Pokémon model.
 (base / "t1_10_records_overlay.rgb555").write_bytes(
     struct.pack("<H", 0x9234) * (256 * 192))
