@@ -824,7 +824,7 @@ static void render(void) {
     }
 }
 int main(void) {
-    P3DCapabilities caps=p3dCapabilities(0,0,0);
+    P3DCapabilities caps=p3dCapabilities(isDSiMode()?1:0,0,0);
     videoSetMode(MODE_0_3D);
     glInit();
     glEnable(GL_ANTIALIAS);
@@ -877,6 +877,9 @@ int main(void) {
     #else
     storage_ready=0; /* FAT support disabled for this build configuration */
     #endif
+    /* Hardware-aware DSi detection; never claim working camera AR before
+     * the DSi enhanced camera backend is actually integrated/initialized. */
+    caps=p3dCapabilities(isDSiMode()?1:0,storage_ready,0);
     if(storage_ready){
         /* Bad or missing records slots leave a clean in-memory history. */
         (void)p3dRecordsLoad(P3D_SAVE_BASE,&records);
@@ -886,6 +889,16 @@ int main(void) {
                 challenge_correct_total=(int)record.challenge_correct;
                 challenge_answer_total=(int)record.challenge_total;
                 save_message=3;
+                P3DResumeState resume;
+                if(p3dResumeLoad(P3D_SAVE_BASE,&resume) &&
+                   p3dResumeApply(&resume,caps,&home,&state,&highlighted)){
+                    dex_index=(int)resume.dex;
+                    move_index=(int)resume.move;
+                    records_tab=(int)resume.records_tab;
+                    album_offset=(size_t)resume.album_page*P3D_ALBUM_PAGE_MAX;
+                    last_checkpoint=resume;
+                    last_checkpoint_valid=1;
+                }
             }
         }
     }
@@ -911,27 +924,47 @@ int main(void) {
         unsigned held=keysHeld();
         int redraw=0;
         if(title_active){
-            /* A/START/touch always exits once, without forwarding the input
-             * to a HOME item. Original animation assets are optional, and
-             * a corrupt later pair does not paint half of a title frame. */
-            if(down&(KEY_A|KEY_START|KEY_TOUCH)){
+            /* Idle A opens the remembered Pokémon entry. Otherwise the
+             * first title input resumes the last saved screen. No input is
+             * forwarded twice to the menu underneath the original title. */
+            if(down&(KEY_A|KEY_B|KEY_START|KEY_TOUCH)){
+                if(title_idle.active && (down&KEY_A)){
+                    home=0;
+                    state.page=P3D_PAGE_DEX;
+                    state.selected_dex=dex_index;
+                }
                 title_active=0;
                 title_timeline.ready=0;
                 title_cues.ready=0;
+                p3dTitleIdleReset(&title_idle);
                 if(title_audio_channel>=0){
                     soundKill(title_audio_channel);
                     title_audio_channel=-1;
                 }
                 art_page=-1;
                 top_art_page=-1;
+                showing_original_top_art=0;
                 render();
+            }else if(p3dTitleIdleAdvance(&title_idle)){
+                enter_title_idle();
+                draw_title_idle_info();
+            }else if(title_idle.active){
+                if(++idle_refresh>=60){
+                    idle_refresh=0;
+                    draw_title_idle_info(); /* refresh actual console RTC */
+                }
+                if(preview_found){
+                    render_model();
+                    if(preview_animation.ready)
+                        animation_tick=(animation_tick+1)%preview_animation.total_ticks;
+                }
             }else if(title_timeline.ready){
                 int frame=p3dTitleTimelineAdvance(&title_timeline);
                 if(frame>=0){
                     if(p3dOriginalTitleFrameLoad((unsigned)frame)){
                         p3dOriginalTitleDraw();
                         play_title_cue((unsigned)frame);
-                    }else title_timeline.ready=0; /* retain prior VRAM image */
+                    }else title_timeline.ready=0;
                 }
             }
             continue;
