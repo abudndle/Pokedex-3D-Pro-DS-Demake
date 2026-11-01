@@ -8,7 +8,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/feature_menu.c",
-      "gap": "C106 now supports source-alpha-masked original upper Dex HUD composited on BG2 over live native BG0 Pokémon 3D, while C105 retains independently sourced upper/lower UI artwork for 11 destinations. The private release audit requires a separate original Dex HUD cutout, but actual recovered overlay/3DS visual accuracy, source-proven touch regions, model placement, animations, original full gameplay, and asset-bearing emulator parity remain unverified.",
+      "gap": "C116 adds a separate native original 3DS dual-screen title state, independent private source title files and packager, strict two-frame release audit, and a one-input transition to HOME. C105/C106 source-derived top/bottom home and 11 UI pages remain. Authentic title frames have not been staged or visually compared with the original 3DS; true original transitions, source touchscreen hitboxes, menus, animations and every gameplay screen are not complete.",
       "verified_end_to_end": false
     },
     {
@@ -96,7 +96,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "tools/c92_diagnostic_textured_preview_audit.py",
-      "gap": "C115 renders every original-preview triangle even when some source C5 materials have unresolved bump/effect/dual-sampler roles. It loads only distinct source-backed simple CF_COLORMAP texture candidates per material range and renders other original geometry untextured rather than disabling all Pokémon textures or hiding faces. All C113 source word, C112 shader flags, C109 material, C108 geometry and C107 alpha checks remain. Native source GPU shader equations, original normal/specular/effect roles, source UV transformations, model visual parity, unchanged title-screen visual verification and full 3DS gameplay remain incomplete.",
+      "gap": "C116 filters C115 source-backed material ranges by original P3UV normalized 0–1 unit-square coverage, preserving safe material textures while drawing negative/>1-UV ranges untextured until original 3DS wrap/repeat/mirror modes are recovered. C115 mixed materials and C113/C112/C109/C108 original-source consistency remain. Source original shader sampler/UV transforms, model color/material fidelity and real private-original visual comparison are not verified.",
       "verified_end_to_end": false
     },
     {
