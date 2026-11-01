@@ -6,7 +6,7 @@ int main(int argc,char **argv){
     static P3DTextureManifest tex;
     static P3DSourceMaterialMap source;
     static P3DSourceShaderCaps shaders;
-    assert(argc==8);
+    assert(argc==10);
     assert(p3dMaterialMapLoad(&candidate,argv[1],3));
     assert(p3dTextureManifestLoad(&tex,argv[2]));
     assert(p3dSourceMaterialLoad(&source,argv[3],25,3));
@@ -38,6 +38,11 @@ int main(int argc,char **argv){
     /* CF_COLORMAP plus CF_BUMPMAP is NOT a proven color-only sampler. */
     assert(!p3dSourceShaderColorReferencesMatch(
         &shaders,&source,&candidate,&tex,25,3));
+    shaders.materials[10].flags=P3D_SHADER_CAP_COLORMAP|P3D_SHADER_CAP_OTHER;
+    /* A source CF_COLORMAP mixed with any OTHER C5 capability is
+     * not evidence for a simple original diffuse-only sampler. */
+    assert(!p3dSourceShaderColorReferencesMatch(
+        &shaders,&source,&candidate,&tex,25,3));
     shaders.materials[10].flags=P3D_SHADER_CAP_COLORMAP;
     assert(p3dSourceShaderColorReferencesMatch(
         &shaders,&source,&candidate,&tex,25,3));
@@ -64,8 +69,12 @@ int main(int argc,char **argv){
     assert(!shaders.ready);
     assert(!p3dSourceShaderCapsLoad(&shaders,argv[7],25));
     assert(!shaders.ready);
+    assert(!p3dSourceShaderCapsLoad(&shaders,argv[8],25));
+    assert(!shaders.ready); /* Legacy v1 dropped source shader flags. */
+    assert(!p3dSourceShaderCapsLoad(&shaders,argv[9],25));
+    assert(!shaders.ready); /* Unsupported high bits, CRC still valid. */
     assert(!p3dSourceShaderCapsLoad(&shaders,NULL,25));
     assert(!shaders.ready);
-    puts("C110: verified C5 shader capabilities, ambiguous samplers fail closed: PASS");
+    puts("C112: all original C5 shader capabilities preserved or rejected: PASS");
     return 0;
 }
