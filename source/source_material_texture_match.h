@@ -27,4 +27,14 @@ int p3dSourceCandidateTextureMap(
     const P3DTextureManifest *textures,
     unsigned model_id,unsigned mesh_triangles,
     int *out,unsigned out_capacity);
+/* C139: a range may bind an original source color texture ONLY when
+ * its complete source C5 face map agrees, source shader explicitly approves
+ * a sole color sampler and the paired P3UV span is normalized.
+ * Fail closed for empty/overflowing/stale ranges, absent provenance and
+ * the 65535 "no texture" marker. Does NOT infer 3DS shader roles. */
+int p3dSourceCandidateTextureRangeReady(
+    const int *face_texture_ids,unsigned map_capacity,
+    unsigned mesh_triangles,unsigned first_triangle,
+    unsigned triangle_count,unsigned texture_id,
+    int source_colormap_approved,int normalized_paired_uv);
 #endif
