@@ -26,8 +26,8 @@ with tempfile.TemporaryDirectory() as tmp:
     high_frames=source/"title_frames"/"top"
     low_frames.mkdir(parents=True)
     high_frames.mkdir(parents=True)
-    (low_frames/"01.rgb555").write_bytes(b"\\x21\\x4b"*(256*192))
-    (high_frames/"01.rgb555").write_bytes(b"\\xab\\x54"*(256*192))
+    (low_frames/"01.rgb555").write_bytes(b"\x21\x4b"*(256*192))
+    (high_frames/"01.rgb555").write_bytes(b"\xab\x54"*(256*192))
     (top / "home.rgba").write_bytes(bytes((0, 0, 255, 255)) * (256 * 192))
     (top / "records.rgb555").write_bytes(b"\x00\x02" * (256 * 192))
     # Explicit original-art alpha: one visible UI pixel, remaining cutout.
@@ -56,8 +56,8 @@ with tempfile.TemporaryDirectory() as tmp:
     assert title_low[:2] == b"\xff\x83"  # yellow A1RGB555
     assert title_high[:2] == b"\xe0\xff"  # cyan A1RGB555
     assert title_low != home and title_high != upper_home
-    assert (dst.parent/"title/t0_01_title.rgb555").read_bytes()[:2] == b"\\x21\\x4b"
-    assert (dst.parent/"title/t1_01_title.rgb555").read_bytes()[:2] == b"\\xab\\x54"
+    assert (dst.parent/"title/t0_01_title.rgb555").read_bytes()[:2] == b"\x21\x4b"
+    assert (dst.parent/"title/t1_01_title.rgb555").read_bytes()[:2] == b"\xab\x54"
     timeline=(dst.parent/"title/timeline.p3tl").read_bytes()
     assert struct.unpack_from("<4s4HI",timeline)[:5]==(b"P3TL",1,2,0,0)
     assert struct.unpack_from("<4H",timeline,16)==(0,2,1,3)
