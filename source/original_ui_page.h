@@ -4,4 +4,8 @@
 int p3dOriginalUiPageLoad(int page);
 int p3dOriginalUiPageReady(void);
 void p3dOriginalUiPageDraw(void);
+/* Private 3DS top-screen art is loaded separately to DS main BG2. */
+int p3dOriginalTopPageLoad(int page);
+int p3dOriginalTopPageReady(void);
+void p3dOriginalTopPageDraw(void);
 #endif

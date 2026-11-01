@@ -42,9 +42,14 @@ def audit(src):
             missing.append(name)
         elif not predicate(src,name):
             invalid.append(name+": "+reason)
-    for i,name in enumerate(GUI_PAGES):
-        check(f"ui/pages/t0_{i:02d}_{name}.rgb555",
-              lambda a,p:a.length(p)==256*192*2,"not a full DS 256x192 16-bit page")
+    # A faithful dual-screen port needs independently recovered top AND
+    # bottom artwork for every original UI page; never copy one screen onto
+    # the other or mark a developer text fallback as a release-complete UI.
+    for screen in (0,1):
+        for i,name in enumerate(GUI_PAGES):
+            check(f"ui/pages/t{screen}_{i:02d}_{name}.rgb555",
+                  lambda a,p:a.length(p)==256*192*2,
+                  "not a full DS 256x192 16-bit page")
     def dex(a,p):
         if a.length(p)!=8+649*256:return False
         return a.read(p)[:8]==struct.pack("<4sHH",b"P3DX",1,649)
