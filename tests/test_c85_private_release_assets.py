@@ -29,6 +29,7 @@ class C85Tests(unittest.TestCase):
             self.assertIn("ui/pages/t1_10_records.rgb555",result["missing"])
             self.assertIn("ui/pages/t1_01_dex_overlay.rgb555",result["missing"])
             self.assertIn("source_C5_shader_capabilities: 730 model resources not staged",result["missing"])
+            self.assertIn("source_C5_operation_words: 730 model resources not staged",result["missing"])
             self.assertFalse(result["original_shader_sampler_roles_verified"])
             self.assertGreater(len(result["missing"]),10)
             self.assertFalse(result["visual_accuracy_verified"])
@@ -137,6 +138,36 @@ class C85Tests(unittest.TestCase):
             report=audit(src)
             src.close()
             self.assertTrue(any("p000.p3sc" in x for x in report["invalid"]))
+
+    def test_original_c5_material_operation_words(self):
+        # P3SW v1 carries original 13-word material records, not sampler roles.
+        with tempfile.TemporaryDirectory() as folder:
+            p=pathlib.Path(folder)
+            sidecar=p/"materials/p000.p3sw"
+            sidecar.parent.mkdir(parents=True)
+            one=struct.pack("<13I",0,0xffff0002,*([0]*11))
+            two=struct.pack("<13I",1,0xffff0007,*([0]*11))
+            body=one+two
+            good=struct.pack("<4s4HI",b"P3SW",1,0,2,0,zlib.crc32(body))+body
+            sidecar.write_bytes(good)
+            src=Assets(p)
+            report=audit(src)
+            src.close()
+            self.assertEqual(report["counts"]["source_C5_operation_words"],1)
+            self.assertFalse(any("p000.p3sw" in x for x in report["invalid"]))
+            self.assertFalse(report["original_shader_sampler_roles_verified"])
+            for corrupt in (
+                good[:-1],
+                good+b"\\x00",
+                good[:6]+struct.pack("<H",1)+good[8:],
+                good[:4]+struct.pack("<H",2)+good[6:],
+                good[:-1]+bytes([good[-1]^1]),
+            ):
+                sidecar.write_bytes(corrupt)
+                src=Assets(p)
+                report=audit(src)
+                src.close()
+                self.assertTrue(any("p000.p3sw" in x for x in report["invalid"]))
 
     def test_release_never_claims_partial_game_complete(self):
         with tempfile.TemporaryDirectory() as folder:
