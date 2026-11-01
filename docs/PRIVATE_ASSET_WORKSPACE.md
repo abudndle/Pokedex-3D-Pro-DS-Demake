@@ -399,3 +399,61 @@ Source-only tests with synthetic C5 fixtures:
 ```sh
 python3 -m unittest discover -s tests -p 'test_c140_c5_shader_inventory.py' -v
 ```
+
+## C141 — exact original C5 mesh-group triangle provenance
+
+C140 recovered shader **declarations**, but a shader name or CF_COLORMAP
+flag does not reveal the original C5 material-to-face binding. C141
+recovers and validates the *separate source mesh descriptor/index-count
+boundaries* from all private decoded C5 files and compares their
+original triangle counts with the actual C136 native DS3M metadata.
+
+Verified privately on 2026-11-01 from all three C56 archives, checked
+against the original decoder validation ZIP's model hashes and status:
+
+- **730/730** original C5 models and native DS3M previews matched IDs.
+- **3,759** original C5 index/vertex descriptor mesh groups indexed and
+  their source triangle spans recorded without creating fictitious materials.
+- **729/730** DS3M source-face-count metadata fields matched the original
+  C5 index-descriptor triangle totals.
+- **p561** was the sole discrepancy: DS3M declared **2,728** original faces,
+  but its original C5 source's seven index descriptors total **3,668**
+  triangles. The native preview still has **493** sampled faces.
+- An optional, explicit **private-only** package rewrite changed exactly
+  the four metadata bytes for `preview/p561.ds3m` from 2,728 to 3,668.
+  All actual DS3M vertices, RGB face colors, UVs, textures and all other
+  NitroFS entries were byte-for-byte unchanged.
+- Re-audit of the private corrected archive reports **730/730** C5
+  triangle totals agreeing with native DS3M source-count metadata.
+
+To reproduce locally with owner-provided original-derived assets:
+
+```sh
+python3 tools/c141_c5_mesh_provenance.py \
+  --parts \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_2_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --nitrofs private/packages/C136_PRIVATE_NATIVE_COMPATIBLE_NITROFS.zip \
+  --report private/reports/C141_PRIVATE_C5_MESH_PROVENANCE_REPORT.json \
+  --repair-output private/packages/C141_PRIVATE_CORRECTED_SOURCE_COUNT_NITROFS.zip \
+  --expected-mismatch p561
+```
+
+The expected-mismatch list is mandatory for a repair; unknown differences
+fail closed, and an existing output package is never overwritten.
+The resulting ZIP still belongs **only in private storage**. It improves
+source **metadata correctness**, not texture mapping, model fidelity or
+the number of faces actually rendered in DS3M.
+
+**C141 does not equate mesh groups to material groups.** The exact original
+C5 face-to-material indices, material-to-shader references and GPU sampler
+roles are **not decoded**. No P3MR/P3SC/P3SW/P3MT mapping sidecars or
+certified original-textured models are emitted. C139's safe native
+binding gates remain disabled for this still-unverified data.
+
+Synthetic regression:
+```sh
+python3 -m unittest discover -s tests -p 'test_c141_c5_mesh_provenance.py' -v
+```
