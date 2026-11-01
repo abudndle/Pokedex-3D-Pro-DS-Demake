@@ -49,6 +49,9 @@ jobs:
       - name: Verify C146 original source owner, key-count and time controls
         run: python3 -m unittest discover -s tests -p 'test_c146_c5_owner_control_fields.py' -v
 
+      - name: Verify C147 original named C5 transform track string pointers
+        run: python3 -m unittest discover -s tests -p 'test_c147_c5_named_nodes.py' -v
+
       # Public-source x86_64 host executable only. NO private Nintendo data.
       - name: Compile portable C138 host probe for private offline asset test
         run: |
