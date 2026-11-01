@@ -24,7 +24,6 @@
 #include "model_material_texture.h"
 #include "source_material_map.h"
 #include "source_material_texture_match.h"
-#include "source_material_texture_match.h"
 #include "source_shader_caps.h"
 #include "source_material_words.h"
 #include "source_color_ranges.h"
@@ -403,17 +402,18 @@ static void render_model(void){
          * ranges keep their original geometry and untextured face colors. */
         for(unsigned i=0;i<preview_materials.count;i++){
             const P3DMaterialRange *range=&preview_materials.ranges[i];
-            int face_map_matches=source_face_map_ready;
-            if(face_map_matches){
-                unsigned end=(unsigned)range->first_triangle+range->triangle_count;
-                if(end>600)face_map_matches=0;
-                else for(unsigned face=range->first_triangle;face<end;face++)
-                    if(source_face_textures[face]!=(int)range->texture_id){
-                        face_map_matches=0;break;
-                    }
-            }
+            /* C139: the approved C5 source range must match the CURRENT
+             * loaded mesh, not just the 600-triangle global scratch array.
+             * Reject partial/stale/mixed original texture assignments. */
+            int face_map_matches=source_face_map_ready &&
+                p3dSourceCandidateTextureRangeMatches(
+                    source_face_textures,600,
+                    (unsigned)previewStreamTriangleCount(),
+                    range->first_triangle,range->triangle_count,
+                    range->texture_id);
             const P3DPreviewTexture *tex=face_map_matches &&
-                preview_color_ranges.ready && preview_color_ranges.enabled[i]?
+                preview_color_ranges.ready && i<preview_color_ranges.count &&
+                preview_color_ranges.enabled[i]?
                 p3dPreviewTextureSetFind(&preview_gl_textures,range->texture_id):NULL;
             if(tex){
                 glEnable(GL_TEXTURE_2D);
