@@ -42,8 +42,8 @@ with tempfile.TemporaryDirectory() as tmp:
     title_low = (dst.parent / "title/t0_title.rgb555").read_bytes()
     title_high = (dst.parent / "title/t1_title.rgb555").read_bytes()
     assert len(title_low) == len(title_high) == 256 * 192 * 2
-    assert title_low[:2] == b"\\xff\\x83"  # yellow A1RGB555
-    assert title_high[:2] == b"\\xe0\\xff"  # cyan A1RGB555
+    assert title_low[:2] == b"\xff\x83"  # yellow A1RGB555
+    assert title_high[:2] == b"\xe0\xff"  # cyan A1RGB555
     assert title_low != home and title_high != upper_home
     overlay = (dst / "t1_01_dex_overlay.rgb555").read_bytes()
     assert len(overlay) == 256 * 192 * 2
