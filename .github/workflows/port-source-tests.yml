@@ -25,6 +25,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: Verify bounded private C5 ZIP audit and report isolation
+        run: python3 -m unittest discover -s tests -p 'test_c180_private_c5_coverage.py' -v
+
       - name: Validate private asset loader contracts
         run: python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 
