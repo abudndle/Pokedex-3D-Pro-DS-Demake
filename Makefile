@@ -56,6 +56,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c133_c56_decoder.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c134_c56_geometry_bridge.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c135_missing_previews.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c136_native_uv_stage.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v

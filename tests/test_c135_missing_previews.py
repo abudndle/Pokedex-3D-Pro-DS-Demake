@@ -45,10 +45,11 @@ class C135Tests(unittest.TestCase):
         blob, report = build_ds3m_v2(vertices, groups)
         magic, version, n, nvert, source_faces = struct.unpack_from('<4sHHII', blob)
         self.assertEqual((magic, version, n, nvert, source_faces),
-                         (b'DS3M', 2, 2, 4, 2))
+                         (b'DS3M', 2, 2, 0, 2))
         self.assertEqual(len(blob), 16 + 21 * n)
         self.assertEqual(blob[-3*n:], NEUTRAL_RGB * n)
         self.assertEqual(report['source_meshes_sampled'], 1)
+        self.assertEqual(report['source_vertices'], 4)
         self.assertFalse(report['materials_verified'])
         self.assertFalse(report['uv_verified'])
 

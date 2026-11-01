@@ -90,7 +90,7 @@ def build_ds3m_v2(vertices, groups, limit=MAX_TRIANGLES):
     n = len(positions) // 9
     if not 1 <= n <= limit or len(positions) != n * 9:
         raise ValueError('sampled DS3M topology invalid')
-    blob = struct.pack('<4sHHII', b'DS3M', 2, n, total_vertices, total_faces)
+    blob = struct.pack('<4sHHII', b'DS3M', 2, n, 0, total_faces)
     blob += struct.pack('<' + 'h' * len(positions), *positions)
     blob += NEUTRAL_RGB * n
     if len(blob) != 16 + n * 21:

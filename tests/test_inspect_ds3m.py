@@ -42,6 +42,14 @@ class DS3MTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "length"):
             mod.inspect(self.file)
 
+    def test_reject_legacy_source_vertex_in_native_reserved_field(self):
+        self.write(2, 1)
+        raw = bytearray(self.file.read_bytes())
+        struct.pack_into('<I', raw, 8, 42)
+        self.file.write_bytes(raw)
+        with self.assertRaisesRegex(ValueError, 'reserved'):
+            mod.inspect(self.file)
+
     def test_bad_magic(self):
         self.write(1, 1)
         data = bytearray(self.file.read_bytes())
