@@ -65,4 +65,5 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c98_private_geometry_qa_nitrofs.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c99_linux_visual_evidence_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c97_batched_chunk_io.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c102_original_audio_source_recovery.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
