@@ -71,6 +71,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c149_original_skeleton_loader.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c150_skeleton_node_binding.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c151_source_track_bindings.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c151_private_packer.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v
