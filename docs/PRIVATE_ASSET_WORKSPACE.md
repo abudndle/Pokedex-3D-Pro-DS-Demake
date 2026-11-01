@@ -756,3 +756,64 @@ yet provide original parent-child hierarchy, mesh skin weights, clip
 transitions/action names or motion interpretation; no skeleton animation is
 enabled on DS until that missing data is verified. The source-material
 to-shader/texture bindings remain separate and unverified.
+
+## C148 — original C5 skeleton hierarchy and private native P3SK resources
+
+C148 recovers the original C5 node hierarchy table, not merely transform
+channel strings. Its start/end offsets are at source header fields
+`0x38` / `0x3c`; original node count is high16 of header word `0x10`.
+Across all 730 SHA-verified C56 models, table length is **exactly
+56 bytes per original node**, without a single exception.
+
+Each 56-byte original record preserves **12 finite float32 matrix
+components**, one original parent/type word, and the original
+string-table-relative name pointer. The high16 node type is `1`
+throughout this verified source collection. The low16 parent field is
+`0xffff` for a root; all other parents reference an earlier valid
+node index, so the original table forms a verified acyclic node forest.
+
+Private original source validation:
+
+| Recovered source item | Count |
+|---|---:|
+| Models with validated original hierarchy | 730 / 730 |
+| Original node records | 35,840 |
+| Root node entries | 4,199 |
+| Source parent-to-child links | 31,641 |
+| Source C143/C147 named transform tracks tied to exact node IDs | 25,956 / 25,956 |
+| Source node names using C5 suffix interning | 137 |
+| Largest single-model node table | 148 nodes |
+
+Every C147 animated owner token's low16 matches the original C5 node
+table index, and its high16 matches that SAME node record's name offset.
+The 56-byte raw affine transform bytes are preserved without
+translation/rotation order guesses or resampling.
+
+Export a **private-only** DS-compatible diagnostic NitroFS package
+containing one `skeleton/pNNN.p3sk` per original model. P3SK v1 has a
+20-byte `<4sHHHHII` header (magic, version, model ID, node count,
+root count, name-byte count, CRC32), followed by the original 56-byte
+node records and the required prefix of original C5 string-table bytes.
+CRC32 covers the complete private record/string payload. Node names
+continue to use exact original source string offsets.
+
+```sh
+python3 tools/c148_c5_skeleton_hierarchy.py \
+  --parts \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_2_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --c147-summary private/reports/C147_PRIVATE_NAMED_SOURCE_TRACKS_SUMMARY.json \
+  --report private/reports/C148_PRIVATE_ORIGINAL_SKELETON_AUDIT.json \
+  --private-skeleton-zip private/packages/C148_PRIVATE_730_ORIGINAL_SKELETON_P3SK.zip
+
+python3 -m unittest discover -s tests -p 'test_c148_c5_skeleton_hierarchy.py' -v
+```
+
+No source original `.p3sk` output is committed publicly. The native
+Nintendo DS renderer **does not yet use** these files to deform Pokémon
+meshes. Original skinning weights, model vertex-to-bone bindings,
+animation action/clip selection and full motion playback remain
+unverified and must be completed before claiming 3DS-accurate
+animated models. The C139 texture/material eligibility gate is unchanged.
