@@ -671,3 +671,44 @@ python3 -m unittest discover -s tests -p 'test_c145_c5_packed_quaternions.py' -v
 `--detailed-model p000` is an optional private-only diagnostic export for
 one selected model. Source originals, full keyframe reports, game models
 and original animations remain excluded from public GitHub.
+
+## C146 — verified original C5 owner and key-count/time control words
+
+C146 independently cross-checks C143 triplet group control words against
+C145 recovered packed quaternion keys and C144 source frame/time endpoints.
+For **all 25,956** source group records, the high 16 bits of the second
+shared control word exactly equal the first packed quaternion stream key
+count, while its low 16 bits equal the common source end-time tag. All
+group records share their same original 32-bit owner key.
+
+Across **730/730** SHA-verified original C56 models, the low 16-bit portion
+of this owner key is nonzero and **unique within each model**. These tokens
+appear in strictly increasing source-record order for **654** models; for
+the remaining 76, source ordering differs. **685** models have a first
+owner-token value of one. The largest original owner token encountered is
+**140**. Neither the token's upper 16 bits nor its relationship to a bone
+hierarchy is proven; C146 deliberately does not assume every group is a
+distinct bone or generate skeleton parenting indices.
+
+Private reproducible command:
+
+```sh
+python3 tools/c146_c5_owner_control_fields.py \
+  --parts \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_2_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --c145-summary private/reports/C145_PRIVATE_PACKED_QUATERNION_SUMMARY.json \
+  --report private/reports/C146_PRIVATE_SOURCE_NODE_CONTROL_SUMMARY.json
+```
+
+Optional owner-private `--detailed-model p000` exports every source group
+control for a selected model to a different report filename. The script
+checks C56/C145 hashes, models and exact Q key totals; malformed control
+word duration/counts and duplicate owner tokens fail closed. Four
+synthetic regressions include the complete 730-model cross-stage suite.
+
+C146 provides verified **control-word semantics** but not an executable
+DS animation rig, shader-to-mesh associations or original C5 sampler
+roles. No guessed animations or texture bindings are activated.
