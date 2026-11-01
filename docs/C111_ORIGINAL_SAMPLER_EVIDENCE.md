@@ -2,7 +2,7 @@
 
 ## Goal and original-game fidelity
 
-The target remains a complete **Pokédex 3D Pro (Nintendo 3DS) port to Nintendo DS/DSi**, retaining the original appearance on both screens, all models, original menus, motion, sounds, data, and gameplay. No inferred replacement artwork or Pokémon shaders may be described as the original game.
+The target remains a complete **Pokédex 3D Pro (Nintendo 3DS) port to Nintendo DS/DSi**, retaining the original appearance on both screens, all models, original menus, motion, sounds, data, and gameplay. **Preserve the original 3DS title screen unchanged**; no replacement title screen or new design is authorized. No inferred replacement artwork or Pokémon shaders may be described as the original game.
 
 C110 recovered the original shader *declaration* bits `CF_COLORMAP` and `CF_BUMPMAP`, but **a shader capability is not a decoded GPU texture sampler equation**. Source C5 material records contain 13 raw 32-bit fields, some of whose sampler-operation meanings are not decoded. C111 adds an evidence-preserving private inventory, NOT a fabricated sampler-role map.
 
