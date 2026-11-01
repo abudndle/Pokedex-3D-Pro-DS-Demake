@@ -28,6 +28,9 @@ class C85Tests(unittest.TestCase):
             self.assertIn("ui/pages/t0_10_records.rgb555",result["missing"])
             self.assertIn("ui/pages/t1_10_records.rgb555",result["missing"])
             self.assertIn("ui/pages/t1_01_dex_overlay.rgb555",result["missing"])
+            self.assertIn("ui/title/t0_title.rgb555",result["missing"])
+            self.assertIn("ui/title/t1_title.rgb555",result["missing"])
+            self.assertFalse(result["original_title_screen_visually_verified"])
             self.assertIn("source_C5_shader_capabilities: 730 model resources not staged",result["missing"])
             self.assertIn("source_C5_operation_words: 730 model resources not staged",result["missing"])
             self.assertFalse(result["original_shader_sampler_roles_verified"])
@@ -45,6 +48,25 @@ class C85Tests(unittest.TestCase):
             self.assertFalse(any("data/dex_en.p3dx" in msg for msg in result["invalid"]))
             self.assertTrue(any("moves.p3dm" in msg for msg in result["invalid"]))
             self.assertEqual(result["counts"]["original_derived_texture_payloads"],0)
+    def test_original_title_requires_both_independent_original_frames(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p=pathlib.Path(folder)
+            d=p/"ui/title"
+            d.mkdir(parents=True)
+            bottom=d/"t0_title.rgb555"
+            top=d/"t1_title.rgb555"
+            bottom.write_bytes(bytes((0x21,0x9b))*(256*192))
+            src=Assets(p);report=audit(src);src.close()
+            self.assertIn("ui/title/t1_title.rgb555",report["missing"])
+            self.assertFalse(report["asset_complete"])
+            top.write_bytes(bytes((0xab,0xd4))*(256*192))
+            src=Assets(p);report=audit(src);src.close()
+            self.assertFalse(any("ui/title/" in x for x in report["missing"]+report["invalid"]))
+            self.assertFalse(report["original_title_screen_visually_verified"])
+            top.write_bytes(b"short")
+            src=Assets(p);report=audit(src);src.close()
+            self.assertTrue(any("ui/title/t1_title.rgb555" in x for x in report["invalid"]))
+
     def test_original_3d_hud_mask_requires_both_opacity_states(self):
         with tempfile.TemporaryDirectory() as folder:
             p=pathlib.Path(folder)
