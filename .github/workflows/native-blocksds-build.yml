@@ -89,6 +89,10 @@ jobs:
           # Do not click the touchscreen to focus: that can change the game.
           # XTEST key events are directed to the focused SDL CLI window.
           xdotool mousemove --window "$window_id" 128 190
+          # Observe X11 key delivery on the actual SDL window without
+          # assuming that an XTEST event reached DeSmuME's key map.
+          xev -id "$window_id" -event keyboard > emulator-xev.log 2>&1 &
+          xev_pid=$!
           echo "Focused DeSmuME SDL window: $window_id"
           echo "X11 active: $(xdotool getactivewindow) focused: $(xdotool getwindowfocus)"
           xmodmap -pke | grep -E 'Right|Down| z | s ' | head -15 || true
@@ -143,6 +147,9 @@ jobs:
           sleep 1
           xwd -id "$window_id" -silent -out emulator-after-touch-probe.xwd
           echo "X11 focus after probes: $(xdotool getwindowfocus)"
+          echo "X11 keypress events on the SDL window:"
+          grep -E 'KeyPress|KeyRelease|keysym' emulator-xev.log | tail -65 || true
+          kill "$xev_pid" 2>/dev/null || true
           xmodmap -pke | grep -E 'Right|Down| z | s ' | head -15 || true
           sleep 1
           if ! kill -0 "$pid" 2>/dev/null; then
@@ -234,5 +241,6 @@ jobs:
             emulator-after-x-probe.xwd
             emulator-after-a-probe.xwd
             emulator-after-touch-probe.xwd
+            emulator-xev.log
             emulator-windows.txt
           if-no-files-found: warn
