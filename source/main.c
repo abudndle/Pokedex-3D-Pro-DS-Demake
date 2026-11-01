@@ -23,6 +23,7 @@
 #include "preview_texture_set.h"
 #include "original_ui_page.h"
 #include "move_dex.h"
+#include "move_text_view.h"
 #include "dex_text.h"
 #include "dex_search.h"
 #include "search_touch.h"
@@ -75,6 +76,8 @@ static int search_region=0;
 static int search_scope=0;
 static int search_field=P3D_DEX_SEARCH_NAME;
 static int move_text_offset=0;
+/* C100 shows actual original P3DM effect text; defaults to description. */
+static int move_show_effect=0;
 static P3DPhotoAlbum photo_album;
 static int album_ready=0;
 static size_t album_offset=0;
@@ -295,11 +298,13 @@ static void render(void) {
             printf("LEFT/RIGHT: +/- 1 move\n");
             printf("UP/DOWN: +/- 10 moves\n");
             printf("Y: back to Pokemon Search\n");
+            printf("X: original effect / description\n");
             if(move_catalog_ready){
                 P3DMove entry;
                 if(p3dMoveDexRead(move_index,&entry)){
                     printf("%s\n",entry.name);
-                    printf("%.48s\n",entry.description);
+                    const char *original=p3dMoveTextField(&entry,move_show_effect);
+                    printf("%.48s\n",original&&*original?original:"(Original text unavailable)");
                 }else printf("Move record unavailable.\n");
             }else printf("Original Move Dex unavailable.\n");
         } else if(state.page==P3D_PAGE_TYPES){
@@ -468,16 +473,21 @@ static void render(void) {
                 P3DMove entry;
                 if(p3dMoveDexRead(move_index,&entry)){
                     printf("\x1b[13;1H%.28s",entry.name);
-                    /* Clip each fragment to the console's 32-character
-                     * width and display the available 84 characters. */
-                    for(size_t part=0;part<3;part++){
-                        size_t offset=(size_t)move_text_offset+part*28;
-                        if(strlen(entry.description)<=offset)break;
-                        printf("\x1b[%d;1H%.28s",15+(int)part*2,entry.description+offset);
+                    printf("\x1b[14;1H%s",move_show_effect?"Original effect:":"Original description:");
+                    const char *original=p3dMoveTextField(&entry,move_show_effect);
+                    if(!original||!*original){
+                        printf("\x1b[15;1H(No original text)");
+                    }else{
+                        /* Original Move Dex data only: no synthetic fallbacks. */
+                        for(size_t part=0;part<3;part++){
+                            size_t offset=(size_t)move_text_offset+part*28;
+                            if(strlen(original)<=offset)break;
+                            printf("\x1b[%d;1H%.28s",15+(int)part*2,original+offset);
+                        }
                     }
                 }
             }
-            printf("\x1b[21;1HL/R: scroll text");
+            printf("\x1b[21;1HX: Effect/Desc  L/R: scroll");
             printf("\x1b[23;1HArrows: browse moves");
         }else if(state.page==P3D_PAGE_TYPES){
             int effect=defend_type2<0?p3dTypeEffect(attack_type,defend_type):
@@ -1092,6 +1102,11 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_MOVES){
+                if((down&KEY_X) && !(down&(KEY_Y|KEY_A|KEY_TOUCH))){
+                    move_show_effect=!move_show_effect;
+                    move_text_offset=0;
+                    redraw=1;
+                }
                 if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
                     state.selected_dex=dex_index;
                     state.page=P3D_PAGE_SEARCH;
@@ -1115,17 +1130,9 @@ int main(void) {
                 if(move_catalog_ready && scroll_dir){
                     P3DMove entry;
                     if(p3dMoveDexRead(move_index,&entry)){
-                        int length=(int)strlen(entry.description);
-                        int max_offset=length>84?length-84:0;
-                        if(scroll_dir<0 && move_text_offset>0){
-                            move_text_offset=move_text_offset>=28?move_text_offset-28:0;
-                            redraw=1;
-                        }
-                        if(scroll_dir>0 && move_text_offset<max_offset){
-                            move_text_offset+=28;
-                            if(move_text_offset>max_offset)move_text_offset=max_offset;
-                            redraw=1;
-                        }
+                        const char *original=p3dMoveTextField(&entry,move_show_effect);
+                        int offset=p3dMoveTextScroll(move_text_offset,original,scroll_dir);
+                        if(offset!=move_text_offset){move_text_offset=offset;redraw=1;}
                     }
                 }
                 int next=move_index;
