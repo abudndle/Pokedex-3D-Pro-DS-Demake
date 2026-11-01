@@ -5,6 +5,7 @@
 #include <nds.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <filesystem.h>
 #include "feature_menu.h"
 #include "menu_layout.h"
@@ -12,6 +13,8 @@
 #include "dsi_features.h"
 #include "challenge.h"
 #include "game_save_bridge.h"
+#include "resume_state.h"
+#include "title_idle.h"
 #include "preview_stream.h"
 #include "species_model_map.h"
 #include "form_model_map.h"
@@ -62,6 +65,9 @@ static int storage_ready=0;
 static int nitro_ready=0;
 static int save_message=0;
 static int progress_dirty=0;
+static P3DResumeState last_checkpoint;
+static int last_checkpoint_valid=0;
+static unsigned checkpoint_ticks=0;
 static int preview_ready=0;
 static int preview_found=0;
 static P3DAnimationClip preview_animation;
@@ -114,6 +120,8 @@ static int top_art_preview=-1;
 static int showing_original_top_art=0;
 /* Original 3DS title is its own boot state, separate from HOME. */
 static int title_active=0;
+static P3DTitleIdle title_idle;
+static unsigned idle_refresh=0;
 static P3DTitleTimeline title_timeline;
 static P3DTitleCues title_cues;
 static P3DTitleAudio title_pcm;
@@ -330,7 +338,11 @@ static int show_original_title(void){
     return 1;
 }
 static int model_yaw=0;
-static void update_preview_mode(void){display_preview=!home&&state.page==P3D_PAGE_DEX&&preview_found;}
+static void update_preview_mode(void){
+    display_preview=preview_found &&
+        ((!home && state.page==P3D_PAGE_DEX) ||
+         (title_active && title_idle.active));
+}
 static void render_model(void){
     if(!display_preview)return;
     glViewport(0,0,255,191);
@@ -379,7 +391,20 @@ static void render_model(void){
     glFlush(0);
 }
 
-#define P3D_SAVE_BASE "fat:/pokedex3d" 
+#define P3D_SAVE_BASE "fat:/pokedex3d"
+static P3DResumeState current_resume(void){
+    P3DResumeState view={0};
+    view.home=(uint8_t)(home!=0);
+    view.page=(uint8_t)state.page;
+    view.highlight=(uint8_t)highlighted;
+    view.records_tab=(uint8_t)records_tab;
+    view.dex=(uint16_t)dex_index;
+    view.move=(uint16_t)move_index;
+    view.selected_dex=(uint16_t)state.selected_dex;
+    view.album_page=(uint16_t)((album_offset/P3D_ALBUM_PAGE_MAX)>999?
+        999:(album_offset/P3D_ALBUM_PAGE_MAX));
+    return view;
+}
 static int save_progress(void){
     P3DSaveState record;
     if(!storage_ready){save_message=2;return 0;}
@@ -388,6 +413,14 @@ static int save_progress(void){
         return 0;
     }
     int saved=p3dSaveStore(P3D_SAVE_BASE,&record)?1:0;
+    if(saved){
+        P3DResumeState screen=current_resume();
+        if(p3dResumeStore(P3D_SAVE_BASE,&screen)){
+            last_checkpoint=screen;
+            last_checkpoint_valid=1;
+            checkpoint_ticks=0;
+        }else saved=0;
+    }
     if(saved && records_dirty){
         if(p3dRecordsStore(P3D_SAVE_BASE,&records))records_dirty=0;
         else saved=0;
