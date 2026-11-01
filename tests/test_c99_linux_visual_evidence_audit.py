@@ -60,6 +60,29 @@ class C99Tests(unittest.TestCase):
                     verify(root)
             report_path.write_text(json.dumps(original))
             self.assertEqual(verify(root)["software_screenshots"],2)
+    def test_c129_reject_malformed_compressed_visual_evidence(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d)
+            fixture(root)
+            target=root/"C99_SOFTWARE_QA_p000_ds3m.png"
+            original=target.read_bytes()
+            header=struct.pack(">IIBBBBB",256,192,8,2,0,0,0)
+            # CRC-correct but decoded data far exceeds a single DS frame.
+            huge=(b"\\x00"+bytes((1,2,3)) *256)*400
+            oversized=(b"\\x89PNG\\r\\n\\x1a\\n"+chunk(b"IHDR",header)+
+                       chunk(b"IDAT",zlib.compress(huge))+chunk(b"IEND",b""))
+            target.write_bytes(oversized)
+            with self.assertRaisesRegex(ValueError,"payload size"):
+                verify(root)
+            # Valid PNG signatures/CRCs must not permit IDAT before IHDR.
+            wrong_order=(b"\\x89PNG\\r\\n\\x1a\\n"+
+                         chunk(b"IDAT",zlib.compress(b"x"))+
+                         chunk(b"IHDR",header)+chunk(b"IEND",b""))
+            target.write_bytes(wrong_order)
+            with self.assertRaisesRegex(ValueError,"chunk order"):
+                verify(root)
+            target.write_bytes(original)
+            self.assertEqual(verify(root)["software_screenshots"],2)
     def test_corrupt_frame_fails(self):
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d)
