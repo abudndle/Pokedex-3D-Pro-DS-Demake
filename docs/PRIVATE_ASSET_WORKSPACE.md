@@ -863,7 +863,7 @@ hierarchical bone transforms and 3DS-accurate animations remain unresolved.
 The public GitHub repository includes no original Pokémon skeleton files,
 model payloads or commercial ROM.
 
-## C152 — private recovery workspace; C84 recovery and C98 absence
+## C152–C153 — private recovery workspace and recovered original C84/C98 archives
 
 The owner-provided, Nintendo-derived recovery packages remain **outside
 this public repository, its branches, pull requests and CI artifacts**.
@@ -874,24 +874,33 @@ private repository; the connected account currently exposes only public
 GitHub repositories, so original asset payloads must NOT be uploaded to
 GitHub. No decrypted original ROM is published.
 
-On 2026-11-01, an exhaustive local inspection found that the exact
-`C84_PRIVATE_ORIGINAL_GUI_MOVES_TEXTURE_DEX_NITROFS.zip` was absent.
-However, **5,510 original-derived C84 content members** (including 4,039
-texture P3PX files, ten original-derived upper-screen UI pages, move data
-and C84 source SHA metadata) are retained in
-`C86_PRIVATE_COMBINED_NITROFS_WITH_PREVIEWS.zip`. The owner-private
-recovered ZIP was explicitly labeled
-`C84_CONTENT_RECOVERED_FROM_C86_NOT_ORIGINAL_ARCHIVE.zip`: every member
-was compared byte-for-byte with its C86 embedded counterpart, and
-the C84 source manifest's UI/move SHA-256 entries were independently
-checked. This is **not** the identical original C84 compressed archive.
-The C84 content is incomplete (lower-screen UI, original effects etc.).
+The original C84 and C98 private ZIP files initially were missing from
+the locally mounted source list but were subsequently located in the owner's
+private ChatGPT Library and materialized for full independent validation.
+Both now reside under the private `archives/` folder.
 
-The exact `C98_PRIVATE_LEGACY_VS_CHUNKED_NITROFS.zip` is also absent;
-only its original private comparison README is available. None of the
-remaining NitroFS packages contains the 500 `.p3cs` assets described by
-that README. **Do not infer C98 binary content from the README** or
-claim that a source chunked/legacy comparison ran.
+**Exact C84 recovered:** `C84_PRIVATE_ORIGINAL_GUI_MOVES_TEXTURE_DEX_NITROFS.zip`
+has exactly **5,510** original-derived members, including 4,039 P3PX
+textures, ten original-derived *upper-screen* UI pages, move data, and
+original C84 SHA metadata. Every original archive member matches its
+independent C86 embedded equivalent AND the separately reconstituted
+`C84_CONTENT_RECOVERED_FROM_C86_NOT_ORIGINAL_ARCHIVE.zip` byte-for-byte.
+The original ZIP's container bytes differ from the reconstituted archive
+because its compression metadata is different. Both ZIPs pass full CRC.
+Incomplete lower-screen UI, animations and original effects remain open.
+
+**Exact C98 recovered:** `C98_PRIVATE_LEGACY_VS_CHUNKED_NITROFS.zip`
+has **6,738 files**, including 726 legacy DS3M preview models and
+**500 original-source-derived P3CS chunked preview files**. The recovered
+`C96_PRIVATE_CHUNKED_1800_TRIANGLE_NITROFS_v2.zip` contributes 500
+byte-for-byte matching source P3CS files. All 6,237 legacy C86 files
+match C98 byte-for-byte. Re-execution of the *original C98 owner's own
+validator* confirmed **1,499** valid chunks and **893,666** chunked
+triangles, all table/chunk CRC32 values, three intentionally diagnostic
+species-map entries, and exact SHA-256 identity with its original
+`C98_PRIVATE_GEOMETRY_COMPARISON_VALIDATION.json`. The temporary
+diagnostic mapping does **not** establish authentic species assignment,
+sampler roles, release parity or a private emulator run.
 
 ### Source-only private workspace validator
 
@@ -934,6 +943,26 @@ validation results, **not** claims of original-game completeness.
 The SHA-256 sum list, per-file C84 recovered hash list and detailed
 source model verification report belong in the private workspace only,
 not public GitHub. Further original material-to-shader/sampler bindings,
-source skin weights, action-clip semantics, C98 P3CS file recovery,
-complete UI, and a private-asset-integrated ARM9 emulator visual test
+source skin weights, action-clip semantics, original C98 chunked
+ARM9 runtime visual/playback verification, complete UI, and a private-asset-integrated ARM9 emulator visual test
 remain outstanding.
+
+### C153 private reproduction and GitHub restrictions
+
+All **17** owner-private ZIP archives (16 source archives plus one
+separately labeled C84 content reconstruction) pass full ZIP CRC and
+archive SHA-256 calculation. The detailed archive and original file SHA
+manifests remain solely in the owner's private ChatGPT Library, under
+`reports/PRIVATE_ARCHIVE_SHA256_AND_C84_RECOVERY_MANIFEST.json` and
+`reports/PRIVATE_ARCHIVE_SHA256SUMS.txt`. The cross-stage source data,
+C84 original archive comparison, owner-rerun C98 validator, and C56
+source parser reports are also private. Public GitHub does not contain
+raw game data, original ZIPs, extracted art or full private manifests.
+
+The updated `tools/c150_private_asset_integrity.py` compares C84's
+exact original members, requires an original C98 SHA match to the
+original private audit, checks all C86 legacy entries and 500 C96→C98
+P3CS files, and validates the chunk headers and CRCs. An additional
+synthetic regression specifically corrupts original P3CS CRCs and
+rejects malformed spans. C84/C98 source recovery and preflight
+are proven; full textured and animated 3DS visual equivalence is **not**.
