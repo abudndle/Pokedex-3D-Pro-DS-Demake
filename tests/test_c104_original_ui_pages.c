@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "original_ui_page.h"
+#include "title_timeline.h"
 #include "feature_menu.h"
 
 unsigned short p3d_c104_bitmap[256u*192u];
@@ -74,6 +75,29 @@ int main(void) {
     p3dOriginalTopPageDraw();
     assert(p3d_c104_bitmap[0]==0x9234u);
     assert(p3d_c105_top_bitmap[0]==0xa345u);
+    /* Source-authentic extra title frames are not HOME duplicates. */
+    assert(p3dOriginalTitleFrameLoad(1));
+    p3dOriginalTitleDraw();
+    assert(p3d_c104_bitmap[0]==0x9111u);
+    assert(p3d_c105_top_bitmap[0]==0xa222u);
+    /* Explicit source frame timing, not guessed DS transitions. */
+    {
+        P3DTitleTimeline timeline;
+        assert(p3dTitleTimelineLoad(&timeline,"nitro:/ui/title/timeline.p3tl"));
+        assert(timeline.ready && timeline.frames==2 && !timeline.loop);
+        assert(p3dTitleTimelineAdvance(&timeline)==-1);
+        assert(p3dTitleTimelineAdvance(&timeline)==1);
+        assert(p3dTitleTimelineAdvance(&timeline)==-1);
+        assert(p3dTitleTimelineAdvance(&timeline)==-1);
+        assert(p3dTitleTimelineAdvance(&timeline)==-1);
+        for(int i=0;i<80000;i++)
+            assert(p3dTitleTimelineAdvance(&timeline)==-1);
+        assert(remove("nitro:/ui/title/timeline.p3tl")==0);
+        assert(!p3dTitleTimelineLoad(&timeline,"nitro:/ui/title/timeline.p3tl"));
+        assert(!timeline.ready);
+    }
+    assert(!p3dOriginalTitleFrameLoad(16));
+    assert(p3dOriginalTitleLoad());
     /* Delete upper title: a lower title alone is never a fake dual-screen
      * original title. Old frame buffers may not be drawn after failure. */
     assert(remove("nitro:/ui/title/t1_title.rgb555")==0);

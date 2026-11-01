@@ -8,7 +8,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/feature_menu.c",
-      "gap": "C116 adds a separate native original 3DS dual-screen title state, independent private source title files and packager, strict two-frame release audit, and a one-input transition to HOME. C105/C106 source-derived top/bottom home and 11 UI pages remain. Authentic title frames have not been staged or visually compared with the original 3DS; true original transitions, source touchscreen hitboxes, menus, animations and every gameplay screen are not complete.",
+      "gap": "C117 adds optional P3TL source-timed animation for the separate original dual-screen 3DS title boot sequence, with verified manifest structure/CRC, independently recovered upper/lower frame pairs, bounded per-frame VBlank timing and no fabricated transitions. The C116 static original-title pair is still mandatory, and the asset-free development ROM still has no authenticated original title art. Real 3DS title animation frames/timing, audio, visual comparison, exact original touchscreen behavior and full game UI/gameplay remain unverified.",
       "verified_end_to_end": false
     },
     {

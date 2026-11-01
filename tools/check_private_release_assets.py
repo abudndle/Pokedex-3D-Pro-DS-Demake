@@ -57,6 +57,33 @@ def audit(src):
         check(f"ui/title/t{screen}_title.rgb555",
               lambda a,p:a.length(p)==256*192*2,
               "missing/malformed original 3DS title frame")
+    # C117: when the user's original title includes a recovered animation,
+    # enforce its declared timing, every independent upper/lower source frame,
+    # and CRC. The presence of a manifest is NOT proof its timings have been
+    # visually matched against the running original 3DS game.
+    timeline="ui/title/timeline.p3tl"
+    if src.exists(timeline):
+        data=src.read(timeline)
+        valid=(len(data)>=24 and data[:4]==b"P3TL")
+        if valid:
+            _,version,count,loop,reserved,crc=struct.unpack_from("<4s4HI",data)
+            valid=(version==1 and 2<=count<=16 and loop in (0,1) and
+                   reserved==0 and len(data)==16+4*count and
+                   zlib.crc32(data[16:])==crc)
+        if not valid:
+            invalid.append(timeline+": malformed original-source title timeline")
+        else:
+            for i in range(count):
+                index,ticks=struct.unpack_from("<HH",data,16+i*4)
+                if index!=i or not 1<=ticks<=3600:
+                    invalid.append(timeline+": invalid frame order or source timing")
+                    break
+            else:
+                for i in range(1,count):
+                    for screen in (0,1):
+                        check(f"ui/title/t{screen}_{i:02d}_title.rgb555",
+                              lambda a,p:a.length(p)==256*192*2,
+                              "invalid original 3DS title animation frame")
     # The 3D Dex uses a separate source-derived alpha mask for the HUD:
     # require both real opaque UI pixels and the transparent model viewport.
     # File presence alone is not proof of the recovered 3DS composition.
