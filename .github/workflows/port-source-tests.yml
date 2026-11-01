@@ -55,6 +55,9 @@ jobs:
       - name: Verify C148 original node hierarchy and private P3SK staging format
         run: python3 -m unittest discover -s tests -p 'test_c148_c5_skeleton_hierarchy.py' -v
 
+      - name: Verify C149 real native original C5 skeleton loader across 730 models
+        run: python3 -m unittest discover -s tests -p 'test_c149_original_skeleton_loader.py' -v
+
       # Public-source x86_64 host executable only. NO private Nintendo data.
       - name: Compile portable C138 host probe for private offline asset test
         run: |
