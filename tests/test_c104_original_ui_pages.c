@@ -4,6 +4,7 @@
 #include "feature_menu.h"
 
 unsigned short p3d_c104_bitmap[256u*192u];
+unsigned short p3d_c105_top_bitmap[256u*192u];
 
 int main(void) {
     assert(P3D_PAGE_RECORDS == 10);
