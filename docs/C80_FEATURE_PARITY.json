@@ -88,7 +88,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/preview_chunk_stream.c",
-      "gap": "C96 privately generates 500 original-derived chunked models (893,666 sampled triangles, 1,499 chunks), with native CRC-checked streaming of up to 1,800 source-sampled triangles in 600-triangle buffers. This is a geometry-only DS diagnostic path; full source polygon density, verified texture samplers, animations and authentic original game appearance remain incomplete.",
+      "gap": "C97 batch-reads the C96 private 500-model P3CS geometry without changing any of 893,666 sampled triangles or original source UVs. Five-run host benchmark shows 94.88% fewer fread calls and 50.66% lower median host CPU time; real DS FPS, original sampler roles, complete source geometry and original game visual parity are still unverified.",
       "verified_end_to_end": false
     },
     {
