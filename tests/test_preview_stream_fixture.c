@@ -53,6 +53,23 @@ int main(void){
  emitted=0;
  previewStreamDrawRange(0,1,8,8); /* no external range without matched source textures */
  assert(emitted==0);
+ /* C102: a valid source stream can become corrupt after opening.
+  * Drawing must clear counts so later UI cannot show stale model data. */
+ {
+     FILE *mut=fopen("nitrofs/preview/p005.p3cs","r+b");
+     assert(mut);
+     assert(fseek(mut,-1,SEEK_END)==0);
+     assert(fputc(0,mut)!=EOF);
+     assert(fclose(mut)==0);
+ }
+ emitted=0;
+ previewStreamDraw();
+ assert(!previewStreamHasModel());
+ assert(!previewStreamIsChunked());
+ assert(!previewStreamHasUv());
+ assert(previewStreamTriangleCount()==0);
+ assert(previewStreamOriginalTriangleCount()==0);
+ emitted=0;previewStreamDraw();assert(emitted==0);
  assert(!previewStreamLoad(6)); /* corrupted CRC must not reach GL rendering */
  assert(!previewStreamHasModel());
  assert(!previewStreamLoad(4)); /* v2 colors truncated */
