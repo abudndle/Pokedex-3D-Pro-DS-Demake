@@ -984,3 +984,34 @@ original texture sampler roles, mesh vertex skin weights, authentic
 animation action/clip playback, asset-integrated DS emulator visual parity,
 or a complete 3DS-to-DS commercial-game port. The C98 P3CS package is
 private **diagnostic** geometry, not a release renderer.
+
+
+## C154 — real compiled C98 native P3CS loader with original private payloads
+
+C153 validated original C98 P3CS headers, CRC32, and byte-for-byte equality
+against the original C96 asset package. **C154 additionally tests the
+real** `source/preview_chunk_stream.c` on each high-detail chunk. The host
+probe `tests/c154_chunk_probe.c` calls `p3dChunkOpen()` and
+`p3dChunkRead()` for all 500 privately staged C98 P3CS models and compares
+every emitted signed XYZ (9 components per face), UV (6 components) and RGB
+(3 bytes) with their exact original-derived packed P3CS source records.
+It requires 500 models, 1,499 CRC-passing chunks and 893,666 faces.
+
+All CI inputs are **synthetic**. CI compiles an asset-free portable Linux
+native-loader probe for the owner to run on a private staged archive; it
+NEVER uploads original game data to GitHub and never collects private-run
+screenshots or logs. The private command can be run from an ordinary Linux
+checkout with a C compiler, without BlocksDS, FAT, or an emulator:
+
+```sh
+# Unpack only the 500 preview/*.p3cs entries from the owner-provided
+# C98_PRIVATE_LEGACY_VS_CHUNKED_NITROFS.zip into private/c98_nitrofs/preview
+# using the safe C137 staging validator; never commit or upload this tree.
+make private-host-c98-probe PRIVATE_NITROFS_STAGE=private/c98_nitrofs
+python3 -m unittest discover -s tests -p 'test_c154_native_chunk_probe.py' -v
+```
+
+This proves native source P3CS **transport and exact decoded data**, not
+original 3DS material/shader equivalence, measured ARM9 rendering speed,
+skeletal skinning, or private emulator visual parity. The 500 high-detail
+models are a diagnostic stage and 730 DS3M fallback preview meshes remain.
