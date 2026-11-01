@@ -48,6 +48,8 @@ int p3dTitleTimelineLoad(P3DTitleTimeline *out,const char *path){
 }
 int p3dTitleTimelineAdvance(P3DTitleTimeline *out){
     if(!out||!out->ready||out->current>=out->frames)return -1;
+    if(!out->loop && out->current+1==out->frames &&
+       out->elapsed>=out->ticks[out->current])return -1;
     if(++out->elapsed<out->ticks[out->current])return -1;
     out->elapsed=0;
     if(out->current+1<out->frames){
