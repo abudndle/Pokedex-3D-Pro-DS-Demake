@@ -507,3 +507,61 @@ regressions locally and use GitHub's parallel source and native jobs.
 Native texture roles, accurate dual-screen UI, audio, gameplay, and
 private ARM9 emulator visuals remain open; an archive audit does not
 establish original-game parity.
+
+## C143 — repeated original C5 channel-group candidates
+
+A cross-model analysis of all SHA-256-verified private C56 C5 models
+identified **25,956** consecutive groups of three original 16-byte
+pointer-indexed records (77,868 of the 79,268 C142 records). Each complete
+group uses the **exact ordered control words** `0x00040071`,
+`0x00030053`, `0x00030054`; its records share both the original
+32-bit owner word and low 16 bits of the second control word.
+The remaining **1,400** original records are deliberately left unclassified.
+These comprise seven alternative opaque control-code families:
+
+| Unclassified source control code | Records |
+|---|---:|
+| `0x0402044d` | 767 |
+| `0x00010056` | 227 |
+| `0x00010c4d` | 222 |
+| `0x0002044d` | 93 |
+| `0x00030d4d` | 54 |
+| `0x0003004c` | 29 |
+| `0x0001034c` | 8 |
+
+The repeated groups are *candidates for original transform/animation
+channel structure*, not decoded skeleton nodes, rotation/scale/translation
+values, timestamps, material IDs, face associations, or GPU sampler roles.
+The code never infers material bindings from an apparent channel pattern.
+
+C143 cross-verifies each private input against its original C56 SHA-256
+reference and the C142 per-model track count and aggregate payload SHA-256.
+Malformed, displaced, mismatched or ambiguous records fail closed.
+Original binary payloads and detailed metadata are NOT committed to Git.
+
+```sh
+python3 tools/c143_c5_channel_groups.py \
+  --parts \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_2_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --c142-summary private/reports/C142_FAST_PRIVATE_SOURCE_SUMMARY.json \
+  --report private/reports/C143_PRIVATE_CHANNEL_GROUP_SUMMARY.json
+
+# Optional: a separate detailed private report with source record offsets
+# and exact opaque control words, not original binary C5 payload bytes.
+# Add --detailed and use a different --report path.
+```
+
+The summary audit of all 730 private models completes in approximately
+3.5 seconds. Repeat validations reuse C142 reference hashes instead of
+regenerating the 41 MB C142 per-record report. The 730-model synthetic test
+suite checks exact three-code grouping, altered owner/key, malformed pointers,
+archive order, and C142 aggregate mismatch.
+
+**Next research dependency:** prove whether these records describe
+animation/bone tracks and independently decode keyframe timestamps, values
+and skeleton attachment before generating DS animation files. Original
+face-to-material indices and shader/sampler bindings remain a distinct,
+unresolved investigation; no certified textured model is produced.
