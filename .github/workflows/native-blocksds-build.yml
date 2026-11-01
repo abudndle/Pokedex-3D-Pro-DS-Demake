@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Compile asset-free native Nintendo DS ROM
-        run: make dev-rom
+        run: make dev-rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
       - name: Inspect generated ROM
         run: |
           test -s Pokedex3D_DS_BlocksDS.nds
