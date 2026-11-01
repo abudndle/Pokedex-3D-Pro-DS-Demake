@@ -150,9 +150,19 @@ void previewStreamDraw(void) {
     const int total=s_triangle_count;
     for(unsigned i=0;i<s_chunk_stream.chunk_count;i++){
         if(!p3dChunkRead(&s_chunk_stream,i,s_xyz,s_uv.uv,s_face_rgb)){
+            /* A previously checked private source chunk may become corrupt
+             * after open. Clear all source-model metadata, release the file,
+             * and prevent subsequent GL work with stale triangle counts. */
+            p3dChunkClose(&s_chunk_stream);
             s_uv.ready=0;
+            s_uv.triangles=0;
+            s_has_face_colors=0;
             s_loaded=0;
-            break; /* fail closed if NitroFS data changed after opening */
+            s_original_triangle_count=0;
+            s_chunked=0;
+            s_drawing_chunk=0;
+            s_triangle_count=0;
+            return;
         }
         s_uv.ready=1;
         s_uv.triangles=s_chunk_stream.chunks[i].triangles;
