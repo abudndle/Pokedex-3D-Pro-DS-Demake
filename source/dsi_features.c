@@ -7,6 +7,7 @@ P3DCapabilities p3dCapabilities(int dsi_mode,int sd_ready,int camera_ready){
  return caps;
 }
 int p3dFeatureVisible(P3DCapabilities caps,P3DFeature feature){
+ (void)caps; /* Visibility is fixed; disabled is a separate hardware state. */
  switch(feature){
  case P3D_FEATURE_POKEDEX:return 1;
  case P3D_FEATURE_AR:return 1; /* Visible, greyed out when unavailable. */
