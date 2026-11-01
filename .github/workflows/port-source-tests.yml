@@ -64,7 +64,7 @@ jobs:
       - name: Verify C151 private original owner packer synthetic contracts
         run: python3 -m unittest discover -s tests -p 'test_c151_private_packer.py' -v
 
-      - name: Verify C152 private source integrity script against synthetic assets
+      - name: Verify C152/C153 original private asset integrity and C98 chunk CRCs (synthetic)
         run: python3 -m unittest discover -s tests -p 'test_c150_private_asset_integrity.py' -v
 
       - name: Verify C149 real native original C5 skeleton loader across 730 models
