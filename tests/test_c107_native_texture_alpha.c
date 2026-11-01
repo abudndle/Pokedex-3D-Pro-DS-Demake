@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdint.h>
+#include <nds.h>
 #include <stdio.h>
 #include "ds_texture_upload.h"
 #include "texture_pixels.h"

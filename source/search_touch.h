@@ -8,5 +8,11 @@
 #define P3D_SEARCH_TOUCH_REGION -4
 #define P3D_SEARCH_TOUCH_SCOPE -5
 #define P3D_SEARCH_TOUCH_FIELD -6
+/* One-based console rows shared by native rendering and touch mapping. */
+#define P3D_SEARCH_REGION_ROW 12
+#define P3D_SEARCH_FIELD_ROW 14
+#define P3D_SEARCH_RESULT_ROW 16
+#define P3D_SEARCH_KEYBOARD_ROW 19
+#define P3D_SEARCH_ACTIONS_ROW 23
 int p3dSearchTouchAction(int x,int y);
 #endif

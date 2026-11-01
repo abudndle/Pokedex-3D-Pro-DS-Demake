@@ -78,3 +78,24 @@ int p3dDexFindFiltered(const char *query,int start,int direction,int field,int r
  if(!query||!*query)return -1;
  return p3dDexFindScoped(query,start,direction,field,region,P3D_DEX_SCOPE_ALL,0,0);
 }
+
+int p3dDexSelectionMatches(const char *query,int index,int field,int region,int scope,const P3DRecords *records,const P3DMenu *menu){
+ int first,last;
+ P3DDexText entry;
+ if(!query||(field!=P3D_DEX_SEARCH_NAME&&field!=P3D_DEX_SEARCH_DESCRIPTION)||
+    scope<0||scope>=P3D_DEX_SCOPE_COUNT||!p3dDexRegionBounds(region,&first,&last)||
+    index<first||index>last)return 0;
+ if(scope==P3D_DEX_SCOPE_VIEWED&&(!records||!p3dRecordsSeen(records,index)))return 0;
+ if(scope==P3D_DEX_SCOPE_FAVORITES&&(!menu||!p3dFavoriteContains(menu,index)))return 0;
+ if(!p3dDexTextRead(index,&entry))return 0;
+ return !*query || (field==P3D_DEX_SEARCH_NAME?
+        p3dDexPrefixMatches(entry.name,query):p3dDexContains(entry.description,query));
+}
+int p3dDexRefreshSelection(const char *query,int *selection,int field,int region,int scope,const P3DRecords *records,const P3DMenu *menu){
+ int hit;
+ if(!selection)return 0;
+ if(p3dDexSelectionMatches(query,*selection,field,region,scope,records,menu))return 1;
+ hit=p3dDexFindScoped(query,*selection,1,field,region,scope,records,menu);
+ if(hit<0)return 0;
+ *selection=hit;return 1;
+}

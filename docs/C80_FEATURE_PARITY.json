@@ -95,7 +95,7 @@
       "id": "original_texture_materials",
       "required_for_release": true,
       "status": "partial",
-      "source": "tools/c92_diagnostic_textured_preview_audit.py",
+      "source": "source/source_color_ranges.c",
       "gap": "C116 filters C115 source-backed material ranges by original P3UV normalized 0–1 unit-square coverage, preserving safe material textures while drawing negative/>1-UV ranges untextured until original 3DS wrap/repeat/mirror modes are recovered. C115 mixed materials and C113/C112/C109/C108 original-source consistency remain. Source original shader sampler/UV transforms, model color/material fidelity and real private-original visual comparison are not verified.",
       "verified_end_to_end": false
     },
