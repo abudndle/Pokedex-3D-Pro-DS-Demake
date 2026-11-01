@@ -39,6 +39,7 @@ jobs:
     needs: native-rom
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: native-ds-smoke-rom
@@ -52,6 +53,9 @@ jobs:
         run: |
           set -euo pipefail
           test -s emulator-rom/Pokedex3D_DS_BlocksDS.nds
+          /usr/games/desmume-cli --version || true
+          sha256sum emulator-rom/Pokedex3D_DS_BlocksDS.nds
+          echo "DeSmuME CLI key bindings: x=A, z=B, arrow keys=D-Pad (DeSmuME SDL CLI source)."
           cat > /tmp/check_emulator.sh <<'SCRIPT'
           #!/usr/bin/env bash
           set -euo pipefail
@@ -77,9 +81,11 @@ jobs:
           # SDL may ignore XSendEvent targeted at a window. Focus the
           # emulator and use XTEST keyboard injection instead.
           xdotool windowfocus --sync "$window_id"
+          # Do not click the touchscreen to focus: that can change the game.
+          # XTEST key events are directed to the focused SDL CLI window.
           xdotool mousemove --window "$window_id" 128 190
-          xdotool click 1
-          # Send several common DeSmuME directional bindings while
+          echo "Focused DeSmuME SDL window: $window_id"
+          # Send the source-verified DeSmuME SDL CLI bindings while
           # collecting evidence. Keyboard layout and emulator bindings
           # differ between frontends, so no gameplay claim is implied.
           xdotool keydown Down
@@ -94,19 +100,42 @@ jobs:
           xwd -id "$window_id" -silent -out emulator-after-down.xwd
           # Distinguish a frozen game loop from an unmapped B key:
           # Right should browse from Pokémon #001 to #002 on this page.
+          xdotool windowfocus --sync "$window_id"
           xdotool keydown Right
-          sleep 0.4
+          sleep 1
           xdotool keyup Right
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-right.xwd
+          xdotool windowfocus --sync "$window_id"
           xdotool keydown z
-          sleep 0.5
+          sleep 1
           xwd -id "$window_id" -silent -out emulator-during-back.xwd
           sleep 0.5
           xdotool keyup z
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
-          sleep 2
+          # Diagnostic-only: test whether the emulator/game accepts ANY
+          # later button after Right/B; X should open Search from Pokédex.
+          xdotool windowfocus --sync "$window_id"
+          xdotool keydown s
+          sleep 0.6
+          xdotool keyup s
+          sleep 1
+          xwd -id "$window_id" -silent -out emulator-after-x-probe.xwd
+          xdotool keydown x
+          sleep 0.6
+          xdotool keyup x
+          sleep 1
+          xwd -id "$window_id" -silent -out emulator-after-a-probe.xwd
+          # Compare with an actual DS touchscreen bottom-right browse tap.
+          # This isolates keyboard injection from native Pokédex navigation.
+          xdotool mousemove --window "$window_id" 224 360
+          xdotool click 1
+          sleep 1
+          xwd -id "$window_id" -silent -out emulator-after-touch-probe.xwd
+          echo "X11 focus after probes: $(xdotool getwindowfocus)"
+          xmodmap -pke | grep -E 'Right|Down| z | s ' | head -15 || true
+          sleep 1
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
             echo "DeSmuME terminated before the startup smoke test completed" >&2
@@ -162,45 +191,24 @@ jobs:
           assert len(per_screen[1])>=2, 'Lower DS menu is blank'
           assert len(unique)>=3, 'Both DS screens appear blank'
           PY
-      - name: Compare menu frames around simulated input
+      - name: Report diagnostic post-entry X/A input probes
         run: |
           python3 - <<'PY'
-          import struct
           from pathlib import Path
-          def read_pixels(path):
-              b=Path(path).read_bytes()
-              h=struct.unpack_from('>25I',b)
-              offset=h[0]+h[19]*12
-              stride=h[11]//8
-              return set(),b[offset:offset+h[12]*h[5]],h[4],h[5],h[12],stride
-          _,a,w,h,row,stride=read_pixels('emulator-before-down.xwd')
-          _,b,w2,h2,row2,stride2=read_pixels('emulator-after-down.xwd')
-          assert (w,h,row,stride)==(w2,h2,row2,stride2)
-          different=sum(a[y*row+x*stride:y*row+x*stride+3] !=
-                        b[y*row+x*stride:y*row+x*stride+3]
-                        for y in range(0,h,2) for x in range(0,w,2))
-          print(f'Menu input changed {different} sampled pixels')
-          _,right,wright,hright,rowright,strideright=read_pixels('emulator-after-right.xwd')
-          assert (w,h,row,stride)==(wright,hright,rowright,strideright)
-          moved=sum(b[y*row+x*stride:y*row+x*stride+3] !=
-                    right[y*row+x*stride:y*row+x*stride+3]
-                    for y in range(0,h,2) for x in range(0,w,2))
-          print(f'Pokédex Right input changed {moved} sampled pixels')
-          # Only tiny heartbeat text changes were observed (5 pixels);
-          # that is not sufficient evidence of Pokémon browsing.
-          if moved<100:
-              print('WARNING: Right produced no substantive Pokémon-page change')
-          assert different>100, (
-              'Simulated Down/A sequence did not visibly open a menu page')
-          _,c,w3,h3,row3,stride3=read_pixels('emulator-after-back.xwd')
-          assert (w,h,row,stride)==(w3,h3,row3,stride3)
-          restored=sum(a[y*row+x*stride:y*row+x*stride+3] !=
-                       c[y*row+x*stride:y*row+x*stride+3]
-                       for y in range(0,h,2) for x in range(0,w,2))
-          print(f'After B, pixels different from home menu: {restored}')
-          if restored>=different//2:
-              print('WARNING: z is SELECT on this CLI build, not B. Inspect held-key captures.')
+          from tools.emulator_transition_check import load_xwd,differences
+          def changed(a,b):
+              return sum(differences(load_xwd(Path(a)),load_xwd(Path(b))))
+          print("B to X probe changed pixels:",changed('emulator-after-back.xwd','emulator-after-x-probe.xwd'))
+          print("X to A probe changed pixels:",changed('emulator-after-x-probe.xwd','emulator-after-a-probe.xwd'))
+          print("A to touch-right probe changed pixels:",changed('emulator-after-a-probe.xwd','emulator-after-touch-probe.xwd'))
           PY
+      - name: Assert A, Right and B transitions from actual DeSmuME frames
+        run: |
+          python3 tools/emulator_transition_check.py \
+            --home emulator-before-down.xwd \
+            --dex emulator-after-down.xwd \
+            --next emulator-after-right.xwd \
+            --returned emulator-after-back.xwd
       - name: Upload emulator visual evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -214,5 +222,8 @@ jobs:
             emulator-after-right.xwd
             emulator-after-back.xwd
             emulator-during-back.xwd
+            emulator-after-x-probe.xwd
+            emulator-after-a-probe.xwd
+            emulator-after-touch-probe.xwd
             emulator-windows.txt
           if-no-files-found: warn
