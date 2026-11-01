@@ -29,7 +29,7 @@ dev-rom:
 .PHONY: check-host
 check-host:
 	@set -eu; for test in \
-		run_source_smoke.sh run_preview_stream_fixture.sh run_c104_original_ui_pages.sh run_c107_native_texture_alpha.sh run_c108_material_binding.sh run_c109_original_material_refs.sh \
+		run_source_smoke.sh run_preview_stream_fixture.sh run_c104_original_ui_pages.sh run_c107_native_texture_alpha.sh run_c108_material_binding.sh run_c109_original_material_refs.sh run_c110_shader_caps.sh \
 		run_menu_layout_smoke.sh run_dsi_feature_gating.sh \
 		run_feature_menu_smoke.sh run_save_store_smoke.sh \
 		run_challenge_smoke.sh run_move_dex_smoke.sh \
@@ -67,4 +67,5 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c97_batched_chunk_io.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c102_original_audio_source_recovery.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c103_original_cwav_dsp_to_pcm.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c110_original_shader_capabilities.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
