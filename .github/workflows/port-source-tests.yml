@@ -16,6 +16,9 @@ jobs:
       - name: Validate DS3M v1/v2 fixture contracts
         run: python3 -m unittest discover -s tests -p 'test_inspect_ds3m.py' -v
 
+      - name: Verify C135 missing C56 preview recovery boundaries
+        run: python3 -m unittest discover -s tests -p 'test_c135_missing_previews.py' -v
+
       - name: Verify material-to-texture cross-references
         run: sh tests/run_model_material_texture.sh
 
