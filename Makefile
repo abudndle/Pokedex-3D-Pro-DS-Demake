@@ -64,6 +64,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c142_c5_track_index.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c143_c5_channel_groups.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c144_c5_timed_vectors.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c145_c5_packed_quaternions.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v
