@@ -16,6 +16,7 @@
 #include "resume_state.h"
 #include "title_idle.h"
 #include "preview_stream.h"
+#include "original_skeleton.h"
 #include "species_model_map.h"
 #include "form_model_map.h"
 #include "form_names.h"
@@ -73,6 +74,8 @@ static int last_checkpoint_valid=0;
 static unsigned checkpoint_ticks=0;
 static int preview_ready=0;
 static int preview_found=0;
+/* Original C5 node hierarchy only; no animation or skinning is inferred. */
+static P3DOriginalSkeleton preview_skeleton;
 static P3DAnimationClip preview_animation;
 static P3DAnimationLibrary preview_animation_library;
 static P3DMaterialMap preview_materials;
@@ -221,6 +224,7 @@ static void reload_preview(void){
     char clip_path[80];
     previewStreamPreferChunks(prefer_source_chunks);
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
+    p3dOriginalSkeletonClear(&preview_skeleton);
     preview_animation.ready=0;
     preview_animation_library.ready=0;
     preview_materials.ready=0;
@@ -235,6 +239,11 @@ static void reload_preview(void){
     preview_pixels.ready=0;
     animation_tick=0;
     if(preview_found){
+        /* C149: optional private original node table, read-only. The source
+         * hierarchy is not sufficient to deform source geometry without
+         * original skin weights, node-to-mesh bindings and action clips. */
+        snprintf(clip_path,sizeof(clip_path),"nitro:/skeleton/p%03d.p3sk",resource);
+        (void)p3dOriginalSkeletonLoad(&preview_skeleton,clip_path,(unsigned)resource);
         /* Load only existing and validated private clips. No invented motion
          * or action labels are generated for missing original assets. */
         p3dAnimationLibraryLoad(&preview_animation_library,

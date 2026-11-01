@@ -817,3 +817,48 @@ meshes. Original skinning weights, model vertex-to-bone bindings,
 animation action/clip selection and full motion playback remain
 unverified and must be completed before claiming 3DS-accurate
 animated models. The C139 texture/material eligibility gate is unchanged.
+
+## C149 — native BlocksDS original C5 skeleton loader
+
+C149 adds the **native C** `source/original_skeleton.c` and
+`source/original_skeleton.h` to the DS build (automatically picked up by
+`Makefile.native`'s wildcard C source list), plus a host-compiled
+`tests/c149_skeleton_probe.c` and asset-free Python regression.
+
+For each selected original Pokémon model, the DS runtime can now open its
+optional **private** `nitro:/skeleton/pNNN.p3sk` file and validate its
+source-verified P3SK hierarchy before accepting it. The loader enforces the
+model ID, 20-byte P3SK v1 header, bounded 56-byte original node table,
+root/parent topology, exact CRC32, finite source float32 matrix bytes,
+printable original string-table names, suffix-interned name references, and
+no trailing payload bytes. Missing/corrupt files clear any prior rig and
+must not change the native geometry preview.
+
+The loader holds at most **160 nodes** and a **4,096-byte string prefix**,
+well above the current private original maxima of 148 nodes and 3,037
+string bytes. It retains the original node matrices as exact 48-byte
+little-endian source bytes and does **not** infer a transformation
+convention or perform skeletal skinning, even when the file is valid.
+
+C149 native host probe was compiled and tested **against all 730 actual
+private C148 original P3SK skeleton files**. Verified 730/730 models,
+35,840 original node records and 4,199 root nodes. Four additional
+synthetic regressions test all 730 model IDs, CRC, wrong model, truncated
+file, nonfinite matrices, malformed parents and suffix-named nodes.
+
+To reproduce with owner-private source data:
+```sh
+# Stage C148's private P3SK files under:
+#   private/c149_nitrofs/skeleton/p000.p3sk .. p733.p3sk
+make private-host-skeleton-probe PRIVATE_NITROFS_STAGE=private/c149_nitrofs
+
+python3 -m unittest discover -s tests -p 'test_c149_original_skeleton_loader.py' -v
+```
+
+The **ARM9 code compiles in the native asset-free ROM** and reads an
+optional original owner-private P3SK on Pokémon model selection.
+The same private asset-integrated ARM9 ROM is **not yet tested in melonDS**.
+Original vertex skin weights, source animation-clip and action selection,
+hierarchical bone transforms and 3DS-accurate animations remain unresolved.
+The public GitHub repository includes no original Pokémon skeleton files,
+model payloads or commercial ROM.
