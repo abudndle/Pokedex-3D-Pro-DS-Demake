@@ -25,4 +25,11 @@ int p3dOriginalSkeletonParent(const P3DOriginalSkeleton *out,unsigned node_index
 /* Returns a pointer to the exact 48 little-endian bytes of the original
  * node matrix; the consumer must explicitly handle float/matrix convention. */
 const unsigned char *p3dOriginalSkeletonMatrixBytes(const P3DOriginalSkeleton *out,unsigned node_index);
+/* Source node labels are unique within a CRC-verified P3SK hierarchy.
+ * Return exact node index, or -1 for a missing/invalid name or rig.
+ * No heuristic suffix, prefix or case-insensitive matches. */
+int p3dOriginalSkeletonFindNode(const P3DOriginalSkeleton *out,const char *source_name);
+/* Strict original-source ancestry: 1 if parent chain of descendant contains
+ * ancestor, 0 otherwise. A node is not its own strict ancestor. */
+int p3dOriginalSkeletonIsAncestor(const P3DOriginalSkeleton *out,unsigned ancestor,unsigned descendant);
 #endif
