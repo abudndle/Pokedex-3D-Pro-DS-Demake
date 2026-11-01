@@ -30,8 +30,8 @@ int main(int argc,char **argv){
     P3DResumeState before={0},after;
     P3DMenu menu;
     P3DCapabilities caps=p3dCapabilities(0,0,0);
-    char v2_path[300],legacy_base[280],legacy_file[320];
-    unsigned char legacy[32]={0},v2[48]={0};
+    char v3_path[300],legacy_base[280],legacy_file[320];
+    unsigned char legacy[32]={0},v3[80]={0};
     int home=1,highlight=0;
     assert(argc==2);
     before.home=0;before.page=P3D_PAGE_DEX;before.highlight=4;
@@ -53,14 +53,14 @@ int main(int argc,char **argv){
     assert(p3dResumeRestoreBoot(argv[1],&after,caps,&home,&menu,&highlight));
     assert(!home&&highlight==4&&menu.page==P3D_PAGE_DEX);
     assert(menu.cursor==42&&menu.favorite_cursor==2);
-    assert(snprintf(v2_path,sizeof(v2_path),
+    assert(snprintf(v3_path,sizeof(v3_path),
                     "%s_resume_A.sav",argv[1])>0);
-    FILE *f=fopen(v2_path,"rb");
+    FILE *f=fopen(v3_path,"rb");
     assert(f!=NULL);
-    assert(fread(v2,1,sizeof(v2),f)==sizeof(v2));
+    assert(fread(v3,1,sizeof(v3),f)==sizeof(v3));
     assert(fgetc(f)==EOF);
     assert(fclose(f)==0);
-    assert(!memcmp(v2,"P3RV",4)&&v2[4]==2);
+    assert(!memcmp(v3,"P3RV",4)&&v3[4]==2);
     /* Invalid in-screen cursor or Search filter must NOT be persisted. */
     before.album_selected=P3D_ALBUM_PAGE_MAX;
     assert(!p3dResumeStore(argv[1],&before));
@@ -84,9 +84,9 @@ int main(int argc,char **argv){
      * later write to slot B. */
     before.dex=222;
     assert(p3dResumeStore(argv[1],&before));
-    v2[26]=0xff;
-    put32(v2+44,crc(v2,44));
-    write_blob(v2_path,v2,sizeof(v2));
+    v3[26]=0xff;
+    put32(v2+44,crc(v3,44));
+    write_blob(v3_path,v3,sizeof(v3));
     assert(p3dResumeLoad(argv[1],&after));
     assert(after.dex==222); /* Valid B survived invalid A. */
 
@@ -119,17 +119,17 @@ int main(int argc,char **argv){
     assert(p3dResumeLoad(legacy_base,&after));
     assert(after.move_show_effect==1);
     /* New B is preferred even across a wrapping 32-bit sequence counter. */
-    assert(snprintf(v2_path,sizeof(v2_path),
+    assert(snprintf(v3_path,sizeof(v3_path),
                     "%s_resume_B.sav",legacy_base)>0);
-    f=fopen(v2_path,"rb");assert(f);
-    assert(fread(v2,1,sizeof(v2),f)==sizeof(v2));
+    f=fopen(v3_path,"rb");assert(f);
+    assert(fread(v3,1,sizeof(v3),f)==sizeof(v3));
     assert(fclose(f)==0);
-    assert(v2[4]==2);
+    assert(v3[4]==2);
     /* Corrupt B; exact old A still restores, all extended fields default. */
-    v2[5]=1; /* nonzero reserved is invalid even if other data correct */
-    write_blob(v2_path,v2,sizeof(v2));
+    v3[5]=1; /* nonzero reserved is invalid even if other data correct */
+    write_blob(v3_path,v3,sizeof(v3));
     assert(p3dResumeLoad(legacy_base,&after));
     assert(after.move_show_effect==0&&after.move==222);
-    puts("C121: P3RV v2 exact in-screen resume and CRC-compatible v1 migration: PASS");
+    puts("C121: P3RV v3 exact in-screen resume and CRC-compatible v1 migration: PASS");
     return 0;
 }
