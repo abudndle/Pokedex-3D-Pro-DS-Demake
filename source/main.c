@@ -16,6 +16,8 @@
 #include "resume_state.h"
 #include "title_idle.h"
 #include "preview_stream.h"
+#include "verified_geometry_pair.h"
+#include "verified_primitive_draw.h"
 #include "original_skeleton.h"
 #include "source_track_bindings.h"
 #include "species_model_map.h"
@@ -75,6 +77,9 @@ static int last_checkpoint_valid=0;
 static unsigned checkpoint_ticks=0;
 static int preview_ready=0;
 static int preview_found=0;
+/* Optional private source-verified P3VX/P3IX geometry; no inferred textures. */
+static P3DVerifiedGeometryPair source_geometry_pair;
+static int source_geometry_ready=0;
 /* Original C5 node hierarchy only; no animation or skinning is inferred. */
 static P3DOriginalSkeleton preview_skeleton;
 /* C151: original track owners are preflighted only; no unverified motion. */
@@ -226,7 +231,22 @@ static void reload_preview(void){
                       p3dModelMapResolve(&species_models,species);
     char clip_path[80];
     previewStreamPreferChunks(prefer_source_chunks);
-    preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
+    int legacy_preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
+    /* C178: prefer exact private P3VX/P3IX only after both bounded files
+     * validate together. Missing or corrupt source pairs use legacy DS3M/P3CS.
+     * The sidecars must come from separately verified original C5 decoding. */
+    p3dVerifiedGeometryPairClear(&source_geometry_pair);
+    source_geometry_ready=0;
+    if(preview_ready&&resource>=0){
+        char vertex_path[80],index_path[80];
+        snprintf(vertex_path,sizeof(vertex_path),
+                 "nitro:/geometry/p%03d.p3vx",resource);
+        snprintf(index_path,sizeof(index_path),
+                 "nitro:/geometry/p%03d.p3ix",resource);
+        source_geometry_ready=p3dVerifiedGeometryPairLoad(
+            &source_geometry_pair,vertex_path,index_path,(uint16_t)resource);
+    }
+    preview_found=legacy_preview_found||source_geometry_ready;
     p3dOriginalSkeletonClear(&preview_skeleton);
     p3dSourceTrackBindingsClear(&preview_track_bindings);
     preview_animation.ready=0;
@@ -407,7 +427,7 @@ static void render_model(void){
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();
     glTranslatef32(0,0,floattof32(-3));
     glRotateYi(model_yaw);
-    if(preview_animation.ready){
+    if(preview_animation.ready && !source_geometry_ready){
         P3DAnimationFrame pose;
         if(p3dAnimationPoseAt(&preview_animation,animation_tick,&pose)){
             glRotateXi(pose.pitch);
@@ -416,6 +436,25 @@ static void render_model(void){
         }
     }
     glPolyFmt(POLY_ALPHA(31)|POLY_CULL_NONE);
+    if(source_geometry_ready){
+        /* Source indices and 4.12 XYZ were validated as one private pair.
+         * No source sampler, skin weights or animation role is inferred. */
+        uint32_t drawn=0;
+        glDisable(GL_TEXTURE_2D);
+        glBindTexture(0,0);
+        glColor3b(192,224,232);
+        if(!p3dVerifiedPrimitiveDraw(source_geometry_pair.ix,
+                source_geometry_pair.ix_size,source_geometry_pair.model,
+                source_geometry_pair.meshes,source_geometry_pair.mesh_count,
+                &drawn)){
+            /* Fail closed if the verified geometry changes or cannot draw. */
+            p3dVerifiedGeometryPairClear(&source_geometry_pair);
+            source_geometry_ready=0;
+            if(previewStreamHasModel())previewStreamDraw();
+        }
+        glFlush(0);
+        return;
+    }
     if(preview_gl_textures.ready){
         /* C115: draw EVERY original triangle exactly once. Only material
          * ranges supported by original-source C5 simple-colormap references
