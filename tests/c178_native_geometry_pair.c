@@ -46,5 +46,14 @@ int main(int argc,char **argv){
     assert(p3dVerifiedGeometryPairLoad(&pair,argv[1],argv[2],14));
     assert(!p3dVerifiedGeometryPairLoad(&pair,"/missing/p3vx",argv[2],14));
     assert(!pair.ready);
+    /* Exact EOF and bounded input are mandatory even for otherwise valid data. */
+    write_file(argv[1],vx,sizeof(vx)-1);
+    assert(!p3dVerifiedGeometryPairLoad(&pair,argv[1],argv[2],14));
+    FILE *oversize=fopen(argv[1],"wb");assert(oversize);
+    for(size_t i=0;i<=P3D_GEOMETRY_P3VX_MAX_BYTES;i++)
+        assert(fputc(0,oversize)!=EOF);
+    assert(fclose(oversize)==0);
+    assert(!p3dVerifiedGeometryPairLoad(&pair,argv[1],argv[2],14));
+    assert(!pair.ready);
     return 0;
 }
