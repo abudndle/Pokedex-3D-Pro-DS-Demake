@@ -21,6 +21,15 @@ int p3dPreviewTextureSetLoad(P3DPreviewTextureSet *set,
                             const P3DMaterialMap *materials,
                             const P3DTextureManifest *manifest,
                             const char *texture_directory);
+/* Approve each source range independently; upload no uncertain 3DS texture.
+ * The entire selected set still rolls back if a VRAM/upload error occurs. */
+int p3dPreviewTextureSetLoadMasked(P3DPreviewTextureSet *set,
+                            P3DTexturePixels *scratch,
+                            const P3DMaterialMap *materials,
+                            const P3DTextureManifest *manifest,
+                            const char *texture_directory,
+                            const unsigned char *approved,
+                            unsigned approved_count);
 void p3dPreviewTextureSetRelease(P3DPreviewTextureSet *set);
 const P3DPreviewTexture *p3dPreviewTextureSetFind(const P3DPreviewTextureSet *set,
                                                  unsigned texture_id);
