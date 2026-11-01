@@ -23,6 +23,7 @@ static int s_fs_available = 0;
 static P3DChunkStream s_chunk_stream;
 static int s_chunked = 0;
 static int s_drawing_chunk = 0;
+static int s_prefer_source_chunks = 0;
 
 static uint16_t get16(const unsigned char *p) {
     return (uint16_t)((unsigned int)p[0] | ((unsigned int)p[1] << 8));
@@ -40,6 +41,25 @@ int previewStreamInit(void) {
 #endif
     return s_fs_available;
 }
+/* Only an explicit user setting prefers private chunked source geometry.
+ * Missing/corrupt P3CS falls back to the known legacy preview. */
+void previewStreamPreferChunks(int enabled) { s_prefer_source_chunks=enabled?1:0; }
+int previewStreamPrefersChunks(void) { return s_prefer_source_chunks; }
+static int load_chunked(unsigned model){
+    char chunk_path[80];
+#ifdef C7_TEST_HOST
+    snprintf(chunk_path,sizeof(chunk_path),"nitrofs/preview/p%03u.p3cs",model);
+#else
+    snprintf(chunk_path,sizeof(chunk_path),"nitro:/preview/p%03u.p3cs",model);
+#endif
+    if(!p3dChunkOpen(&s_chunk_stream,chunk_path,model))return 0;
+    s_chunked=1;
+    s_triangle_count=(int)s_chunk_stream.total_triangles;
+    s_original_triangle_count=(int)s_chunk_stream.original_triangles;
+    s_loaded=1;
+    return 1;
+}
+
 int previewStreamLoad(int resource_index) {
     unsigned char head[16];
     char path[80];
@@ -59,21 +79,10 @@ int previewStreamLoad(int resource_index) {
 #else
     snprintf(path,sizeof(path),"nitro:/preview/p%03d.ds3m",resource_index);
 #endif
+    if(s_prefer_source_chunks&&load_chunked((unsigned)resource_index))return 1;
     f=fopen(path,"rb");
     if (!f){
-        /* Diagnostic chunk assets are explicitly separate from the legacy
-         * 600-face DS3M. No guessed P3MT texture maps are activated here. */
-#ifdef C7_TEST_HOST
-        snprintf(path,sizeof(path),"nitrofs/preview/p%03d.p3cs",resource_index);
-#else
-        snprintf(path,sizeof(path),"nitro:/preview/p%03d.p3cs",resource_index);
-#endif
-        if(!p3dChunkOpen(&s_chunk_stream,path,(unsigned)resource_index))return 0;
-        s_chunked=1;
-        s_triangle_count=(int)s_chunk_stream.total_triangles;
-        s_original_triangle_count=(int)s_chunk_stream.original_triangles;
-        s_loaded=1;
-        return 1;
+        return load_chunked((unsigned)resource_index);
     }
     if (fread(head,1,sizeof(head),f)!=sizeof(head)) {fclose(f);return 0;}
     version=get16(head+4);
