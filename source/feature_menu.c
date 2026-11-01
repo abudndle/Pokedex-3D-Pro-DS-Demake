@@ -1,6 +1,11 @@
 #include "feature_menu.h"
 #include <string.h>
-static const P3DPage menu[]={P3D_PAGE_DEX,P3D_PAGE_SEARCH,P3D_PAGE_MOVES,P3D_PAGE_TYPES,P3D_PAGE_FAVORITES,P3D_PAGE_CHALLENGE,P3D_PAGE_SETTINGS,P3D_PAGE_ALBUM,P3D_PAGE_RECORDS,P3D_PAGE_AR};
+/* Original primary HOME icons, in the requested seven-feature order.
+ * Search, Type Chart and Favorites remain reachable inside their features,
+ * without inventing extra original 3DS title-screen icons. */
+static const P3DPage menu[]={P3D_PAGE_DEX,P3D_PAGE_MOVES,
+    P3D_PAGE_CHALLENGE,P3D_PAGE_RECORDS,P3D_PAGE_ALBUM,
+    P3D_PAGE_AR,P3D_PAGE_SETTINGS};
 static const char *names[]={"MAIN MENU","POKEDEX","SEARCH","MOVE DEX","TYPE CHART","FAVORITES","CHALLENGE","SETTINGS","PHOTO ALBUM","AR VIEWER","RECORDS"};
 const char *p3dPageName(P3DPage p){return (unsigned)p<(unsigned)P3D_PAGE_COUNT?names[p]:"UNKNOWN";}
 void p3dMenuReset(P3DMenu *s){if(!s)return;memset(s,0,sizeof(*s));s->search_letter='A';s->type_defend2=-1;s->rotate=1;for(int i=0;i<P3D_FAVORITES_MAX;i++)s->favorites[i]=-1;}
