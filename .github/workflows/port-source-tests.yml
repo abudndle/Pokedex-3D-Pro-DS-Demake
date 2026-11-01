@@ -28,6 +28,9 @@ jobs:
       - name: Verify bounded private C5 ZIP audit and report isolation
         run: python3 -m unittest discover -s tests -p 'test_c180_private_c5_coverage.py' -v
 
+      - name: Verify private 730-model native geometry batch runner
+        run: python3 -m unittest discover -s tests -p 'test_c183_private_geometry_batch.py' -v
+
       - name: Validate private asset loader contracts
         run: python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 
