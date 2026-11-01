@@ -86,20 +86,10 @@ jobs:
           # Keyboard focus is already confirmed by X11; release the mouse
           # without injecting any new touchscreen press.
           xdotool mouseup 1
-          # Send several common DeSmuME directional bindings while
-          # collecting evidence. Keyboard layout and emulator bindings
-          # differ between frontends, so no gameplay claim is implied.
-          xdotool keydown Down
-          sleep 1
-          xdotool keyup Down
-          sleep 0.5
-          xwd -id "$window_id" -silent -out emulator-after-only-down.xwd
-          # Restore initial Pokédex selection before A, even when Down works.
-          xdotool keydown Up
-          sleep 0.5
-          xdotool keyup Up
-          sleep 0.5
-          xwd -id "$window_id" -silent -out emulator-after-up.xwd
+          # C152 real ARM9 probe showed this installed CLI maps the X11
+          # Down symbol to KEY_LID (0x2000), which freezes later input
+          # calibration. Open the initially selected Pokédex with A only.
+          # Never inject Down/Up before verifying this frontend's key map.
           # DeSmuME's current CLI source (src/frontend/posix/cli/main.cpp)
           # maps x=A and z=B. The older Linux manpage is outdated.
           xdotool keydown x
@@ -116,7 +106,7 @@ jobs:
             echo "ROM SHA256: $(sha256sum emulator-rom/Pokedex3D_DS_BlocksDS.nds)"
           } > emulator-input-diagnostics.txt
           # Distinguish a frozen game loop from an unmapped B key:
-          # Right should browse from Pokémon #001 to #002 on this page.
+          # The installed CLI's Right mapping must be proven by the ARM9 probe.
           xdotool keydown Right
           sleep 0.4
           xwd -id "$window_id" -silent -out emulator-during-right.xwd
@@ -133,7 +123,7 @@ jobs:
           # Temporary C152 calibration: installed CLI may remap keyboard
           # symbols unexpectedly. Capture the ACTUAL ARM9 held-bit readout
           # for each candidate while it is down, never infer from key names.
-          for candidate in Right Left Up Down w q s a x z Return Shift_R; do
+          for candidate in z w q s a Right Left Up Down; do
             xdotool keydown "$candidate"
             sleep 0.35
             xwd -id "$window_id" -silent -out "probe-$candidate.xwd"
@@ -246,8 +236,6 @@ jobs:
             emulator-window.xwd
             emulator-early.xwd
             emulator-before-down.xwd
-            emulator-after-only-down.xwd
-            emulator-after-up.xwd
             emulator-after-down.xwd
             emulator-input-diagnostics.txt
             emulator-after-right.xwd
