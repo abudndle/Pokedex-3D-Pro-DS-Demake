@@ -61,6 +61,9 @@ jobs:
       - name: Verify C151 exact source track owner-to-native P3SK binding
         run: python3 -m unittest discover -s tests -p 'test_c151_source_track_bindings.py' -v
 
+      - name: Verify C151 private original owner packer synthetic contracts
+        run: python3 -m unittest discover -s tests -p 'test_c151_private_packer.py' -v
+
       - name: Verify C149 real native original C5 skeleton loader across 730 models
         run: python3 -m unittest discover -s tests -p 'test_c149_original_skeleton_loader.py' -v
 
