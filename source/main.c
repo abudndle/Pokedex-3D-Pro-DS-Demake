@@ -403,19 +403,24 @@ static void render_model(void){
          * ranges keep their original geometry and untextured face colors. */
         for(unsigned i=0;i<preview_materials.count;i++){
             const P3DMaterialRange *range=&preview_materials.ranges[i];
-            int face_map_matches=source_face_map_ready;
-            if(face_map_matches){
-                unsigned end=(unsigned)range->first_triangle+range->triangle_count;
-                if(end>600)face_map_matches=0;
-                else for(unsigned face=range->first_triangle;face<end;face++)
-                    if(source_face_textures[face]!=(int)range->texture_id){
-                        face_map_matches=0;break;
-                    }
-            }
-            const P3DPreviewTexture *tex=face_map_matches &&
-                preview_color_ranges.ready && preview_color_ranges.enabled[i]?
+            /* C139: the renderer itself repeats the source face, sampler
+             * capability and exact normalized UV checks immediately before
+             * binding GL texture state. Unsafe ranges remain untextured. */
+            int source_colormap_approved=preview_color_ranges.ready &&
+                i<preview_color_ranges.count && preview_color_ranges.enabled[i];
+            int normalized_paired_uv=previewStreamHasUv() &&
+                previewStreamUvRangeUnit(range->first_triangle,
+                                         range->triangle_count);
+            int range_ready=source_face_map_ready &&
+                p3dSourceCandidateTextureRangeReady(
+                    source_face_textures,600,
+                    (unsigned)previewStreamTriangleCount(),
+                    range->first_triangle,range->triangle_count,
+                    range->texture_id,
+                    source_colormap_approved,normalized_paired_uv);
+            const P3DPreviewTexture *tex=range_ready?
                 p3dPreviewTextureSetFind(&preview_gl_textures,range->texture_id):NULL;
-            if(tex){
+            if(tex && tex->gl_id>0){
                 glEnable(GL_TEXTURE_2D);
                 glBindTexture(0,tex->gl_id);
                 previewStreamDrawRange(range->first_triangle,range->triangle_count,
