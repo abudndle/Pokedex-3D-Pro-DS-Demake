@@ -862,3 +862,78 @@ Original vertex skin weights, source animation-clip and action selection,
 hierarchical bone transforms and 3DS-accurate animations remain unresolved.
 The public GitHub repository includes no original Pokémon skeleton files,
 model payloads or commercial ROM.
+
+## C152 — private recovery workspace; C84 recovery and C98 absence
+
+The owner-provided, Nintendo-derived recovery packages remain **outside
+this public repository, its branches, pull requests and CI artifacts**.
+The private working collection is stored in the owner's ChatGPT Library
+under `/Pokedex_3D_Pro_PRIVATE_workspace/` with `archives/`,
+`recovered/` and `reports/`. Library access is distinct from a GitHub
+private repository; the connected account currently exposes only public
+GitHub repositories, so original asset payloads must NOT be uploaded to
+GitHub. No decrypted original ROM is published.
+
+On 2026-11-01, an exhaustive local inspection found that the exact
+`C84_PRIVATE_ORIGINAL_GUI_MOVES_TEXTURE_DEX_NITROFS.zip` was absent.
+However, **5,510 original-derived C84 content members** (including 4,039
+texture P3PX files, ten original-derived upper-screen UI pages, move data
+and C84 source SHA metadata) are retained in
+`C86_PRIVATE_COMBINED_NITROFS_WITH_PREVIEWS.zip`. The owner-private
+recovered ZIP was explicitly labeled
+`C84_CONTENT_RECOVERED_FROM_C86_NOT_ORIGINAL_ARCHIVE.zip`: every member
+was compared byte-for-byte with its C86 embedded counterpart, and
+the C84 source manifest's UI/move SHA-256 entries were independently
+checked. This is **not** the identical original C84 compressed archive.
+The C84 content is incomplete (lower-screen UI, original effects etc.).
+
+The exact `C98_PRIVATE_LEGACY_VS_CHUNKED_NITROFS.zip` is also absent;
+only its original private comparison README is available. None of the
+remaining NitroFS packages contains the 500 `.p3cs` assets described by
+that README. **Do not infer C98 binary content from the README** or
+claim that a source chunked/legacy comparison ran.
+
+### Source-only private workspace validator
+
+The GitHub repository includes the portable
+`tools/c150_private_asset_integrity.py`. It accepts owner-local original
+archives and C140/C141/C143 provenance reports; validates full ZIP CRC,
+safe members and SHA-256, and verifies all **730 exact C56 source hashes**,
+DS3M native header/count, **4,039 texture P3PX payloads**, **49** paired
+unit-safe UV QA companions, **35,840 original P3SK rig nodes** and
+**25,956 named C5 animation owner-to-rig bindings**. It also detects 49
+legitimate QA geometry replacements versus the old `p561` metadata
+exception and confirms the recovered C84 source member hashes.
+
+Place the owner-private ZIP packages in `private/archives/`, the
+C84-content reconstruction in `private/recovered/`, and the original
+C140/C141/C143 provenance JSON under `private/reports/`, then run:
+
+```sh
+python3 tools/c150_private_asset_integrity.py \
+  --root private \
+  --report private/reports/C152_PRIVATE_CROSS_STAGE_CHECK.json
+
+python3 -m unittest discover \
+  -s tests -p 'test_c150_private_asset_integrity.py' -v
+```
+
+The private local audit passed all 730 models, with 323,857 sampled
+native preview triangles, 3,800,630 original source-triangle metadata
+entries, 4,199 skeleton roots, and no source-exact certified texture
+binding. Both source-only host-compiled C138 model-loader probes also
+passed on private input: 730 original-derived models in each of
+the corrected baseline and UV QA packages; 49 actual QA UV pairs.
+
+The owner-provided C56 `validate_c56.py` / `c5_dual_table_parser.py`
+were also rerun on the three original decrypted C5 ZIPs. All 730 model
+SHA-256 and statuses matched the original manifest: 723 strict-valid,
+seven unresolved `0x26`-flag warnings. These are original structural
+validation results, **not** claims of original-game completeness.
+
+The SHA-256 sum list, per-file C84 recovered hash list and detailed
+source model verification report belong in the private workspace only,
+not public GitHub. Further original material-to-shader/sampler bindings,
+source skin weights, action-clip semantics, C98 P3CS file recovery,
+complete UI, and a private-asset-integrated ARM9 emulator visual test
+remain outstanding.
