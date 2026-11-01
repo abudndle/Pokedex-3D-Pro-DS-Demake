@@ -64,6 +64,23 @@ class PrivateIntegrityFixtures(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'byte-exact'):
             mod.read_p3sk(p3sk,14,changed)
 
+    def test_original_c98_p3cs_crc_and_bounds_reject_corruption(self):
+        # Minimal valid C98 chunk with one triangle's 33-byte record.
+        payload=b'\0'*33
+        table=struct.pack('<IHHII',0,1,0,40,zlib.crc32(payload))
+        blob=struct.pack('<4s4H3I',b'P3CS',1,7,1,0,1,1,zlib.crc32(table))+table+payload
+        self.assertEqual(mod.inspect_p3cs(blob,7),(1,1))
+        for case,modified in (
+            ('wrong model',8),('truncated',None)):
+            with self.assertRaisesRegex(ValueError,'P3CS'):
+                mod.inspect_p3cs(blob[:-1] if modified is None else blob,modified if modified is not None else 7)
+        damaged=bytearray(blob);damaged[-1]=1
+        with self.assertRaisesRegex(ValueError,'CRC'):
+            mod.inspect_p3cs(damaged,7)
+        padded=bytearray(blob);padded.extend(b'\0')
+        with self.assertRaisesRegex(ValueError,'final'):
+            mod.inspect_p3cs(padded,7)
+
     def test_recovered_c84_contents_match_original_members_and_embedded_hashes(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);(root/'archives').mkdir();(root/'recovered').mkdir()
