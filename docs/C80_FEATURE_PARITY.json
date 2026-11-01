@@ -8,7 +8,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/feature_menu.c",
-      "gap": "C120 fixes C119 title idle: after inactivity, an independent session-seeded picker chooses ANY of the 649 Pokédex species, unrelated to viewed/favorite/last-saved Pokémon, and can switch species repeatedly while idle. The top scene uses existing original-derived model files when available, with live console weekday/date/time and a prompt to open the CURRENT scene Pokémon; ordinary exit restores the saved page and original saved model. No fabricated Pokémon art is used when original source geometry is unavailable. The exact original 3DS idle Pokémon selection algorithm, scene change cadence, transitions, artwork and visual parity are not verified. C116–C118 original dual-screen title art, animation and audio requirements remain.",
+      "gap": "C123 requires a separate private original 3DS HOME seven-icon touch geometry P3HM map for full release, paired with independent source HOME artwork, while preserving C116–C118 original 3DS title and C120 independent any-Pokédex idle scenes. Original 3DS home icon placements, transitions and artwork are not yet source verified; the asset-free developer ROM still uses text fallbacks. Authentic source visuals and all original gameplay remain unfinished.",
       "verified_end_to_end": false
     },
     {
@@ -144,7 +144,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/search_touch.c",
-      "gap": "C119 title entry uses one input only, restores last saved page, and after the idle Pokémon prompt A opens the selected Pokédex entry without accidentally activating underlying HOME items. Source UI touch hitboxes, source icon animations and other original 3DS controls are not fully ported.",
+      "gap": "C123 introduces strict CRC-validated private P3HM original 3DS seven-icon HOME touch rectangles. When an authentic bottom-screen HOME bitmap is in use, touch targets come only from the corresponding source-measured positions, not the text developer menu; invalid/missing maps fail closed while D-pad/A remain functional. Text-only developer menus retain their list touch targets. Exact recovered original icon geometry and original UI interaction parity are not verified without owner-private source assets.",
       "verified_end_to_end": false
     },
     {
