@@ -329,3 +329,23 @@ These achievements prove the compiled **host** rendering transport accepts
 the private source-derived files, not that a private asset-integrated ARM9
 ROM has been built or playtested. Actual 3DS reference comparisons,
 material/shader provenance, animations/audio and full game parity remain open.
+
+## C139 — fail-closed original-source material and texture binding
+
+The ARM9 model renderer now re-checks **every material draw range** before
+binding a DS texture. An original-source C5 face map must assign the same
+texture ID to **every face** in that range, the original 3DS material/shader
+capability gate must approve a simple color sampler, and the matching
+P3UV coordinates must all lie in the safe normalized unit interval. Missing
+proof, conflicting face references, out-of-bounds ranges or an invalid
+GPU texture ID cause the complete original-derived range to render
+**untextured**, without omitting or synthesizing any geometry.
+
+The same check is covered by the synthetic C109/C139 host regression,
+run by `sh tests/run_c109_original_material_refs.sh` and GitHub source CI.
+This is a defensive integration of original C5 reference metadata, **not**
+an inference of shader semantics. The private C136 packages are still
+missing original P3MR, P3SC and P3SW provenance files, so this milestone
+does **not** imply 3DS-accurate texture output. Recover exact source
+material/shader and texture associations before enabling original textures
+in an asset-integrated ROM.
