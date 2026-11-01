@@ -73,6 +73,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c151_source_track_bindings.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c151_private_packer.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c150_private_asset_integrity.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c154_native_chunk_probe.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v
@@ -132,3 +133,12 @@ private-host-skeleton-probe:
 	  $(P3D_HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Isource \
 	    source/original_skeleton.c tests/c149_skeleton_probe.c -o "$$tmp/c149-skeleton-probe"; \
 	  "$$tmp/c149-skeleton-probe" --all "$(PRIVATE_NITROFS_STAGE)/skeleton" 35840 4199
+
+# C154: the ACTUAL native P3CS C loader over local private original C98 files.
+.PHONY: private-host-c98-probe
+private-host-c98-probe:
+	@test -d "$(PRIVATE_NITROFS_STAGE)/preview" || { echo "ERROR: stage private C98 high-detail previews under $(PRIVATE_NITROFS_STAGE)/preview" >&2; exit 1; }
+	@set -eu; tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT HUP INT TERM; \
+	  $(P3D_HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Isource \
+	    source/preview_chunk_stream.c tests/c154_chunk_probe.c -o "$$tmp/c154-probe"; \
+	  "$$tmp/c154-probe" --all "$(PRIVATE_NITROFS_STAGE)/preview" 500 1499 893666

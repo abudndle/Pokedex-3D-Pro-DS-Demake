@@ -67,6 +67,22 @@ jobs:
       - name: Verify C152/C153 original private asset integrity and C98 chunk CRCs (synthetic)
         run: python3 -m unittest discover -s tests -p 'test_c150_private_asset_integrity.py' -v
 
+      - name: Verify C154 real native C P3CS stream loader on 500 synthetic models
+        run: python3 -m unittest discover -s tests -p 'test_c154_native_chunk_probe.py' -v
+
+      - name: Compile C154 asset-free Linux private-offline native P3CS checker
+        run: |
+          cc -std=c11 -O2 -Wall -Wextra -Werror \
+            -Isource source/preview_chunk_stream.c \
+            tests/c154_chunk_probe.c -o c154-native-chunk-probe
+      - name: Retain C154 native P3CS checker executable only (NO original assets)
+        uses: actions/upload-artifact@v4
+        with:
+          name: c154-native-chunk-probe-linux-x64
+          path: c154-native-chunk-probe
+          if-no-files-found: error
+          retention-days: 2
+
       - name: Verify C149 real native original C5 skeleton loader across 730 models
         run: python3 -m unittest discover -s tests -p 'test_c149_original_skeleton_loader.py' -v
 
