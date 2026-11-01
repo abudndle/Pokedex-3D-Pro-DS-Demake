@@ -25,6 +25,24 @@ jobs:
       - name: Verify C137 private NitroFS preflight and staging safety
         run: python3 -m unittest discover -s tests -p 'test_c137_private_asset_integration.py' -v
 
+      - name: Exercise C138 real native C preview loader for 730 synthetic models and UVs
+        run: python3 -m unittest discover -s tests -p 'test_c138_native_preview_probe.py' -v
+
+      # Public-source x86_64 host executable only. NO private Nintendo data.
+      - name: Compile portable C138 host probe for private offline asset test
+        run: |
+          cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST \
+            -Itools/host_stub -Isource source/preview_stream.c \
+            source/preview_chunk_stream.c source/model_uv.c \
+            tests/c138_native_preview_probe.c -o c138-native-preview-probe
+      - name: Retain offline C138 host probe (no game assets)
+        uses: actions/upload-artifact@v4
+        with:
+          name: c138-native-preview-probe-linux-x64
+          path: c138-native-preview-probe
+          if-no-files-found: error
+          retention-days: 2
+
       - name: Verify material-to-texture cross-references
         run: sh tests/run_model_material_texture.sh
 

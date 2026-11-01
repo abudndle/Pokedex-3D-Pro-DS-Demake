@@ -273,3 +273,59 @@ python3 tools/c137_private_nitrofs_preflight.py \
   --crc-all --require-preview-ready \
   --output private/reports/C137_PRIVATE_PREFLIGHT.json
 ```
+
+## C138 — real native C loader preview integration tests
+
+C137 checked ZIP transport and headers, but a structure-only Python check is
+NOT proof that the compiled DS native model renderer can load or draw those
+files. C138 compiles the actual `source/preview_stream.c` +
+`source/model_uv.c` + `source/preview_chunk_stream.c` using the existing
+Linux host libnds shim and exercises all 730 preview models individually.
+
+On a machine with a C compiler and the corrected C136 private NitroFS
+archive **already staged** in a private directory, run:
+
+```sh
+make private-host-probe \
+  PRIVATE_NITROFS_STAGE=private/c137_nitrofs_stage \
+  PRIVATE_PREVIEW_EXPECTED_UV=0
+
+# For a separately staged C136 49-unit-UV QA archive:
+make private-host-probe \
+  PRIVATE_NITROFS_STAGE=private/c137_uv_qa_stage \
+  PRIVATE_PREVIEW_EXPECTED_UV=49
+```
+
+The probe calls the exact `previewStreamLoad()`, `previewStreamDraw()`,
+`previewStreamHasUv()`, and `previewStreamUvRangeUnit()` functions for
+730 source model IDs. It compares every emitted GL vertex position, **per-face RGB color** and
+available UV coordinate against the exact private DS3M/P3UV input bytes. Unsupported IDs 721–724 must stay unavailable.
+Each model must honor its source-triangle count and 600-face preview bound.
+
+**No original content is checked into GitHub:** CI generates 730 tiny
+synthetic fixture files, adds 49 synthetic UV files, and exercises the same
+compiled original-preview loader via `tests/test_c138_native_preview_probe.py`.
+Corrupted headers must fail closed. The private host command needs no
+BlocksDS/DS emulator. It is an executable verification of model-loader
+transport, **not** an ARM9 runtime test, original textured rendering, or
+Nintendo 3DS visual-parity test. Final hardware/melonDS QA is still required.
+
+### C138 private evidence — host-side native model transport
+
+On November 1, 2026, the Linux x86-64 probe executable compiled in GitHub
+Actions was downloaded and executed against two **private** original-derived
+NitroFS archives without uploading the original files:
+
+- Corrected C136 baseline package: **730/730** DS3M models loaded and drawn,
+  **0** UV companions, exact source XYZ/RGB emission verified.
+- Separate C136 C62-source-derived UV QA package: **730/730** models loaded,
+  **49** paired P3UV maps accepted, exact source XYZ/RGB/UV emission verified.
+
+Port source tests, source checks, native BlocksDS asset-free development
+ROM, ROM verification, and DeSmuME asset-free smoke startup also passed.
+GitHub CI publishes a source-only host probe executable artifact named
+c138-native-preview-probe-linux-x64; it does not bundle original assets.
+These achievements prove the compiled **host** rendering transport accepts
+the private source-derived files, not that a private asset-integrated ARM9
+ROM has been built or playtested. Actual 3DS reference comparisons,
+material/shader provenance, animations/audio and full game parity remain open.
