@@ -25,7 +25,13 @@ for i in range(13):
     elif i==12:shaders.append((i,1,7,65535,1))
     else:shaders.append((i,0,65535,65535,0))
 payload=b"".join(struct.pack("<5H",*row) for row in shaders)
-good=struct.pack("<4s4HI",b"P3SC",1,25,len(shaders),0,zlib.crc32(payload))+payload
+good=struct.pack("<4s4HI",b"P3SC",2,25,len(shaders),0,zlib.crc32(payload))+payload
+legacy=struct.pack("<4s4HI",b"P3SC",1,25,len(shaders),0,zlib.crc32(payload))+payload
+(root/"legacy_v1.p3sc").write_bytes(legacy)
+unknown=bytearray(good)
+struct.pack_into("<H",unknown,16+10*10+8,0x8000)
+struct.pack_into("<I",unknown,12,zlib.crc32(unknown[16:]))
+(root/"unknown_cap.p3sc").write_bytes(unknown)
 (root/"original.p3sc").write_bytes(good)
 bad=bytearray(good)
 bad[-1]^=1
@@ -40,4 +46,5 @@ cc -std=c11 -O2 -Wall -Wextra -Werror -Isource \
    tests/test_c110_shader_caps.c -o "$tmp/c110"
 "$tmp/c110" "$tmp/material.p3mt" "$tmp/textures.p3tx" \
   "$tmp/original.p3mr" "$tmp/original.p3sc" \
-  "$tmp/badcrc.p3sc" "$tmp/truncated.p3sc" "$tmp/extra.p3sc"
+  "$tmp/badcrc.p3sc" "$tmp/truncated.p3sc" "$tmp/extra.p3sc" \
+  "$tmp/legacy_v1.p3sc" "$tmp/unknown_cap.p3sc"

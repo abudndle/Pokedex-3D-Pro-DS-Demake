@@ -96,7 +96,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "tools/c92_diagnostic_textured_preview_audit.py",
-      "gap": "C111 preserves exact 13-dword original C5 material registers, original shader declarations, texture-reference IDs and source SHA-256 in private C111 sampler forensic evidence; ambiguous original color+bump shader combinations are rejected by the native renderer rather than guessed. The source-extractable evidence does not decode original GPU sampler equations or verify diffuse/normal/specular mappings. C110 source shader declaration checks, C109 original material references, C108 geometry, C107 alpha remain. Private 3DS C5 archives, per-model original shader visual validation, complete gameplay/UI/audio/animations and asset-bearing emulator fidelity are not yet verified.",
+      "gap": "C112 fixes P3SC v1 source-capability information loss: private C5 extraction emits P3SC v2 with CF_COLORMAP, CF_BUMPMAP and a presence bit for every other original CF_* shader declaration. Native color-texture routing blocks all bump/other shader cases, and private release validation rejects legacy v1 sidecars. Original shader sampler equations, full texture role mapping, source-accurate Pokémon visuals and original-asset melonDS parity are NOT verified. The unchanged original 3DS title screen remains the project requirement.",
       "verified_end_to_end": false
     },
     {

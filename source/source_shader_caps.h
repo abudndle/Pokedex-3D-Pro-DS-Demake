@@ -6,6 +6,8 @@
 #define P3D_SHADER_MAX_MATERIALS 256u
 #define P3D_SHADER_CAP_COLORMAP 1u
 #define P3D_SHADER_CAP_BUMPMAP 2u
+/* P3SC v2 sets OTHER when ANY additional original CF_* flag exists. */
+#define P3D_SHADER_CAP_OTHER 4u
 typedef struct {
     uint16_t material_id,shader_index,texture0,texture1,flags;
 } P3DSourceShaderMaterial;
@@ -14,11 +16,11 @@ typedef struct {
     int ready;
     P3DSourceShaderMaterial materials[P3D_SHADER_MAX_MATERIALS];
 } P3DSourceShaderCaps;
-/* P3SC: CRC-checked original C5 shader capability declarations, not decoded
+/* P3SC v2: CRC-checked original C5 shader capability declarations, not decoded
  * source GPU sampler assignments or proof of specific diffuse texture roles. */
 int p3dSourceShaderCapsLoad(P3DSourceShaderCaps *out,const char *path,
                             unsigned model_id);
-/* Conservative gate: original material needs CF_COLORMAP AND exactly one
+/* Conservative gate: original material needs ONLY CF_COLORMAP and exactly one
  * non-sentinel original C5 texture reference. More complex materials stay
  * untextured until real source shader/sampler role decoding exists. */
 int p3dSourceShaderColorReferencesMatch(
