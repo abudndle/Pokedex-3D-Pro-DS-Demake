@@ -27,4 +27,13 @@ int p3dSourceCandidateTextureMap(
     const P3DTextureManifest *textures,
     unsigned model_id,unsigned mesh_triangles,
     int *out,unsigned out_capacity);
+/* Final draw-time C5 provenance gate: reject an entire source material
+ * span unless every face maps to the exact approved original texture.
+ * Bounds are against the LOADED mesh, not merely the 600-face buffer.
+ * Does not grant unknown sampler/shader roles or certify texture fidelity. */
+int p3dSourceCandidateTextureRangeMatches(
+    const int *face_textures,unsigned face_capacity,
+    unsigned mesh_triangles,unsigned first_triangle,
+    unsigned triangle_count,unsigned texture_id);
+
 #endif
