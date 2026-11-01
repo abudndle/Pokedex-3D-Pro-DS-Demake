@@ -1,7 +1,11 @@
 #include "resume_state.h"
+#include "dex_search.h"
+#include "photo_album.h"
+#include "records.h"
 #include <stdio.h>
 #include <string.h>
-#define P3RV_SIZE 32u
+#define P3RV_V1_SIZE 32u
+#define P3RV_V2_SIZE 48u
 static unsigned r16(const unsigned char *p){return (unsigned)p[0]|((unsigned)p[1]<<8);}
 static uint32_t r32(const unsigned char *p){
     return (uint32_t)r16(p)|((uint32_t)r16(p+2)<<16);
@@ -25,7 +29,13 @@ int p3dResumeStateValid(const P3DResumeState *s){
     return s&&s->home<=1&&s->page<P3D_PAGE_COUNT &&
         s->highlight<P3D_MENU_MAX&&s->records_tab<=2&&
         s->dex<649&&s->move<559&&s->selected_dex<649&&
-        s->album_page<=999;
+        s->album_page<=999&&s->album_selected<P3D_ALBUM_PAGE_MAX&&
+        s->records_recent_cursor<P3D_RECORD_RECENT&&
+        s->move_show_effect<=1&&s->search_region<P3D_DEX_REGIONS&&
+        s->search_scope<P3D_DEX_SCOPE_COUNT&&
+        s->search_field<=P3D_DEX_SEARCH_DESCRIPTION&&
+        s->favorite_cursor<P3D_FAVORITES_MAX&&
+        s->move_text_offset<=4096;
 }
 static int file_path(char path[256],const char *base,int slot){
     int n;
@@ -33,31 +43,58 @@ static int file_path(char path[256],const char *base,int slot){
     n=snprintf(path,256,"%s_resume_%c.sav",base,slot?'B':'A');
     return n>0&&n<256;
 }
-static void pack(unsigned char b[P3RV_SIZE],const P3DResumeState *s,uint32_t seq){
-    memset(b,0,P3RV_SIZE);
-    memcpy(b,"P3RV",4);b[4]=1;
+static void pack(unsigned char b[P3RV_V2_SIZE],const P3DResumeState *s,uint32_t seq){
+    memset(b,0,P3RV_V2_SIZE);
+    memcpy(b,"P3RV",4);b[4]=2;
     w32(b+8,seq);
     b[12]=s->home;b[13]=s->page;b[14]=s->highlight;b[15]=s->records_tab;
     w16(b+16,s->dex);w16(b+18,s->move);
     w16(b+20,s->selected_dex);w16(b+22,s->album_page);
-    w32(b+28,checksum(b,28));
+    w16(b+24,s->selected_form);
+    b[26]=s->album_selected;b[27]=s->records_recent_cursor;
+    b[28]=s->move_show_effect;b[29]=s->search_region;
+    b[30]=s->search_scope;b[31]=s->search_field;
+    w16(b+32,s->move_text_offset);
+    w16(b+34,s->menu_cursor);
+    b[36]=s->favorite_cursor;
+    w32(b+44,checksum(b,44));
 }
-static int unpack(const unsigned char b[P3RV_SIZE],P3DResumeState *s,uint32_t *seq){
-    if(memcmp(b,"P3RV",4)!=0||b[4]!=1||b[5]!=0||r16(b+6)!=0||
-       r32(b+24)!=0||r32(b+28)!=checksum(b,28))return 0;
+static int unpack(const unsigned char *b,unsigned size,
+                  P3DResumeState *s,uint32_t *seq){
+    unsigned version, crc_offset;
+    if(size<P3RV_V1_SIZE||memcmp(b,"P3RV",4)!=0||
+       b[5]!=0||r16(b+6)!=0)return 0;
+    version=b[4];
+    if(version==1 && size==P3RV_V1_SIZE && r32(b+24)==0){
+        crc_offset=28;
+    }else if(version==2 && size==P3RV_V2_SIZE){
+        for(unsigned i=37;i<44;i++)if(b[i]!=0)return 0;
+        crc_offset=44;
+    }else return 0;
+    if(r32(b+crc_offset)!=checksum(b,crc_offset))return 0;
     memset(s,0,sizeof(*s));
     *seq=r32(b+8);s->home=b[12];s->page=b[13];
     s->highlight=b[14];s->records_tab=b[15];
     s->dex=(uint16_t)r16(b+16);s->move=(uint16_t)r16(b+18);
     s->selected_dex=(uint16_t)r16(b+20);s->album_page=(uint16_t)r16(b+22);
+    if(version==2){
+        s->selected_form=(uint16_t)r16(b+24);
+        s->album_selected=b[26];s->records_recent_cursor=b[27];
+        s->move_show_effect=b[28];s->search_region=b[29];
+        s->search_scope=b[30];s->search_field=b[31];
+        s->move_text_offset=(uint16_t)r16(b+32);
+        s->menu_cursor=(uint16_t)r16(b+34);
+        s->favorite_cursor=b[36];
+    }
     return p3dResumeStateValid(s);
 }
 static int read_slot(const char *base,int slot,P3DResumeState *out,uint32_t *seq){
-    char name[256];unsigned char b[P3RV_SIZE];FILE *f;int ok;
+    char name[256];unsigned char b[P3RV_V2_SIZE];FILE *f;unsigned size;int ok;
     if(!file_path(name,base,slot)||(f=fopen(name,"rb"))==NULL)return 0;
-    ok=fread(b,1,P3RV_SIZE,f)==P3RV_SIZE&&fgetc(f)==EOF&&!ferror(f);
+    size=(unsigned)fread(b,1,P3RV_V2_SIZE,f);
+    ok=!ferror(f)&&fgetc(f)==EOF&&!ferror(f);
     fclose(f);
-    return ok&&unpack(b,out,seq);
+    return ok&&unpack(b,size,out,seq);
 }
 static int newer(uint32_t a,uint32_t b){
     uint32_t delta=a-b;
@@ -73,7 +110,7 @@ int p3dResumeLoad(const char *base,P3DResumeState *out){
 }
 int p3dResumeStore(const char *base,const P3DResumeState *s){
     P3DResumeState a,b;uint32_t sa=0,sb=0,seq=1;
-    int va,vb,slot;char name[256];unsigned char bytes[P3RV_SIZE];FILE *f;
+    int va,vb,slot;char name[256];unsigned char bytes[P3RV_V2_SIZE];FILE *f;
     if(!p3dResumeStateValid(s))return 0;
     va=read_slot(base,0,&a,&sa);vb=read_slot(base,1,&b,&sb);
     if(va&&vb){
@@ -85,7 +122,7 @@ int p3dResumeStore(const char *base,const P3DResumeState *s){
     if(!file_path(name,base,slot))return 0;
     pack(bytes,s,seq);
     f=fopen(name,"wb");if(!f)return 0;
-    if(fwrite(bytes,1,P3RV_SIZE,f)!=P3RV_SIZE||fflush(f)!=0){
+    if(fwrite(bytes,1,P3RV_V2_SIZE,f)!=P3RV_V2_SIZE||fflush(f)!=0){
         fclose(f);return 0;
     }
     return fclose(f)==0;
@@ -93,13 +130,10 @@ int p3dResumeStore(const char *base,const P3DResumeState *s){
 int p3dResumeApply(const P3DResumeState *s,P3DCapabilities caps,
                    int *home,P3DMenu *menu,int *highlight){
     if(!p3dResumeStateValid(s)||!home||!menu||!highlight)return 0;
-    /* Old P3RV saves may refer to a longer development menu; clamp to
-     * the seven genuine main-screen feature icons without discarding data. */
-    size_t entry_count=p3dMenuEntries(caps,NULL);
-    *highlight=s->highlight<entry_count?s->highlight:(int)(entry_count-1);
+    /* Old P3RV saves may refer to a longer development menu. */
+    size_t entries=p3dMenuEntries(caps,NULL);
+    *highlight=s->highlight<entries?s->highlight:(int)(entries-1);
     if(s->home){*home=1;return 1;}
-    /* AR is present but greyed out on DS/noncamera DSi. A previously
-     * saved camera-only page must not resume into unusable hardware. */
     if(s->page==P3D_PAGE_AR&&!p3dCanEnterFeature(caps,P3D_FEATURE_AR)){
         *home=1;return 1;
     }
@@ -109,9 +143,13 @@ int p3dResumeApply(const P3DResumeState *s,P3DCapabilities caps,
     }
     *home=0;
     menu->selected_dex=s->selected_dex;
+    menu->cursor=s->menu_cursor;
+    /* Favorites list comes from P3SV. Never restore a cursor beyond it. */
+    menu->favorite_cursor=(menu->favorites_count>0&&
+        s->favorite_cursor<(unsigned)menu->favorites_count)
+        ?s->favorite_cursor:0;
     return 1;
 }
-
 int p3dResumeRestoreBoot(const char *base,P3DResumeState *restored,
                          P3DCapabilities caps,int *home,
                          P3DMenu *menu,int *highlight){

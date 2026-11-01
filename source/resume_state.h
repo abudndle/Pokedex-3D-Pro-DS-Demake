@@ -6,6 +6,11 @@
 typedef struct {
     uint8_t home,page,highlight,records_tab;
     uint16_t dex,move,selected_dex,album_page;
+    /* P3RV v2: restore the exact in-page context as well as the page.
+     * V1 checkpoints decode with all these fields safely zeroed. */
+    uint16_t selected_form,move_text_offset,menu_cursor;
+    uint8_t album_selected,records_recent_cursor,move_show_effect;
+    uint8_t search_region,search_scope,search_field,favorite_cursor;
 } P3DResumeState;
 int p3dResumeStateValid(const P3DResumeState *state);
 int p3dResumeLoad(const char *base,P3DResumeState *out);

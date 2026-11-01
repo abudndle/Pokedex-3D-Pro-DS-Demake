@@ -445,6 +445,16 @@ static P3DResumeState current_resume(void){
     view.selected_dex=(uint16_t)state.selected_dex;
     view.album_page=(uint16_t)((album_offset/P3D_ALBUM_PAGE_MAX)>999?
         999:(album_offset/P3D_ALBUM_PAGE_MAX));
+    view.selected_form=(uint16_t)selected_form;
+    view.album_selected=(uint8_t)album_selected;
+    view.records_recent_cursor=(uint8_t)records_recent_cursor;
+    view.move_show_effect=(uint8_t)(move_show_effect!=0);
+    view.search_region=(uint8_t)search_region;
+    view.search_scope=(uint8_t)search_scope;
+    view.search_field=(uint8_t)search_field;
+    view.move_text_offset=(uint16_t)move_text_offset;
+    view.menu_cursor=(uint16_t)state.cursor;
+    view.favorite_cursor=(uint8_t)state.favorite_cursor;
     return view;
 }
 /* Commit page/selection immediately when it changes. The independent
@@ -924,6 +934,19 @@ int main(void) {
             move_index=(int)resume.move;
             records_tab=(int)resume.records_tab;
             album_offset=(size_t)resume.album_page*P3D_ALBUM_PAGE_MAX;
+            album_selected=resume.album_selected;
+            records_recent_cursor=resume.records_recent_cursor;
+            move_show_effect=resume.move_show_effect;
+            move_text_offset=resume.move_text_offset;
+            search_region=resume.search_region;
+            search_scope=resume.search_scope;
+            search_field=resume.search_field;
+            /* A saved form must exist in the actual recovered original
+             * source map for this species; otherwise retain the base form. */
+            selected_form=resume.selected_form &&
+                p3dFormResolve(&alternate_models,dex_index,
+                               resume.selected_form)>=0
+                            ?resume.selected_form:0;
             last_checkpoint=resume;
             last_checkpoint_valid=1;
         }
@@ -931,12 +954,38 @@ int main(void) {
     /* libfat mounts the default writable device as fat:/; create the album
      * directory only when the device is actually available. */
     if(storage_ready)album_ready=p3dPhotoAlbumOpen(&photo_album,"fat:/Pokedex 3D Pro/Photos");
+    if(last_checkpoint_valid && state.page==P3D_PAGE_ALBUM){
+        /* Removed/deleted photos may invalidate a saved album selection. */
+        char names[P3D_ALBUM_PAGE_MAX][32];
+        size_t total=0;
+        size_t shown=album_ready?
+            p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,
+                               album_offset,&total):0;
+        if(!shown){
+            album_offset=0;
+            album_selected=0;
+        }else if(album_selected>=shown){
+            album_selected=shown-1;
+        }
+    }
     if(nitro_ready){
         preview_ready=previewStreamInit();
         /* Moves must remain available even if a model preview is missing. */
         move_catalog_ready=p3dMoveDexInit("nitro:/moves.p3dm");
         dex_text_ready=p3dDexTextInit("nitro:/data/dex_en.p3dx");
     }
+    if(last_checkpoint_valid && state.page==P3D_PAGE_MOVES){
+        /* Prevent a stale saved scroll after the private move text changes. */
+        P3DMove entry;
+        if(move_catalog_ready && p3dMoveDexRead(move_index,&entry))
+            move_text_offset=p3dMoveTextScroll(
+                move_text_offset,p3dMoveTextField(&entry,move_show_effect),0);
+        else move_text_offset=0;
+    }
+    if(last_checkpoint_valid && state.page==P3D_PAGE_RECORDS &&
+       (records_recent_cursor>=P3D_RECORD_RECENT ||
+        records.recent[records_recent_cursor]==P3D_RECORD_NO_SPECIES))
+        records_recent_cursor=0;
     reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
     /* Reset/power-on with a valid checkpoint opens that same active page,
