@@ -36,7 +36,7 @@ check-host:
 		run_c100_move_effect_view.sh \
 		run_photo_album_smoke.sh run_custom_images.sh \
 		run_bmp_loader.sh run_image_background.sh \
-		run_settings_images.sh run_menu_navigation.sh \
+		run_settings_images.sh run_menu_navigation.sh run_c123_home_hotspots.sh \
 		run_game_save_bridge.sh run_c81_records_smoke.sh \
 		run_c82_dex_search.sh run_c83_search_touch.sh; do \
 		echo "Running $$test"; sh "tests/$$test"; \
