@@ -29,14 +29,14 @@ def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def read_preview(data: bytes) -> dict:
+def read_preview(data: bytes, *, native=False) -> dict:
     if len(data) < 16:
         raise ValueError("truncated DS3M")
     magic, version, n, source_vertices, source_faces = struct.unpack_from("<4sHHII", data)
     if magic != b"DS3M" or version not in (1, 2) or not 1 <= n <= MAX_TRI:
         raise ValueError("invalid DS3M header")
     expected = 16 + n * (18 + (3 if version == 2 else 0))
-    if len(data) != expected or source_vertices == 0 or source_faces < n:
+    if len(data) != expected or (native and source_vertices != 0) or (not native and source_vertices == 0) or source_faces < n:
         raise ValueError("invalid DS3M counts or length")
     coords = struct.unpack_from("<" + "h" * (n * 9), data, 16)
     if max(map(abs, coords)) >= 32767:
@@ -141,12 +141,12 @@ def convert_complete_uv_obj(raw: bytes) -> tuple[bytes, bytes, dict]:
     if not 1 <= tri <= MAX_TRI or len(uvpairs) != tri * 6:
         raise ValueError("no valid paired geometry/UV triangles")
     source_faces = sum(map(len, groups))
-    ds = struct.pack("<4sHHII", b"DS3M", 2, tri, len(verts), source_faces)
+    ds = struct.pack("<4sHHII", b"DS3M", 2, tri, 0, source_faces)
     ds += struct.pack("<" + "h"*len(coords), *coords)
     ds += NEUTRAL * tri
     puv = struct.pack("<4sHH", b"P3UV", 1, tri)
     puv += struct.pack("<" + "h"*len(uvpairs), *uvpairs)
-    read_preview(ds)
+    read_preview(ds, native=True)
     return ds, puv, {"original_vertices":len(verts), "original_faces":source_faces,
                      "source_mesh_groups":len(groups), "sampled_faces":tri}
 
