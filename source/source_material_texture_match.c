@@ -78,3 +78,25 @@ int p3dSourceCandidateTextureMap(
     }
     return cursor==mesh_triangles;
 }
+
+/* Source C5 range eligibility is a draw-time check, not a promise inferred
+ * from texture filename similarity. In particular NEVER bind a valid GL
+ * texture to a face whose original material reference says otherwise. */
+int p3dSourceCandidateTextureRangeReady(
+    const int *face_texture_ids,unsigned map_capacity,
+    unsigned mesh_triangles,unsigned first_triangle,
+    unsigned triangle_count,unsigned texture_id,
+    int source_colormap_approved,int normalized_paired_uv){
+    if(!face_texture_ids || !source_colormap_approved || !normalized_paired_uv ||
+       !mesh_triangles || mesh_triangles>600 ||
+       !map_capacity || map_capacity>600 || mesh_triangles>map_capacity ||
+       first_triangle>=mesh_triangles || !triangle_count ||
+       triangle_count>mesh_triangles-first_triangle ||
+       texture_id==P3D_SOURCE_MATERIAL_NO_TEXTURE ||
+       texture_id>0x7fffffffu)
+        return 0;
+    for(unsigned i=first_triangle;i<first_triangle+triangle_count;i++)
+        if(face_texture_ids[i]!=(int)texture_id)
+            return 0;
+    return 1;
+}
