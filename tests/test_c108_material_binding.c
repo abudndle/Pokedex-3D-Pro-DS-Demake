@@ -71,6 +71,34 @@ int main(int argc,char **argv){
     p3dPreviewTextureSetRelease(&set);
     assert(!set.ready && !set.count && deleted==2);
     assert(!p3dPreviewTextureSetFind(&set,2));
+    /* C115: an original material with unknown shader operations is not
+     * uploaded, but the source-backed color region can still use P3PX. */
+    {
+        const unsigned char first_only[3]={1,1,0};
+        const unsigned char none[3]={0,0,0};
+        const unsigned char invalid[3]={1,2,0};
+        before=attempts;removed=deleted;
+        /* The blocked t007 file is corrupt here. It must NOT be opened. */
+        assert(p3dPreviewTextureSetLoadMasked(
+            &set,&pixels,&mat,&manifest,argv[5],first_only,3));
+        assert(set.ready && set.count==1);
+        assert(attempts==before+1);
+        assert(p3dPreviewTextureSetFind(&set,2));
+        assert(!p3dPreviewTextureSetFind(&set,7));
+        p3dPreviewTextureSetRelease(&set);
+        assert(deleted==removed+1 && !set.ready && set.count==0);
+        before=attempts;
+        assert(!p3dPreviewTextureSetLoadMasked(
+            &set,&pixels,&mat,&manifest,argv[4],none,3));
+        assert(attempts==before && !set.ready && !set.count);
+        assert(!p3dPreviewTextureSetLoadMasked(
+            &set,&pixels,&mat,&manifest,argv[4],invalid,3));
+        assert(!p3dPreviewTextureSetLoadMasked(
+            &set,&pixels,&mat,&manifest,argv[4],first_only,2));
+        assert(!p3dPreviewTextureSetLoadMasked(
+            &set,&pixels,&mat,&manifest,argv[4],NULL,3));
+        assert(attempts==before && !set.ready && !set.count);
+    }
     /* Corrupt second original pixel file: first GPU texture is released,
      * never leaving a partially textured model or leaking VRAM. */
     before=attempts;removed=deleted;
