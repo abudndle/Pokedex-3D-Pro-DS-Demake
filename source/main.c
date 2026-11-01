@@ -17,6 +17,7 @@
 #include "title_idle.h"
 #include "preview_stream.h"
 #include "original_skeleton.h"
+#include "source_track_bindings.h"
 #include "species_model_map.h"
 #include "form_model_map.h"
 #include "form_names.h"
@@ -76,6 +77,8 @@ static int preview_ready=0;
 static int preview_found=0;
 /* Original C5 node hierarchy only; no animation or skinning is inferred. */
 static P3DOriginalSkeleton preview_skeleton;
+/* C151: original track owners are preflighted only; no unverified motion. */
+static P3DSourceTrackBindings preview_track_bindings;
 static P3DAnimationClip preview_animation;
 static P3DAnimationLibrary preview_animation_library;
 static P3DMaterialMap preview_materials;
@@ -225,6 +228,7 @@ static void reload_preview(void){
     previewStreamPreferChunks(prefer_source_chunks);
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
     p3dOriginalSkeletonClear(&preview_skeleton);
+    p3dSourceTrackBindingsClear(&preview_track_bindings);
     preview_animation.ready=0;
     preview_animation_library.ready=0;
     preview_materials.ready=0;
@@ -243,7 +247,14 @@ static void reload_preview(void){
          * hierarchy is not sufficient to deform source geometry without
          * original skin weights, node-to-mesh bindings and action clips. */
         snprintf(clip_path,sizeof(clip_path),"nitro:/skeleton/p%03d.p3sk",resource);
-        (void)p3dOriginalSkeletonLoad(&preview_skeleton,clip_path,(unsigned)resource);
+        if(p3dOriginalSkeletonLoad(&preview_skeleton,clip_path,(unsigned)resource)){
+            /* Private P3TB v1 names, original owner indices and CRC must
+             * match the exact selected P3SK. This is a data association,
+             * not permission to animate or skin geometry. */
+            snprintf(clip_path,sizeof(clip_path),"nitro:/track_bindings/p%03d.p3tb",resource);
+            (void)p3dSourceTrackBindingsLoad(&preview_track_bindings,
+                                              &preview_skeleton,clip_path,(unsigned)resource);
+        }
         /* Load only existing and validated private clips. No invented motion
          * or action labels are generated for missing original assets. */
         p3dAnimationLibraryLoad(&preview_animation_library,
