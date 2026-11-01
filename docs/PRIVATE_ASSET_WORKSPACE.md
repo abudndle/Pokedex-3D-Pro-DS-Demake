@@ -102,3 +102,34 @@ C56 does not yet assign source-exact UV layouts, material sampler roles,
 textures or original Pokémon appearance. C62/C63 recovery and C84/C86/C98
 NitroFS staging remain separate, later steps. Keep source dumps, decoded
 C5 files and per-model hashes in private storage.
+
+## C134 — C56 source integrity to C86 DS geometry bridge
+
+On 2026-11-01, the three **private** C56 ZIPs and their bundled original
+`C56_validation.csv` were inspected against every recovered C5 payload:
+**730/730** model IDs matched size, SHA-256, descriptor count and C5 structural
+classification; **723 strict-valid** and **7 unresolved 0x26 warnings**:
+`p076`, `p077`, `p145`, `p377`, `p391`, `p663`, `p729`.
+The C56 model ID inventory intentionally excludes `p721`–`p724`.
+
+Use the source-only local audit to reproduce the verification and join against
+the private C86 geometry export report:
+
+```sh
+python3 tools/audit_c134_c56_geometry_bridge.py \
+  --parts \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_2_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --c86-report private/reports/C86_DS_MODEL_STAGE_REPORT.json \
+  --output private/reports/C134_LOCAL_C56_C86_BRIDGE.json
+```
+
+C86 reports **726/730** fallback DS3M previews and **538/730** paired
+UV-geometry *candidates*. The four without fallback DS3M are **p730–p733**.
+No matching original C5 material/sampler binding is proven by this join;
+**zero production-ready original renderers are certified**. The report is
+private; it records every model's structural and preview availability, not a
+source-derived copyright payload. Do not merge or publish that private report
+or decoded original C5 files into public GitHub.
