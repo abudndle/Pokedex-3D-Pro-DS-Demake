@@ -82,6 +82,9 @@ jobs:
       - name: Verify explicit species-to-model resource mapping
         run: sh tests/run_species_model_map.sh
 
+      - name: C139 verify final C5 source-backed native texture draw range
+        run: sh tests/run_c109_original_material_refs.sh
+
       - name: Verify original geometry preview loader
         run: sh tests/run_preview_stream_fixture.sh
 
