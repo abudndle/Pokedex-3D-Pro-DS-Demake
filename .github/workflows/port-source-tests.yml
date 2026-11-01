@@ -1,8 +1,23 @@
 name: Port source tests
 on:
+  schedule:
+    - cron: '*/5 * * * *'
   push:
+    branches:
+      - main
+      - 'c*'
+      - 'feat/**'
+      - 'fix/**'
+      - 'automation/**'
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: port-source-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   host-tests:
     runs-on: ubuntu-latest
