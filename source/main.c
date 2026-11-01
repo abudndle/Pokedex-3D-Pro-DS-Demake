@@ -447,6 +447,20 @@ static P3DResumeState current_resume(void){
         999:(album_offset/P3D_ALBUM_PAGE_MAX));
     return view;
 }
+/* Commit page/selection immediately when it changes. The independent
+ * CRC P3RV checkpoint survives even if older P3SV progress is missing. */
+static int save_resume_checkpoint(void){
+    P3DResumeState view;
+    if(!storage_ready)return 0;
+    view=current_resume();
+    if(last_checkpoint_valid &&
+       memcmp(&view,&last_checkpoint,sizeof(view))==0)return 1;
+    if(!p3dResumeStore(P3D_SAVE_BASE,&view))return 0;
+    last_checkpoint=view;
+    last_checkpoint_valid=1;
+    checkpoint_ticks=0;
+    return 1;
+}
 static int save_progress(void){
     P3DSaveState record;
     if(!storage_ready){save_message=2;return 0;}
@@ -455,14 +469,7 @@ static int save_progress(void){
         return 0;
     }
     int saved=p3dSaveStore(P3D_SAVE_BASE,&record)?1:0;
-    if(saved){
-        P3DResumeState screen=current_resume();
-        if(p3dResumeStore(P3D_SAVE_BASE,&screen)){
-            last_checkpoint=screen;
-            last_checkpoint_valid=1;
-            checkpoint_ticks=0;
-        }else saved=0;
-    }
+    if(saved && !save_resume_checkpoint())saved=0;
     if(saved && records_dirty){
         if(p3dRecordsStore(P3D_SAVE_BASE,&records))records_dirty=0;
         else saved=0;
@@ -906,17 +913,19 @@ int main(void) {
                 challenge_correct_total=(int)record.challenge_correct;
                 challenge_answer_total=(int)record.challenge_total;
                 save_message=3;
-                P3DResumeState resume;
-                if(p3dResumeLoad(P3D_SAVE_BASE,&resume) &&
-                   p3dResumeApply(&resume,caps,&home,&state,&highlighted)){
-                    dex_index=(int)resume.dex;
-                    move_index=(int)resume.move;
-                    records_tab=(int)resume.records_tab;
-                    album_offset=(size_t)resume.album_page*P3D_ALBUM_PAGE_MAX;
-                    last_checkpoint=resume;
-                    last_checkpoint_valid=1;
-                }
             }
+        }
+        /* P3RV is independent of legacy P3SV/P3RC: an intact last-screen
+         * checkpoint can restore a page even if progress is not available. */
+        P3DResumeState resume;
+        if(p3dResumeRestoreBoot(P3D_SAVE_BASE,&resume,caps,
+                                &home,&state,&highlighted)){
+            dex_index=(int)resume.dex;
+            move_index=(int)resume.move;
+            records_tab=(int)resume.records_tab;
+            album_offset=(size_t)resume.album_page*P3D_ALBUM_PAGE_MAX;
+            last_checkpoint=resume;
+            last_checkpoint_valid=1;
         }
     }
     /* libfat mounts the default writable device as fat:/; create the album
@@ -930,9 +939,10 @@ int main(void) {
     }
     reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
-    /* The real original 3DS title uses private source art on both screens.
-     * The asset-free developer ROM still boots directly to a test menu. */
-    if(!show_original_title())render();
+    /* Reset/power-on with a valid checkpoint opens that same active page,
+     * bypassing title. New games still use the genuine original 3DS title
+     * when the private source art is present. */
+    if(last_checkpoint_valid || !show_original_title())render();
     while(1) {
         swiWaitForVBlank();
         challenge_seed+=0x9E3779B9u; /* Vary each game session's quiz sequence. */
@@ -1506,7 +1516,12 @@ int main(void) {
          * render_model() ran with the prior frame's display_preview flag:
          * switching between a model and a text page could render a stale
          * model for one extra frame. */
-        if(redraw)render();
+        if(redraw){
+            render();
+            /* Flush a changed screen/selection immediately instead of
+             * waiting for the old one-second progress flush interval. */
+            (void)save_resume_checkpoint();
+        }
         /* The DS cannot intercept a hard power-off. Save after a short
          * quiet interval rather than pretending to save on shutdown.
          * Dual-slot CRC records preserve the last active page on restart. */
