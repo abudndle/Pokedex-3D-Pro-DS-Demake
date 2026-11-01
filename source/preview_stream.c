@@ -6,6 +6,7 @@
 #include <nds.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <limits.h>
 #include <string.h>
 #include "preview_stream.h"
 #include "model_uv.h"
@@ -80,6 +81,11 @@ int previewStreamLoad(int resource_index) {
     if (memcmp(head,"DS3M",4)!=0 || (version!=1 && version!=2)) {fclose(f);return 0;}
     tri_count=get16(head+6);
     if (tri_count<1 || tri_count>C7_MAX_PREVIEW_TRIANGLES) {fclose(f);return 0;}
+    /* DS3M v1/v2 reserve bytes 8..11. The source triangle count
+     * must cover every emitted preview face and fit the native int API.
+     * Do not display corrupted resource/provenance metadata. */
+    if (get32(head+8)!=0 || get32(head+12)<tri_count ||
+        get32(head+12)>(uint32_t)INT_MAX) {fclose(f);return 0;}
     if (fread(s_xyz,sizeof(s_xyz[0]),tri_count*9,f)!=(size_t)tri_count*9) {fclose(f);return 0;}
     /* v2 contract: packed RGB888 triplets, one per triangle, after all XYZ. */
     if (version==2 && fread(s_face_rgb,3,tri_count,f)!=(size_t)tri_count) {fclose(f);return 0;}
