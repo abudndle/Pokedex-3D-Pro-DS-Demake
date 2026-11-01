@@ -24,6 +24,8 @@ def inspect(path: Path):
         magic, version, triangles, reserved, original = HEADER.unpack(header)
         if magic != b"DS3M" or version not in (1, 2):
             raise ValueError("unsupported DS3M magic or version")
+        if reserved != 0:
+            raise ValueError("DS3M reserved header field must be zero")
         if not 1 <= triangles <= MAX_TRIANGLES:
             raise ValueError("triangle count outside DS preview budget")
         expected = HEADER.size + triangles * 18 + (triangles * 3 if version == 2 else 0)
