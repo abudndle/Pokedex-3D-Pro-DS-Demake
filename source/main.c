@@ -331,6 +331,8 @@ static int show_original_title(void){
                           "nitro:/ui/title/cues.p3tc",
                           title_timeline.ready?title_timeline.frames:1u);
     title_active=1;
+    p3dTitleIdleReset(&title_idle);
+    idle_refresh=0;
     if(title_cues.ready){
         soundEnable();
         play_title_cue(0);
@@ -389,6 +391,35 @@ static void render_model(void){
         previewStreamDraw();
     }
     glFlush(0);
+}
+/* The original upper title scene changes after idle time. Show the last
+ * visited Pokémon only when its recovered source preview is available.
+ * The console's actual RTC provides weekday, date, and time. Unrecovered
+ * original idle artwork/animations remain out of this development preview. */
+static void enter_title_idle(void){
+    bgHide(2);
+    videoSetMode(MODE_0_3D);
+    consoleInit(&top_console,3,BgType_Text4bpp,BgSize_T_256x256,
+                31,0,true,true);
+    bgSetPriority(3,0);
+    REG_BG0CNT=(REG_BG0CNT & ~3)|3;
+    showing_original_top_art=0;
+    update_preview_mode();
+}
+static void draw_title_idle_info(void){
+    char clock[48];
+    time_t now=time(NULL);
+    consoleSelect(&top_console);
+    consoleClear();
+    if(p3dTitleIdleClock(clock,sizeof(clock),now))
+        printf("%s\n",clock);
+    if(dex_text_ready){
+        P3DDexText entry;
+        if(p3dDexTextRead(dex_index,&entry))
+            printf("#%03d %.25s\n",dex_index+1,entry.name);
+        else printf("Pokémon #%03d\n",dex_index+1);
+    }else printf("Pokémon #%03d\n",dex_index+1);
+    printf("\nCheck this Pokémon's\nPokédex entry?\n\nA: CHECK ENTRY\nB/START: CONTINUE");
 }
 
 #define P3D_SAVE_BASE "fat:/pokedex3d"
