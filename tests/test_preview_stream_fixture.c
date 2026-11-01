@@ -42,7 +42,13 @@ int main(void){
  assert(emitted==0);
  previewStreamDrawRange(0,0,0,0);
  assert(emitted==0);
- assert(previewStreamLoad(5)); /* stream 1202 original triangles via 600 buffers */
+ assert(!previewStreamPrefersChunks()); /* C98 default preserves old gameplay. */
+ assert(previewStreamLoad(5)); /* p005 has BOTH legacy and chunked files */
+ assert(!previewStreamIsChunked());
+ assert(previewStreamTriangleCount()==1);
+ previewStreamPreferChunks(1);
+ assert(previewStreamPrefersChunks());
+ assert(previewStreamLoad(5)); /* explicit opt-in selects 1202 faces */
  assert(previewStreamIsChunked());
  assert(previewStreamTriangleCount()==1202);
  assert(previewStreamOriginalTriangleCount()==5000);
@@ -53,8 +59,16 @@ int main(void){
  emitted=0;
  previewStreamDrawRange(0,1,8,8); /* no external range without matched source textures */
  assert(emitted==0);
- assert(!previewStreamLoad(6)); /* corrupted CRC must not reach GL rendering */
+ assert(previewStreamLoad(6)); /* invalid P3CS falls back to legacy DS3M */
+ assert(!previewStreamIsChunked());
+ assert(previewStreamTriangleCount()==1);
+ assert(!previewStreamLoad(7)); /* P3CS-only corrupt source cannot render */
  assert(!previewStreamHasModel());
+ previewStreamPreferChunks(0);
+ assert(!previewStreamPrefersChunks());
+ assert(previewStreamLoad(5)); /* reverting to original 600-face setting */
+ assert(!previewStreamIsChunked());
+ assert(previewStreamTriangleCount()==1);
  assert(!previewStreamLoad(4)); /* v2 colors truncated */
  assert(!previewStreamLoad(2)); /* 601 triangles must not overflow the buffer. */
  assert(!previewStreamLoad(721));

@@ -9,6 +9,9 @@ int previewStreamHasModel(void);
 int previewStreamHasUv(void);
 /* P3CS is a geometry-only diagnostic path until GPU sampler roles are proven. */
 int previewStreamIsChunked(void);
+/* Explicit diagnostic preference; default is legacy DS3M. */
+void previewStreamPreferChunks(int enabled);
+int previewStreamPrefersChunks(void);
 int previewStreamTriangleCount(void);
 int previewStreamOriginalTriangleCount(void);
 /* With verified texture+UV only, use white vertices to avoid tinting RGB555. */

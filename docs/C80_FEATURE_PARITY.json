@@ -88,7 +88,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/preview_stream.c",
-      "gap": "C99 privately validates 500 original-derived chunked models with a Linux C reader and 6 software-source DS-resolution screenshots of 3 source models. Actual melonDS private ROM capture, full original 3DS geometry/shader fidelity, animation and gameplay are still unverified.",
+      "gap": "C101 integrates C98 source geometry selection into the latest C100 trunk: default recovered DS3M <=600 triangles, optional CRC-validated P3CS <=1800 original-derived source triangles, missing/corrupt chunk fallback to DS3M. 500 private source model samples exist but real melonDS private-data screenshots, full 3DS topology, texture sampler/animation parity and remaining gameplay are incomplete.",
       "verified_end_to_end": false
     },
     {

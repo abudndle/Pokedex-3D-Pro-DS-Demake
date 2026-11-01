@@ -96,6 +96,8 @@ static int art_page=-1;
 static int showing_original_art=0;
 static int original_art_available=0;
 static int prefer_original_art=1;
+/* Reversible source-geometry QA; not saved as an original game option. */
+static int prefer_source_chunks=0;
 static void prepare_original_art(void){
     int page=home?P3D_PAGE_HOME:(int)state.page;
     if(page==art_page)return;
@@ -127,6 +129,7 @@ static void reload_preview(void){
     p3dPreviewTextureSetRelease(&preview_gl_textures);
     int resource=selected_form?p3dFormResolve(&alternate_models,dex_index,selected_form):p3dModelMapResolve(&species_models,dex_index);
     char clip_path[80];
+    previewStreamPreferChunks(prefer_source_chunks);
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
     preview_animation.ready=0;
     preview_animation_library.ready=0;
@@ -325,6 +328,8 @@ static void render(void) {
             printf("L/R: second type\n");
         } else if(state.page==P3D_PAGE_SETTINGS){
             printf("Automatic model rotation: %s\n",state.rotate?"ON":"OFF");
+            printf("Source geometry: %s\n",prefer_source_chunks?"HIGH (TEST)":"LEGACY");
+            printf("X: toggle private detail mode\n");
             printf("A: toggle automatic rotation\n");
             printf("Y: open Pokemon Search\n");
             printf("L/R: rotate manually in Pokedex\n");
@@ -532,6 +537,8 @@ static void render(void) {
             printf("\x1b[23;1HL/R: tabs  X/Fav Y/Quiz");
         }else if(state.page==P3D_PAGE_SETTINGS){
             printf("\x1b[13;1HAuto rotate: %s",state.rotate?"ON":"OFF");
+            printf("\x1b[14;1HGeometry: %s",prefer_source_chunks?"HIGH TEST":"LEGACY");
+            printf("\x1b[16;1HX: preview detail");
             printf("\x1b[15;1HA: toggle setting");
         }else if(state.page==P3D_PAGE_FAVORITES){
             printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
@@ -956,6 +963,11 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_SETTINGS){
+                if((down&KEY_X) && !(down&(KEY_A|KEY_TOUCH))){
+                    prefer_source_chunks=!prefer_source_chunks;
+                    reload_preview();
+                    redraw=1;
+                }
                 if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH))){
                     state.selected_dex=dex_index;
                     state.page=P3D_PAGE_SEARCH;
