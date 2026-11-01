@@ -978,6 +978,7 @@ int main(void) {
                 top_art_page=-1;
                 showing_original_top_art=0;
                 render();
+                (void)save_resume_checkpoint();
             }else if(p3dTitleIdleAdvance(&title_idle)){
                 p3dTitleIdleChooseSpecies(&title_idle);
                 reload_preview();
