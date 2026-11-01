@@ -6,6 +6,10 @@
  * This is a binding validator; original material IDs remain private. */
 int p3dModelMaterialTexturesValid(const P3DMaterialMap *materials,
                                   const P3DTextureManifest *textures);
+/* Exact original preview topology must match the complete material ranges. */
+int p3dModelMaterialTexturesMatchMesh(const P3DMaterialMap *materials,
+                                      const P3DTextureManifest *textures,
+                                      unsigned mesh_triangles);
 int p3dModelTextureForTriangle(const P3DMaterialMap *materials,
                                const P3DTextureManifest *textures,
                                unsigned triangle);

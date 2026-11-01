@@ -192,7 +192,9 @@ static void reload_preview(void){
         if(p3dMaterialMapLoad(&preview_materials,clip_path,(unsigned)previewStreamTriangleCount())){
             snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3tx",resource);
             if(p3dTextureManifestLoad(&preview_textures,clip_path))
-                material_references_ready=p3dModelMaterialTexturesValid(&preview_materials,&preview_textures);
+                material_references_ready=p3dModelMaterialTexturesMatchMesh(
+                    &preview_materials,&preview_textures,
+                    (unsigned)previewStreamTriangleCount());
             if(material_references_ready && previewStreamHasUv()){
                 /* Model-scoped paths avoid colliding texture IDs across species. */
                 snprintf(clip_path,sizeof(clip_path),
