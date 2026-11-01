@@ -96,7 +96,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "tools/c92_diagnostic_textured_preview_audit.py",
-      "gap": "C107 preserves source P3PX v2 A1RGB555 per-pixel transparency during native DS GL_RGBA texture upload; legacy v1 opaque GL_RGB is retained, with synthetic host/BlocksDS regression. C92's 500 diagnostic DS3M/P3UV/P3MT/P3TX previews (2,147 sampled ranges, 1,152 source-derived textures) still have unverified original 3DS sampler routing and 38 review exceptions; source-aligned material/texture fidelity and private original-assets emulator screenshots are unverified.",
+      "gap": "C108 native material/texture binding validation now rejects mismatched mesh triangle counts, overlapping/gapped material ranges, malformed manifests, incorrect texture payloads, VRAM budget overruns and partial GPU uploads, with synthetic host GL tests. C107 preserved v2 texture alpha. Experimental C92 3DS GPU sampler/shader bindings are still unverified (including 38 exception models); original private emulator model visual parity and production sampler provenance remain incomplete.",
       "verified_end_to_end": false
     },
     {
