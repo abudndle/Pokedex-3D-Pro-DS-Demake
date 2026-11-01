@@ -16,6 +16,20 @@ int main(int argc,char **argv){
     assert(source.ready && source.count==2);
     assert(p3dSourceMaterialTextureReferencesMatch(
         &source,&candidate,&textures,25,4));
+    /* C125: triangle-level candidates preserve the exact approved C5
+       draw range, never selecting an unrelated manifest texture. */
+    assert(p3dSourceCandidateTextureForTriangle(
+        &source,&candidate,&textures,25,4,0)==2);
+    assert(p3dSourceCandidateTextureForTriangle(
+        &source,&candidate,&textures,25,4,1)==2);
+    assert(p3dSourceCandidateTextureForTriangle(
+        &source,&candidate,&textures,25,4,2)==2);
+    assert(p3dSourceCandidateTextureForTriangle(
+        &source,&candidate,&textures,25,4,3)==7);
+    assert(p3dSourceCandidateTextureForTriangle(
+        &source,&candidate,&textures,25,4,4)==-1);
+    assert(p3dSourceCandidateTextureForTriangle(
+        &source,&candidate,&textures,26,4,0)==-1);
     /* Reference and topology are both required, even with valid P3MT. */
     assert(!p3dSourceMaterialTextureReferencesMatch(
         &source,&candidate,&textures,26,4));
@@ -35,6 +49,8 @@ int main(int argc,char **argv){
     assert(p3dModelMaterialTexturesMatchMesh(&candidate,&textures,4));
     assert(!p3dSourceMaterialTextureReferencesMatch(
         &source,&candidate,&textures,25,4));
+    assert(p3dSourceCandidateTextureForTriangle(
+        &source,&candidate,&textures,25,4,0)==-1);
     candidate.ranges[0].texture_id=2;
     /* A name hint cannot substitute an original C5 material number. */
     candidate.ranges[1].material_id=99;
@@ -67,6 +83,6 @@ int main(int argc,char **argv){
     assert(!source.ready); /* Bad original CRC must not leave stale binding. */
     assert(!p3dSourceMaterialLoad(&source,argv[5],25,4));
     assert(!source.ready);
-    puts("C109 original C5 mesh/material/texture reference gate: PASS");
+    puts("C109/C125 source-verified triangle material and texture gate: PASS");
     return 0;
 }

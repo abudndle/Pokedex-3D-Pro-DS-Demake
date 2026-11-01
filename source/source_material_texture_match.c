@@ -41,3 +41,19 @@ int p3dSourceMaterialTextureReferencesMatch(
     return src_cursor==mesh_triangles && mat_cursor==mesh_triangles &&
            j==materials->count;
 }
+
+/* Do not render a candidate range unless its complete mesh/source
+ * provenance is coherent. The original shader's sampler role is still
+ * unknown; this returns the chosen referenced texture, not an inferred
+ * diffuse/normal-map role. */
+int p3dSourceCandidateTextureForTriangle(
+    const P3DSourceMaterialMap *source,
+    const P3DMaterialMap *materials,
+    const P3DTextureManifest *textures,
+    unsigned model_id,unsigned mesh_triangles,unsigned triangle){
+    if(triangle>=mesh_triangles ||
+       !p3dSourceMaterialTextureReferencesMatch(
+           source,materials,textures,model_id,mesh_triangles))
+        return -1;
+    return p3dModelTextureForTriangle(materials,textures,triangle);
+}
