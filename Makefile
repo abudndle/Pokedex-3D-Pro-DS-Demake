@@ -33,6 +33,7 @@ check-host:
 		run_menu_layout_smoke.sh run_dsi_feature_gating.sh \
 		run_feature_menu_smoke.sh run_save_store_smoke.sh \
 		run_challenge_smoke.sh run_move_dex_smoke.sh \
+		run_c100_move_effect_view.sh \
 		run_photo_album_smoke.sh run_custom_images.sh \
 		run_bmp_loader.sh run_image_background.sh \
 		run_settings_images.sh run_menu_navigation.sh \
