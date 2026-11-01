@@ -68,7 +68,16 @@ def verify(folder):
             raise ValueError("invalid source face counts")
         if not 0<row["changed_pixels"]<=256*192:
             raise ValueError("unchanged original-source preview")
-        for name in row["software_images"]:
+        images=row.get("software_images")
+        # Each reported model must have the two exact, distinct geometry QA
+        # views, not repeats of one image or a misleading emulator capture.
+        required=[f"C99_SOFTWARE_QA_{model}_ds3m.png",
+                  f"C99_SOFTWARE_QA_{model}_p3cs.png"]
+        if (not isinstance(model,str) or
+            not __import__("re").fullmatch(r"p[0-9]{3}",model) or
+            not isinstance(images,list) or images!=required):
+            raise ValueError("missing or mismatched source QA views")
+        for name in images:
             if Path(name).name!=name or not name.endswith(".png"):
                 raise ValueError("unsafe source screenshot path")
             check_png(folder/name)
