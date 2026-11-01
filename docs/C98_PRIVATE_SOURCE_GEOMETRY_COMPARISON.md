@@ -40,3 +40,14 @@ Never bypass the C85 final-release gate. Keep the Nintendo-derived original mode
 The existing host preview regression now tests both assets at one model ID: legacy selected by default; high-detail selected after an explicit toggle; invalid P3CS falling back to intact DS3M; corrupted P3CS without a fallback rejected; switching back restoring legacy. The new public-safe ZIP packager includes CRC, roster, and diagnostic-map synthetic tests.
 
 **Still unfinished:** private asset-bearing ROM screenshot and hardware/emulator frame-time evidence, independently verified original GPU material/texture sampler channels, full source mesh geometry on DS, authoritative source species mapping, animation and gameplay parity. This is a native QA feature, not a complete 3DS port.
+
+## Manual private emulator comparison checklist
+
+1. Build a DEVELOPMENT ROM with the private NitroFS ZIP extracted into nitrofs/.
+2. Boot in a Nintendo DS emulator. Use SELECT to show text navigation if original artwork hides instructions.
+3. Open one of the three test-routed Dex entries; record the legacy preview and displayed triangle count.
+4. Open Settings and press X for HIGH (TEST); return to the same Dex model and record the chunked version.
+5. Press X again in Settings and confirm that the old preview returns without altering saved progress.
+6. Repeat for a second model. Collect real frame timings or screenshots before claiming visual accuracy or DS performance.
+
+The private asset-bearing emulator comparison is NOT yet marked passed. An asset-free smoke test is not equivalent evidence.
