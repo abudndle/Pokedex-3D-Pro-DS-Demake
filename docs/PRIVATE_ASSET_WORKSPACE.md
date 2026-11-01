@@ -176,3 +176,45 @@ neutral preview color: **no original UV, shader, material, texture, or animation
 role has been inferred.** Neither original 3DS visual parity nor release
 readiness is demonstrated. Keep C135 ZIPs and their per-model report private;
 only the reconstruction source and synthetic fixtures belong on GitHub.
+
+## C136 — native DS3M header repair and source-paired UV test stage
+
+The native DS model loader reads DS3M header bytes 8–11 as **reserved zero**.
+Historical C18/C86/C135 exporters instead wrote original vertex counts there.
+That caused every C135 private preview to fail the native loader, even though
+asset-free ROM startup and previous archive checks passed.
+
+C136 changes the exporters to write the correct native header. It also
+provides `tools/c136_native_uv_stage.py` to repair already-archived private
+C135 model previews in place **inside a new output ZIP**, preserving the
+original files and recording historical vertex counts in a private report.
+
+The C86 archive has 538 exact DS3M/P3UV candidate pairs. Of these, **49**
+have all six signed 4.12 UV coordinates per triangle within [0, 4096] and
+C62 source-derived provenance. Remaining **489** pairs require unresolved
+repeat/mirror/wrap behavior and are not enabled.
+
+Build the loader-compatible default package (no UV candidates):
+
+```sh
+python3 tools/c136_native_uv_stage.py \
+  --base private/packages/C135_PRIVATE_730_MODEL_NITROFS.zip \
+  --candidates private/packages/C86_PRIVATE_DS_GEOMETRY_AND_UV_CANDIDATES.zip \
+  --source-report private/reports/C86_DS_MODEL_STAGE_REPORT.json \
+  --mode baseline \
+  --output private/packages/C136_PRIVATE_NATIVE_COMPATIBLE_NITROFS.zip \
+  --report private/reports/C136_PRIVATE_BASELINE_REPORT.json
+```
+
+For an **optional, non-release geometry/UV QA experiment** only, replace
+`--mode baseline` with `--mode unit-uv-qa` and use separate output/report
+filenames. This replaces BOTH source-derived DS3M geometry and matching P3UV
+for only those 49 models, not the unrelated C135 fallback geometry.
+No texture manifest, source C5 material associations, original shader sampler
+role, wrap mode or palette has been inferred. In the native game these QA
+candidate models remain untextured until the existing complete original C5
+material/shader provenance gates pass.
+
+A C136 package is **native-header-compatible**, not visually accurate or
+proven in a private asset-integrated emulator playthrough. Keep all original
+model geometry and conversion ZIPs outside the public GitHub repository.
