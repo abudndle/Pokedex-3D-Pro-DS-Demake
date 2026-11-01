@@ -96,7 +96,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "tools/c92_diagnostic_textured_preview_audit.py",
-      "gap": "C110 adds private original C5 shader capability declaration (P3SC) extraction, CRC-validated native loading and source shader CF_COLORMAP gating. Ambiguous two-texture source materials are intentionally left untextured rather than guessing a diffuse slot. C109 original C5 texture references, C108 mesh-range validation and C107 alpha remain. Original 3DS GPU sampler execution, diffuse/normal/specular slot mapping, UV transforms, real-asset model visuals and exact shader fidelity are still unverified; no original production shader roles are claimed.",
+      "gap": "C111 preserves exact 13-dword original C5 material registers, original shader declarations, texture-reference IDs and source SHA-256 in private C111 sampler forensic evidence; ambiguous original color+bump shader combinations are rejected by the native renderer rather than guessed. The source-extractable evidence does not decode original GPU sampler equations or verify diffuse/normal/specular mappings. C110 source shader declaration checks, C109 original material references, C108 geometry, C107 alpha remain. Private 3DS C5 archives, per-model original shader visual validation, complete gameplay/UI/audio/animations and asset-bearing emulator fidelity are not yet verified.",
       "verified_end_to_end": false
     },
     {

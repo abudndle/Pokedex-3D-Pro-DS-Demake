@@ -34,6 +34,10 @@ int main(int argc,char **argv){
     shaders.materials[10].flags=P3D_SHADER_CAP_BUMPMAP;
     assert(!p3dSourceShaderColorReferencesMatch(
         &shaders,&source,&candidate,&tex,25,3));
+    shaders.materials[10].flags=P3D_SHADER_CAP_COLORMAP|P3D_SHADER_CAP_BUMPMAP;
+    /* CF_COLORMAP plus CF_BUMPMAP is NOT a proven color-only sampler. */
+    assert(!p3dSourceShaderColorReferencesMatch(
+        &shaders,&source,&candidate,&tex,25,3));
     shaders.materials[10].flags=P3D_SHADER_CAP_COLORMAP;
     assert(p3dSourceShaderColorReferencesMatch(
         &shaders,&source,&candidate,&tex,25,3));
