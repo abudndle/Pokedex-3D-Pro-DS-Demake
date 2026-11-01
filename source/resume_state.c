@@ -111,3 +111,14 @@ int p3dResumeApply(const P3DResumeState *s,P3DCapabilities caps,
     menu->selected_dex=s->selected_dex;
     return 1;
 }
+
+int p3dResumeRestoreBoot(const char *base,P3DResumeState *restored,
+                         P3DCapabilities caps,int *home,
+                         P3DMenu *menu,int *highlight){
+    P3DResumeState checkpoint;
+    if(!restored||!p3dResumeLoad(base,&checkpoint)||
+       !p3dResumeApply(&checkpoint,caps,home,menu,highlight))
+        return 0;
+    *restored=checkpoint;
+    return 1;
+}
