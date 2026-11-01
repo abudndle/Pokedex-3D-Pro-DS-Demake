@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Compile asset-free native Nintendo DS ROM
-        run: make dev-rom
+        run: make dev-rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
       - name: Inspect generated ROM
         run: |
           test -s Pokedex3D_DS_BlocksDS.nds
@@ -52,6 +52,10 @@ jobs:
         run: |
           set -euo pipefail
           test -s emulator-rom/Pokedex3D_DS_BlocksDS.nds
+          echo "C152 asset-free development ROM SHA-256:"
+          sha256sum emulator-rom/Pokedex3D_DS_BlocksDS.nds
+          echo "DeSmuME CLI installed version:"
+          /usr/games/desmume-cli --version || true
           cat > /tmp/check_emulator.sh <<'SCRIPT'
           #!/usr/bin/env bash
           set -euo pipefail
@@ -73,29 +77,39 @@ jobs:
           test -s emulator-early.xwd
           # Wait until the home menu is present, then compare before/after input.
           sleep 12
-          xwd -id "$window_id" -silent -out emulator-before-down.xwd
+          xwd -id "$window_id" -silent -out emulator-before-open.xwd
           # SDL may ignore XSendEvent targeted at a window. Focus the
           # emulator and use XTEST keyboard injection instead.
           xdotool windowfocus --sync "$window_id"
-          xdotool mousemove --window "$window_id" 128 190
-          xdotool click 1
-          # Send several common DeSmuME directional bindings while
-          # collecting evidence. Keyboard layout and emulator bindings
-          # differ between frontends, so no gameplay claim is implied.
-          xdotool keydown Down
-          sleep 1
-          xdotool keyup Down
+          # The old click at upper-screen (128,190) left KEY_TOUCH held in
+          # real C152 ARM9 diagnostics, potentially swallowing later inputs.
+          # Keyboard focus is already confirmed by X11; release the mouse
+          # without injecting any new touchscreen press.
+          xdotool mouseup 1
+          # C152 real ARM9 probe showed this installed CLI maps the X11
+          # Down symbol to KEY_LID (0x2000), which freezes later input
+          # calibration. Open the initially selected Pokédex with A only.
+          # Never inject Down/Up before verifying this frontend's key map.
           # DeSmuME's current CLI source (src/frontend/posix/cli/main.cpp)
           # maps x=A and z=B. The older Linux manpage is outdated.
           xdotool keydown x
           sleep 1
           xdotool keyup x
           sleep 2
-          xwd -id "$window_id" -silent -out emulator-after-down.xwd
+          xwd -id "$window_id" -silent -out emulator-after-open.xwd
+          # Verify the X11 focus still belongs to the SDL emulator window.
+          # The upstream CLI key map uses x=A, z=B and arrow keys as D-Pad.
+          {
+            echo "Expected SDL DeSmuME CLI keys: x=A, z=B, Right=D-Pad Right"
+            echo "Emulator X11 window: $window_id"
+            echo "Focused X11 window: $(xdotool getwindowfocus)"
+            echo "ROM SHA256: $(sha256sum emulator-rom/Pokedex3D_DS_BlocksDS.nds)"
+          } > emulator-input-diagnostics.txt
           # Distinguish a frozen game loop from an unmapped B key:
-          # Right should browse from Pokémon #001 to #002 on this page.
+          # The installed CLI's Right mapping must be proven by the ARM9 probe.
           xdotool keydown Right
           sleep 0.4
+          xwd -id "$window_id" -silent -out emulator-during-right.xwd
           xdotool keyup Right
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-right.xwd
@@ -106,7 +120,17 @@ jobs:
           xdotool keyup z
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
-          sleep 2
+          # Temporary C152 calibration: installed CLI may remap keyboard
+          # symbols unexpectedly. Capture the ACTUAL ARM9 held-bit readout
+          # for each candidate while it is down, never infer from key names.
+          for candidate in z w q s a Right Left Up Down; do
+            xdotool keydown "$candidate"
+            sleep 0.35
+            xwd -id "$window_id" -silent -out "probe-$candidate.xwd"
+            xdotool keyup "$candidate"
+            sleep 0.15
+          done
+          sleep 1
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
             echo "DeSmuME terminated before the startup smoke test completed" >&2
@@ -173,8 +197,8 @@ jobs:
               offset=h[0]+h[19]*12
               stride=h[11]//8
               return set(),b[offset:offset+h[12]*h[5]],h[4],h[5],h[12],stride
-          _,a,w,h,row,stride=read_pixels('emulator-before-down.xwd')
-          _,b,w2,h2,row2,stride2=read_pixels('emulator-after-down.xwd')
+          _,a,w,h,row,stride=read_pixels('emulator-before-open.xwd')
+          _,b,w2,h2,row2,stride2=read_pixels('emulator-after-open.xwd')
           assert (w,h,row,stride)==(w2,h2,row2,stride2)
           different=sum(a[y*row+x*stride:y*row+x*stride+3] !=
                         b[y*row+x*stride:y*row+x*stride+3]
@@ -188,8 +212,9 @@ jobs:
           print(f'Pokédex Right input changed {moved} sampled pixels')
           # Only tiny heartbeat text changes were observed (5 pixels);
           # that is not sufficient evidence of Pokémon browsing.
-          if moved<100:
-              print('WARNING: Right produced no substantive Pokémon-page change')
+          assert moved>100, (
+              'C152 FAIL: Right did not visibly browse an entry; inspect '
+              'during-right capture, SDL focus and game input state')
           assert different>100, (
               'Simulated Down/A sequence did not visibly open a menu page')
           _,c,w3,h3,row3,stride3=read_pixels('emulator-after-back.xwd')
@@ -198,8 +223,9 @@ jobs:
                        c[y*row+x*stride:y*row+x*stride+3]
                        for y in range(0,h,2) for x in range(0,w,2))
           print(f'After B, pixels different from home menu: {restored}')
-          if restored>=different//2:
-              print('WARNING: z is SELECT on this CLI build, not B. Inspect held-key captures.')
+          assert restored<different//2, (
+              'C152 FAIL: B (z per upstream DeSmuME CLI mapping) did not '
+              'restore home. Inspect held-key capture and emulator focus.')
           PY
       - name: Upload emulator visual evidence
         if: always()
@@ -209,10 +235,13 @@ jobs:
           path: |
             emulator-window.xwd
             emulator-early.xwd
-            emulator-before-down.xwd
-            emulator-after-down.xwd
+            emulator-before-open.xwd
+            emulator-after-open.xwd
+            emulator-input-diagnostics.txt
             emulator-after-right.xwd
+            emulator-during-right.xwd
             emulator-after-back.xwd
             emulator-during-back.xwd
             emulator-windows.txt
+            probe-*.xwd
           if-no-files-found: warn

@@ -17,7 +17,7 @@ DEPS := $(OBJS:.o=.d)
 .DEFAULT_GOAL := rom
 ARCH := -mthumb -mcpu=arm946e-s+nofp
 SPECS := $(BLOCKSDS)/sys/crts/ds_arm9.specs
-CFLAGS := -MMD -MP -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__ -DP3D_HAVE_FAT -Isource -I$(BLOCKSDS)/libs/libnds/include
+CFLAGS := -MMD -MP -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__ -DP3D_HAVE_FAT -Isource -I$(BLOCKSDS)/libs/libnds/include $(EXTRA_CFLAGS)
 LDFLAGS := $(ARCH) -L$(BLOCKSDS)/libs/libnds/lib -Wl,-Map,build/$(NAME).map -Wl,--gc-sections -Wl,--start-group -lnds9 -lc -Wl,--end-group -specs=$(SPECS)
 .PHONY: rom verify-toolchain
 rom: verify-toolchain $(NAME).nds
