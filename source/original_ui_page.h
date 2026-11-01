@@ -2,6 +2,7 @@
 #define P3D_ORIGINAL_UI_PAGE_H
 /* Original 3DS title is a distinct source screen on both displays.
  * Never replace it with the home page or synthesized typography. */
+int p3dOriginalTitleFrameLoad(unsigned frame);
 int p3dOriginalTitleLoad(void);
 int p3dOriginalTitleReady(void);
 void p3dOriginalTitleDraw(void);
