@@ -25,6 +25,8 @@ ARCHIVES = [
  'C148_PRIVATE_730_ORIGINAL_SKELETON_P3SK.zip',
  'C84_PRIVATE_ORIGINAL_GUI_MOVES_TEXTURE_DEX_NITROFS.zip',
  'C98_PRIVATE_LEGACY_VS_CHUNKED_NITROFS.zip',
+ 'C96_PRIVATE_CHUNKED_1800_TRIANGLE_NITROFS_v2.zip',
+ 'C98_PRIVATE_TOOLS_AND_AUDITS.zip',
 ]
 
 def digest(path):
@@ -108,8 +110,98 @@ def audit_c84_content(root):
                 raise ValueError('C84 source UI SHA mismatch: '+name)
         if hashlib.sha256(recovered.read('moves.p3dm')).hexdigest()!=source_manifest['moves_sha256']:
             raise ValueError('C84 original moves SHA mismatch')
+    recovered_original=find(root,'C84_PRIVATE_ORIGINAL_GUI_MOVES_TEXTURE_DEX_NITROFS.zip')
+    if recovered_original:
+        with zipfile.ZipFile(recovered_original) as exact:
+            if len(exact.namelist())!=len(expect) or set(exact.namelist())!=expect:
+                raise ValueError('original C84 source ZIP member roster mismatch')
+            with zipfile.ZipFile(target) as reconstructed:
+                for name in expect:
+                    if exact.read(name)!=reconstructed.read(name):
+                        raise ValueError('original C84 source byte mismatch: '+name)
     return {'available':True,'verified':True,'members_compared':len(expect),
-        'original_C84_ZIP_recovered':False,'embedded_C84_UI_and_moves_SHA256_verified':True}
+        'original_C84_ZIP_recovered':bool(recovered_original),
+        'original_C84_ZIP_byte_exact_members':len(expect) if recovered_original else 0,
+        'embedded_C84_UI_and_moves_SHA256_verified':True}
+
+
+def inspect_p3cs(blob:bytes, expected_model:int):
+    """Validate original C98 P3CS chunk headers and CRCs before comparisons."""
+    if len(blob)<24:
+        raise ValueError('truncated original P3CS header')
+    magic,version,model,count,reserved,total,original,table_crc=struct.unpack_from('<4s4H3I',blob)
+    if (magic!=b'P3CS' or version!=1 or model!=expected_model or reserved!=0 or
+        count<1 or count>3 or total<1 or total>1800 or original<total):
+        raise ValueError('invalid original P3CS source header')
+    table_end=24+16*count
+    if table_end>len(blob):raise ValueError('truncated P3CS chunk table')
+    table=blob[24:table_end]
+    if zlib.crc32(table)&0xffffffff!=table_crc:
+        raise ValueError('P3CS source table CRC mismatch')
+    offset=table_end;first=0
+    for i in range(count):
+        face_index,n,zero,bytepos,crc=struct.unpack_from('<IHHII',table,i*16)
+        end=offset+n*33
+        if (face_index!=first or zero!=0 or n<1 or n>600 or
+            bytepos!=offset or end>len(blob)):
+            raise ValueError('P3CS source triangle span mismatch')
+        if zlib.crc32(blob[offset:end])&0xffffffff!=crc:
+            raise ValueError('P3CS source chunk CRC mismatch')
+        first+=n;offset=end
+    if first!=total or offset!=len(blob):
+        raise ValueError('P3CS final source triangle totals mismatch')
+    return count,total
+
+
+def audit_c98_source_content(root):
+    """Cross-verify the ORIGINAL private C98 ZIP, legacy C86, and C96 chunks."""
+    legacy=find(root,'C86_PRIVATE_COMBINED_NITROFS_WITH_PREVIEWS.zip')
+    c96=find(root,'C96_PRIVATE_CHUNKED_1800_TRIANGLE_NITROFS_v2.zip')
+    c98=find(root,'C98_PRIVATE_LEGACY_VS_CHUNKED_NITROFS.zip')
+    if not all((legacy,c96,c98)):
+        return {'available':False,'verified':False,'reason':'original C86, C96, or C98 missing'}
+    ref=get_report(root,'C98_PRIVATE_GEOMETRY_COMPARISON_VALIDATION.json')
+    sha=digest(c98)
+    if sha!=ref['package_sha256']:
+        raise ValueError('original C98 ZIP SHA-256 mismatch against private recovery report')
+    legacy_exact=chunk_exact=chunks=triangles=0
+    with zipfile.ZipFile(legacy) as z86,zipfile.ZipFile(c96) as z96,zipfile.ZipFile(c98) as z98:
+        ln=z86.namelist();cn=[x for x in z96.namelist() if re.fullmatch(
+            r'diagnostic_nitrofs/preview/p\d{3}\.p3cs',x)]
+        expected=set(ln)|{n.removeprefix('diagnostic_nitrofs/') for n in cn}|{'models/species_map.p3sm'}
+        if len(z98.namelist())!=len(expected) or set(z98.namelist())!=expected:
+            raise ValueError('C98 source archive differs from C86 + C96 diagnostic member roster')
+        if len(ln)!=6237 or len(cn)!=500 or len(z98.namelist())!=6738:
+            raise ValueError('C98/C96 original file inventory unexpected')
+        for name in ln:
+            if z98.read(name)!=z86.read(name):
+                raise ValueError('C98 original C86 legacy byte mismatch: '+name)
+            legacy_exact+=1
+        for name in cn:
+            model=int(name[-8:-5])
+            source=z96.read(name)
+            target='preview/'+name.rsplit('/',1)[-1]
+            if z98.read(target)!=source:
+                raise ValueError('C98 original C96 chunk byte mismatch: '+name)
+            count,total=inspect_p3cs(source,model)
+            chunks+=count;triangles+=total;chunk_exact+=1
+        original_map=z98.read('models/species_map.p3sm')
+        if (len(original_map)!=8+649*2 or original_map[:8]!=struct.pack('<4sHH',b'P3SM',1,649)):
+            raise ValueError('invalid C98 diagnostic-only species map')
+        ids=struct.unpack_from('<649H',original_map,8)
+        if [(i,v) for i,v in enumerate(ids) if v!=65535]!=[(0,0),(1,1),(24,25)]:
+            raise ValueError('unexpected C98 diagnostic-only species associations')
+    if (legacy_exact!=ref['legacy_models']+5511 or chunk_exact!=ref['high_detail_models'] or
+        chunks!=ref['high_detail_chunks'] or triangles!=ref['high_detail_triangles']):
+        raise ValueError('C98 source comparison report model/triangle mismatch')
+    return {'available':True,'verified':True,'original_C98_ZIP_recovered':True,
+            'sha256':sha,'legacy_C86_entries_byte_exact':legacy_exact,
+            'C96_P3CS_models_byte_exact':chunk_exact,
+            'C98_chunk_tables_CRC_verified':chunk_exact,
+            'C98_chunk_count':chunks,'C98_chunk_triangles':triangles,
+            'original_species_mapping_recovered':False,
+            'original_3DS_sampler_binding_verified':False,
+            'asset_integrated_emulator_verified':False}
 
 def verify(root):
     found={}; missing=[]
@@ -232,6 +324,7 @@ def verify(root):
     return {'result':'PASS','private_only':True,'publication_scope':'SHA-256 manifests and source-only QA; no original model or artwork binaries',
             'archive_inventory':found,'archives_unavailable':missing,
             'C84_embedded_original_content_recovery':audit_c84_content(root),
+            'C98_original_legacy_vs_chunked_comparison':audit_c98_source_content(root),
             'source_hashes_verified':totals['models_verified'],
             'checks':dict(totals),'model_checks':model_checks,
             'original_3ds_texture_binding_verified':False,
