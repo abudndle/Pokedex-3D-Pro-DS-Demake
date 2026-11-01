@@ -937,3 +937,50 @@ not public GitHub. Further original material-to-shader/sampler bindings,
 source skin weights, action-clip semantics, C98 P3CS file recovery,
 complete UI, and a private-asset-integrated ARM9 emulator visual test
 remain outstanding.
+
+## C153 — recover ORIGINAL C84/C96/C98 archives from the user's private Library
+
+C153 located the previously-missing original private C84 and C98 packages in
+the owner's earlier ChatGPT file Library, **not on a public game-asset site**.
+All originals are held in a private workspace outside the public GitHub
+checkout and out of CI artifacts. Keep every ZIP, source C5, and detailed
+per-model report PRIVATE. GitHub contains only this verification tool, synthetic
+regressions, and documentation.
+
+Recovered, full-CRC-valid archives:
+
+| File | SHA-256 | Validated contents |
+|---|---|---|
+| `C84_PRIVATE_ORIGINAL_GUI_MOVES_TEXTURE_DEX_NITROFS.zip` | `f399ff07313075e000f3deea2dd43987c9a045903e94f40d366355bd87e06528` | 5,510 byte-identical C84 files in C86, including 4,039 textures and 10 original UI pages |
+| `C96_PRIVATE_CHUNKED_1800_TRIANGLE_NITROFS_v2.zip` | `84bf936630a94568e4e89ad25f3af66d896cf8a985de0fbd2c0066da7f1ebc6c` | 500 diagnostic original-derived P3CS models |
+| `C98_PRIVATE_LEGACY_VS_CHUNKED_NITROFS.zip` | `039f5b80eb8f25fb37c572cb7f596d265503301456cc6632d53104a65a002bd6` | 6,738 files: 6,237 byte-identical C86 legacy entries, 500 byte-identical C96 chunks, and one TEST-ONLY routing map |
+
+The original C98 hash exactly matches the owner's earlier private
+`C98_PRIVATE_GEOMETRY_COMPARISON_VALIDATION.json`. The verified 500 chunked
+P3CS previews contain **1,499** individually CRC-checked chunks with
+**893,666** total sampled triangles. The three C98 routing entries (Dex
+indices 0, 1, 24 to source resources 0, 1, 25) are **diagnostic only**,
+not verified species attribution.
+
+Repeat the validation on your own PRIVATE archive directory:
+
+```sh
+# Store ZIPs locally in private/archives (gitignored), and private earlier
+# C140, C141, C143 and C98 reports under private/reports.
+python3 tools/c150_private_asset_integrity.py \
+  --root private \
+  --report private/reports/C153_ORIGINAL_C84_C96_C98_AUDIT.json
+python3 -m unittest discover -s tests -p 'test_c150_private_asset_integrity.py' -v
+```
+
+C153's checker rejects changed C98 package SHA, unsafe/duplicate ZIP paths,
+C84 content drift, displaced 500-chunk inventory, P3CS wrong model IDs,
+corrupt chunk/table CRC32 and invalid source triangle bounds. It also
+continues the cross-stage original C56-to-730-DS3M-to-P3SK source-hash,
+49-unit-UV and 25,956 original node animation-link validations from C150.
+
+**Not claimed:** complete source materials (`P3MR/P3SC/P3SW/P3MT`),
+original texture sampler roles, mesh vertex skin weights, authentic
+animation action/clip playback, asset-integrated DS emulator visual parity,
+or a complete 3DS-to-DS commercial-game port. The C98 P3CS package is
+private **diagnostic** geometry, not a release renderer.
