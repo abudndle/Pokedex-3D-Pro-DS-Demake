@@ -9,6 +9,7 @@
 #include <string.h>
 #include "preview_stream.h"
 #include "model_uv.h"
+#include "preview_chunk_stream.h"
 
 #define C7_MAX_PREVIEW_TRIANGLES 600
 static int16_t s_xyz[C7_MAX_PREVIEW_TRIANGLES * 9];
@@ -19,6 +20,9 @@ static int s_loaded = 0;
 static int s_triangle_count = 0;
 static int s_original_triangle_count = 0;
 static int s_fs_available = 0;
+static P3DChunkStream s_chunk_stream;
+static int s_chunked = 0;
+static int s_drawing_chunk = 0;
 
 static uint16_t get16(const unsigned char *p) {
     return (uint16_t)((unsigned int)p[0] | ((unsigned int)p[1] << 8));
@@ -46,6 +50,9 @@ int previewStreamLoad(int resource_index) {
     s_original_triangle_count=0;
     s_has_face_colors=0;
     s_uv.ready=0;
+    s_chunked=0;
+    s_drawing_chunk=0;
+    p3dChunkClose(&s_chunk_stream);
     if (!s_fs_available || resource_index < 0 || resource_index >= 738) return 0;
 #ifdef C7_TEST_HOST
     snprintf(path,sizeof(path),"nitrofs/preview/p%03d.ds3m",resource_index);
@@ -53,7 +60,21 @@ int previewStreamLoad(int resource_index) {
     snprintf(path,sizeof(path),"nitro:/preview/p%03d.ds3m",resource_index);
 #endif
     f=fopen(path,"rb");
-    if (!f) return 0;
+    if (!f){
+        /* Diagnostic chunk assets are explicitly separate from the legacy
+         * 600-face DS3M. No guessed P3MT texture maps are activated here. */
+#ifdef C7_TEST_HOST
+        snprintf(path,sizeof(path),"nitrofs/preview/p%03d.p3cs",resource_index);
+#else
+        snprintf(path,sizeof(path),"nitro:/preview/p%03d.p3cs",resource_index);
+#endif
+        if(!p3dChunkOpen(&s_chunk_stream,path,(unsigned)resource_index))return 0;
+        s_chunked=1;
+        s_triangle_count=(int)s_chunk_stream.total_triangles;
+        s_original_triangle_count=(int)s_chunk_stream.original_triangles;
+        s_loaded=1;
+        return 1;
+    }
     if (fread(head,1,sizeof(head),f)!=sizeof(head)) {fclose(f);return 0;}
     version=get16(head+4);
     if (memcmp(head,"DS3M",4)!=0 || (version!=1 && version!=2)) {fclose(f);return 0;}
@@ -83,13 +104,14 @@ int previewStreamLoad(int resource_index) {
     return 1;
 }
 int previewStreamHasModel(void) { return s_loaded; }
-int previewStreamHasUv(void) { return s_loaded && s_uv.ready; }
+int previewStreamHasUv(void) { return s_loaded && !s_chunked && s_uv.ready; }
+int previewStreamIsChunked(void) { return s_loaded && s_chunked; }
 int previewStreamTriangleCount(void) { return s_triangle_count; }
 int previewStreamOriginalTriangleCount(void) { return s_original_triangle_count; }
 void previewStreamDrawRange(int first_triangle,int triangle_count,int texture_width,int texture_height) {
     int textured=texture_width>0 && texture_height>0;
     int i;
-    if (!s_loaded || first_triangle<0 || triangle_count<1 ||
+    if (!s_loaded || (s_chunked && !s_drawing_chunk) || first_triangle<0 || triangle_count<1 ||
         first_triangle>s_triangle_count || triangle_count>s_triangle_count-first_triangle) return;
     glColor3b(textured ? 255 : 192,textured ? 255 : 224,textured ? 255 : 232);
     glBegin(GL_TRIANGLES);
@@ -108,7 +130,37 @@ void previewStreamDrawRange(int first_triangle,int triangle_count,int texture_wi
     glEnd();
 }
 
-void previewStreamDrawMode(int texture_width,int texture_height) {
-    previewStreamDrawRange(0,s_triangle_count,texture_width,texture_height);
+void previewStreamDraw(void) {
+    if(!s_loaded)return;
+    if(!s_chunked){
+        previewStreamDrawRange(0,s_triangle_count,0,0);
+        return;
+    }
+    /* Reuse the existing static 600-triangle vertex/UV/color buffers.
+     * A full 1800-triangle source model is never resident in RAM. */
+    const int total=s_triangle_count;
+    for(unsigned i=0;i<s_chunk_stream.chunk_count;i++){
+        if(!p3dChunkRead(&s_chunk_stream,i,s_xyz,s_uv.uv,s_face_rgb)){
+            s_uv.ready=0;
+            s_loaded=0;
+            break; /* fail closed if NitroFS data changed after opening */
+        }
+        s_uv.ready=1;
+        s_uv.triangles=s_chunk_stream.chunks[i].triangles;
+        s_has_face_colors=1;
+        s_triangle_count=(int)s_chunk_stream.chunks[i].triangles;
+        s_drawing_chunk=1;
+        previewStreamDrawRange(0,s_triangle_count,0,0);
+        s_drawing_chunk=0;
+    }
+    s_triangle_count=total;
 }
-void previewStreamDraw(void) { previewStreamDrawMode(0,0); }
+void previewStreamDrawMode(int texture_width,int texture_height) {
+    if(s_chunked){
+        /* Original texture samplers are still experimental; this chunk path
+         * deliberately ignores requested texture dimensions. */
+        previewStreamDraw();
+    }else{
+        previewStreamDrawRange(0,s_triangle_count,texture_width,texture_height);
+    }
+}
