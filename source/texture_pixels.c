@@ -16,6 +16,7 @@ int p3dTexturePixelsLoad(P3DTexturePixels *image, const char *path) {
     image->ready = 0;
     image->width = 0;
     image->height = 0;
+    image->version = 0;
     if (!path) return 0;
     f = fopen(path, "rb");
     if (!f) return 0;
@@ -47,6 +48,7 @@ int p3dTexturePixelsLoad(P3DTexturePixels *image, const char *path) {
     fclose(f);
     image->width = (uint16_t)w;
     image->height = (uint16_t)hgt;
+    image->version = (uint16_t)version;
     image->ready = 1;
     return 1;
 }
