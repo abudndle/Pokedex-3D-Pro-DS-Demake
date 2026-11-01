@@ -30,6 +30,21 @@ int main(int argc,char **argv){
         &source,&candidate,&textures,25,4,4)==-1);
     assert(p3dSourceCandidateTextureForTriangle(
         &source,&candidate,&textures,26,4,0)==-1);
+    /* C126: all-face map must agree with the original C5 material
+       spans and clear stale output before any rejected mapping. */
+    int face_textures[5]={99,99,99,99,99};
+    assert(p3dSourceCandidateTextureMap(
+        &source,&candidate,&textures,25,4,face_textures,5));
+    assert(face_textures[0]==2&&face_textures[1]==2&&
+           face_textures[2]==2&&face_textures[3]==7&&face_textures[4]==-1);
+    assert(!p3dSourceCandidateTextureMap(
+        &source,&candidate,&textures,26,4,face_textures,5));
+    for(unsigned i=0;i<5;i++)assert(face_textures[i]==-1);
+    assert(!p3dSourceCandidateTextureMap(
+        &source,&candidate,&textures,25,4,face_textures,3));
+    for(unsigned i=0;i<3;i++)assert(face_textures[i]==-1);
+    assert(!p3dSourceCandidateTextureMap(
+        &source,&candidate,&textures,25,4,NULL,5));
     /* Reference and topology are both required, even with valid P3MT. */
     assert(!p3dSourceMaterialTextureReferencesMatch(
         &source,&candidate,&textures,26,4));
@@ -83,6 +98,6 @@ int main(int argc,char **argv){
     assert(!source.ready); /* Bad original CRC must not leave stale binding. */
     assert(!p3dSourceMaterialLoad(&source,argv[5],25,4));
     assert(!source.ready);
-    puts("C109/C125 source-verified triangle material and texture gate: PASS");
+    puts("C109/C125/C126 source-backed triangle and atomic mesh texture map: PASS");
     return 0;
 }
