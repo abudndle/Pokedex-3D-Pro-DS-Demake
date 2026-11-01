@@ -298,9 +298,8 @@ make private-host-probe \
 
 The probe calls the exact `previewStreamLoad()`, `previewStreamDraw()`,
 `previewStreamHasUv()`, and `previewStreamUvRangeUnit()` functions for
-730 source model IDs. It compares every emitted GL vertex position against
-the exact original-derived DS3M XYZ bytes, and every emitted UV coordinate
-against its paired P3UV. Unsupported IDs 721–724 must stay unavailable.
+730 source model IDs. It compares every emitted GL vertex position, **per-face RGB color** and
+available UV coordinate against the exact private DS3M/P3UV input bytes. Unsupported IDs 721–724 must stay unavailable.
 Each model must honor its source-triangle count and 600-face preview bound.
 
 **No original content is checked into GitHub:** CI generates 730 tiny
@@ -310,3 +309,23 @@ Corrupted headers must fail closed. The private host command needs no
 BlocksDS/DS emulator. It is an executable verification of model-loader
 transport, **not** an ARM9 runtime test, original textured rendering, or
 Nintendo 3DS visual-parity test. Final hardware/melonDS QA is still required.
+
+### C138 private evidence — host-side native model transport
+
+On November 1, 2026, the Linux x86-64 probe executable compiled in GitHub
+Actions was downloaded and executed against two **private** original-derived
+NitroFS archives without uploading the original files:
+
+- Corrected C136 baseline package: **730/730** DS3M models loaded and drawn,
+  **0** UV companions, exact source XYZ/RGB emission verified.
+- Separate C136 C62-source-derived UV QA package: **730/730** models loaded,
+  **49** paired P3UV maps accepted, exact source XYZ/RGB/UV emission verified.
+
+Port source tests, source checks, native BlocksDS asset-free development
+ROM, ROM verification, and DeSmuME asset-free smoke startup also passed.
+GitHub CI publishes a source-only host probe executable artifact named
+c138-native-preview-probe-linux-x64; it does not bundle original assets.
+These achievements prove the compiled **host** rendering transport accepts
+the private source-derived files, not that a private asset-integrated ARM9
+ROM has been built or playtested. Actual 3DS reference comparisons,
+material/shader provenance, animations/audio and full game parity remain open.
