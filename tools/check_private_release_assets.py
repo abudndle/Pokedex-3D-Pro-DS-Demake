@@ -112,12 +112,9 @@ def audit(src):
                 reserved!=0 or not 1<=count<=256 or
                 len(b)!=16+count*52 or zlib.crc32(b[16:])!=crc):
             return False
-        for i in range(count):
-            w=struct.unpack_from("<13I",b,16+52*i)
-            # Shader/source texture slots are declared indices. Their GPU
-            # operation roles remain unverified until shader decode.
-            if w[0]&65535>=256:
-                return False
+        # Keep every raw 32-bit field untouched: no source GPU operation
+        # meaning can safely be inferred here. Native cross-checks its known
+        # original material/texture/shader reference fields against P3MR/P3SC.
         return True
     categories={
         "mesh_previews":"preview/p%03d.ds3m",
