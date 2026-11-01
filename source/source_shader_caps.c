@@ -79,7 +79,11 @@ int p3dSourceShaderColorReferencesMatch(
         if(cap->material_id!=s->material_index ||
            cap->texture0!=s->source_texture0 ||
            cap->texture1!=s->source_texture1 ||
-           !(cap->flags&P3D_SHADER_CAP_COLORMAP))return 0;
+           !(cap->flags&P3D_SHADER_CAP_COLORMAP) ||
+           /* CF_BUMPMAP indicates an additional source shader mapping.
+            * With no decoded C5 sampler equations, even a single texture
+            * reference is NOT evidence that it drives color-only output. */
+           (cap->flags&P3D_SHADER_CAP_BUMPMAP))return 0;
         candidate_id=cap->texture0;
         other_id=cap->texture1;
         /* A source material with two DIFFERENT textures needs actual C5
