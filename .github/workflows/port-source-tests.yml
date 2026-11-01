@@ -43,6 +43,9 @@ jobs:
       - name: Verify C144 original time-indexed float3 source data recovery
         run: python3 -m unittest discover -s tests -p 'test_c144_c5_timed_vectors.py' -v
 
+      - name: Verify C145 source packed quaternion-like animation keys
+        run: python3 -m unittest discover -s tests -p 'test_c145_c5_packed_quaternions.py' -v
+
       # Public-source x86_64 host executable only. NO private Nintendo data.
       - name: Compile portable C138 host probe for private offline asset test
         run: |
