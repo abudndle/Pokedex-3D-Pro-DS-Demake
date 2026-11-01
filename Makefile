@@ -41,6 +41,7 @@ check-host:
 		run_c82_dex_search.sh run_c83_search_touch.sh; do \
 		echo "Running $$test"; sh "tests/$$test"; \
 	done
+	@python3 -m unittest discover -s tests -p 'test_c179_private_geometry_draw_probe.py' -v
 	@python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 	@python3 -m unittest discover -s tests -p 'test_inspect_ds3m.py' -v
 	@python3 tests/test_private_ui_packager.py
@@ -142,3 +143,14 @@ private-host-c98-probe:
 	  $(P3D_HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Isource \
 	    source/preview_chunk_stream.c tests/c154_chunk_probe.c -o "$$tmp/c154-probe"; \
 	  "$$tmp/c154-probe" --all "$(PRIVATE_NITROFS_STAGE)/preview" 500 1499 893666
+
+# C179: validate a private verified source-geometry pair through the ACTUAL
+# compiled native pair loader and GL adapter. No original data in public CI.
+PRIVATE_P3VX ?=
+PRIVATE_P3IX ?=
+PRIVATE_MODEL ?=
+PRIVATE_TRIANGLES ?=
+.PHONY: private-geometry-draw-probe
+private-geometry-draw-probe:
+	@test -n "$(PRIVATE_P3VX)" -a -n "$(PRIVATE_P3IX)" -a -n "$(PRIVATE_MODEL)" -a -n "$(PRIVATE_TRIANGLES)" || { echo "Set PRIVATE_P3VX, PRIVATE_P3IX, PRIVATE_MODEL, PRIVATE_TRIANGLES" >&2; exit 1; }
+	@sh tests/run_c179_private_geometry_draw_probe.sh "$(PRIVATE_P3VX)" "$(PRIVATE_P3IX)" "$(PRIVATE_MODEL)" "$(PRIVATE_TRIANGLES)"
