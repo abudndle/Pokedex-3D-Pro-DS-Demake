@@ -21,6 +21,10 @@ NAME = re.compile(r"decoded_c5/(p\d{3})\.c5$")
 ROSTER = {f"p{i:03d}" for i in range(734) if i not in (721, 722, 723, 724)}
 CF_COLORMAP = 1
 CF_BUMPMAP = 2
+# C112 P3SC v2: preserve the existence of EVERY other original C5
+# capability instead of silently dropping shader operations we cannot model.
+CF_OTHER = 4
+P3SC_VERSION = 2
 HEADER = "<4s4HI"
 RECORD = "<5H"
 
@@ -33,6 +37,8 @@ def sidecar(model_id, raw, texture_rows):
     packed = bytearray()
     ambiguous = 0
     declared_colors = 0
+    other_capabilities = 0
+    unresolved_color = 0
     for i, material in enumerate(records):
         # C88 tuples: material index, name, source shader index/name,
         # source texture references, source texture names, source status.
@@ -45,15 +51,21 @@ def sidecar(model_id, raw, texture_rows):
         if len(flags) != len(set(flags)):
             raise ValueError("duplicate original C5 shader capabilities")
         mask = (CF_COLORMAP if "CF_COLORMAP" in flags else 0) | (
-            CF_BUMPMAP if "CF_BUMPMAP" in flags else 0)
+            CF_BUMPMAP if "CF_BUMPMAP" in flags else 0) | (
+            CF_OTHER if any(flag not in ("CF_COLORMAP", "CF_BUMPMAP")
+                            for flag in flags) else 0)
         declared_colors += bool(mask & CF_COLORMAP)
+        other_capabilities += bool(mask & CF_OTHER)
+        unresolved_color += bool(mask & CF_COLORMAP and mask & (CF_BUMPMAP | CF_OTHER))
         ambiguous += bool(mask & CF_COLORMAP and t0 != 65535 and
                           t1 != 65535 and t0 != t1)
         packed += struct.pack(RECORD, index, shader, t0, t1, mask)
-    header = struct.pack(HEADER, b"P3SC", 1, int(model_id[1:]), len(records),
+    header = struct.pack(HEADER, b"P3SC", P3SC_VERSION, int(model_id[1:]), len(records),
                          0, zlib.crc32(packed))
     return header + packed, {"declared_colormap_materials": declared_colors,
                              "ambiguous_two_texture_colormap_materials": ambiguous,
+                             "materials_with_other_capabilities": other_capabilities,
+                             "colormap_with_complex_capabilities": unresolved_color,
                              "original_sampler_roles_verified": 0}
 
 def build(root, c75_csv, output_zip, require_full=False):
@@ -70,6 +82,8 @@ def build(root, c75_csv, output_zip, require_full=False):
     output = {}
     totals = {"models": 0, "declared_colormap_materials": 0,
               "ambiguous_two_texture_colormap_materials": 0,
+              "materials_with_other_capabilities": 0,
+              "colormap_with_complex_capabilities": 0,
               "original_sampler_roles_verified": 0,
               "requires_private_shader_sampler_decode": True}
     for part in (1, 2, 3):
@@ -89,7 +103,9 @@ def build(root, c75_csv, output_zip, require_full=False):
                 output[f"materials/{mid}.p3sc"] = data
                 totals["models"] += 1
                 for key in ("declared_colormap_materials",
-                            "ambiguous_two_texture_colormap_materials"):
+                            "ambiguous_two_texture_colormap_materials",
+                            "materials_with_other_capabilities",
+                            "colormap_with_complex_capabilities"):
                     totals[key] += info[key]
     if set(references) - found:
         raise ValueError("original C75 references missing their C5 model")
