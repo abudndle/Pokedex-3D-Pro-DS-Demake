@@ -166,13 +166,13 @@ static void prepare_original_art(void){
             /* Mode 5 is needed only for the original 16-bit bitmap. */
             videoSetModeSub(MODE_5_2D);
             bgInitSub(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
-            bgHide(3);
-            bgShow(2);
+            bgHide(7);
+            bgShow(6);
         }
         p3dOriginalUiPageDraw();
         showing_original_art=1;
     }else if(showing_original_art){
-        bgHide(2);
+        bgHide(6);
         videoSetModeSub(MODE_0_2D);
         consoleInit(&bottom_console,3,BgType_Text4bpp,BgSize_T_256x256,31,0,false,true);
         showing_original_art=0;
@@ -243,6 +243,20 @@ static void reload_preview(void){
                                     &preview_source_materials,&preview_materials,
                                     &preview_textures,(unsigned)resource,
                                     (unsigned)previewStreamTriangleCount());
+                    }
+                }
+            }
+            /* C116: a valid P3UV file still needs a verified wrap mode
+             * for negative or >1 source UVs. Deny only those material ranges,
+             * preserving the safe simple-color ranges and every face. */
+            if(material_references_ready && previewStreamHasUv()){
+                for(unsigned i=0;i<preview_color_ranges.count;i++){
+                    if(preview_color_ranges.enabled[i] &&
+                       !previewStreamUvRangeUnit(
+                          preview_materials.ranges[i].first_triangle,
+                          preview_materials.ranges[i].triangle_count)){
+                        preview_color_ranges.enabled[i]=0;
+                        preview_color_ranges.approved--;
                     }
                 }
             }
