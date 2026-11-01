@@ -41,6 +41,25 @@ class C99Tests(unittest.TestCase):
             root=pathlib.Path(d)
             fixture(root)
             self.assertEqual(verify(root)["software_screenshots"],2)
+    def test_c128_reject_duplicate_or_mislabeled_source_views(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d)
+            fixture(root)
+            report_path=root/"C99_LINUX_RENDER_QA_REPORT.json"
+            original=json.loads(report_path.read_text())
+            for views in (
+                ["C99_SOFTWARE_QA_p000_ds3m.png"]*2,
+                ["C99_SOFTWARE_QA_p000_p3cs.png",
+                 "C99_SOFTWARE_QA_p000_ds3m.png"],
+                ["C99_SOFTWARE_QA_p000_ds3m.png"],
+            ):
+                report=json.loads(json.dumps(original))
+                report["model_screenshots"][0]["software_images"]=views
+                report_path.write_text(json.dumps(report))
+                with self.assertRaisesRegex(ValueError,"source QA views"):
+                    verify(root)
+            report_path.write_text(json.dumps(original))
+            self.assertEqual(verify(root)["software_screenshots"],2)
     def test_corrupt_frame_fails(self):
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d)
