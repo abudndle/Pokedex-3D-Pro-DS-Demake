@@ -273,3 +273,40 @@ python3 tools/c137_private_nitrofs_preflight.py \
   --crc-all --require-preview-ready \
   --output private/reports/C137_PRIVATE_PREFLIGHT.json
 ```
+
+## C138 — real native C loader preview integration tests
+
+C137 checked ZIP transport and headers, but a structure-only Python check is
+NOT proof that the compiled DS native model renderer can load or draw those
+files. C138 compiles the actual `source/preview_stream.c` +
+`source/model_uv.c` + `source/preview_chunk_stream.c` using the existing
+Linux host libnds shim and exercises all 730 preview models individually.
+
+On a machine with a C compiler and the corrected C136 private NitroFS
+archive **already staged** in a private directory, run:
+
+```sh
+make private-host-probe \
+  PRIVATE_NITROFS_STAGE=private/c137_nitrofs_stage \
+  PRIVATE_PREVIEW_EXPECTED_UV=0
+
+# For a separately staged C136 49-unit-UV QA archive:
+make private-host-probe \
+  PRIVATE_NITROFS_STAGE=private/c137_uv_qa_stage \
+  PRIVATE_PREVIEW_EXPECTED_UV=49
+```
+
+The probe calls the exact `previewStreamLoad()`, `previewStreamDraw()`,
+`previewStreamHasUv()`, and `previewStreamUvRangeUnit()` functions for
+730 source model IDs. It compares every emitted GL vertex position against
+the exact original-derived DS3M XYZ bytes, and every emitted UV coordinate
+against its paired P3UV. Unsupported IDs 721–724 must stay unavailable.
+Each model must honor its source-triangle count and 600-face preview bound.
+
+**No original content is checked into GitHub:** CI generates 730 tiny
+synthetic fixture files, adds 49 synthetic UV files, and exercises the same
+compiled original-preview loader via `tests/test_c138_native_preview_probe.py`.
+Corrupted headers must fail closed. The private host command needs no
+BlocksDS/DS emulator. It is an executable verification of model-loader
+transport, **not** an ARM9 runtime test, original textured rendering, or
+Nintendo 3DS visual-parity test. Final hardware/melonDS QA is still required.
