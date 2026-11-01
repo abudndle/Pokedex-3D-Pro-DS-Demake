@@ -682,6 +682,11 @@ static void render(void) {
             printf("\x1b[%d;1H%c %-25s",11+row*2,
                    (int)index==highlighted?'>':' ',
                    p3dPageName(pages[index]));
+            /* Original 3DS AR Viewer icon stays in its menu position on
+             * DS; the unactionable fallback is explicitly greyed out. */
+            if(pages[index]==P3D_PAGE_AR &&
+               !p3dCanEnterFeature(caps,P3D_FEATURE_AR))
+                printf(" [DSi camera only]");
         }
         printf("\x1b[24;1HUse A to open selected");
     } else {
@@ -1476,6 +1481,19 @@ int main(void) {
          * switching between a model and a text page could render a stale
          * model for one extra frame. */
         if(redraw)render();
+        /* The DS cannot intercept a hard power-off. Save after a short
+         * quiet interval rather than pretending to save on shutdown.
+         * Dual-slot CRC records preserve the last active page on restart. */
+        if(storage_ready){
+            if(checkpoint_ticks<60)checkpoint_ticks++;
+            if(checkpoint_ticks>=60){
+                P3DResumeState view=current_resume();
+                if(progress_dirty||!last_checkpoint_valid||
+                   memcmp(&view,&last_checkpoint,sizeof(view))!=0){
+                    if(save_progress())progress_dirty=0;
+                }else checkpoint_ticks=0;
+            }
+        }
         if(display_preview){
             render_model();
             if(preview_animation.ready)animation_tick=(animation_tick+1)%preview_animation.total_ticks;
