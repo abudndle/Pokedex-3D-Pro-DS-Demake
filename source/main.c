@@ -21,6 +21,7 @@
 #include "model_material_texture.h"
 #include "source_material_map.h"
 #include "source_material_texture_match.h"
+#include "source_shader_caps.h"
 #include "texture_asset.h"
 #include "preview_texture_set.h"
 #include "original_ui_page.h"
@@ -63,6 +64,7 @@ static P3DAnimationClip preview_animation;
 static P3DAnimationLibrary preview_animation_library;
 static P3DMaterialMap preview_materials;
 static P3DSourceMaterialMap preview_source_materials;
+static P3DSourceShaderCaps preview_source_shaders;
 static P3DTextureManifest preview_textures;
 static int material_references_ready=0;
 static P3DTexturePixels preview_pixels;
@@ -182,6 +184,7 @@ static void reload_preview(void){
     preview_animation_library.ready=0;
     preview_materials.ready=0;
     preview_source_materials.ready=0;
+    preview_source_shaders.ready=0;
     preview_textures.ready=0;
     material_references_ready=0;
     texture_payload_ready=0;
@@ -204,12 +207,22 @@ static void reload_preview(void){
                          "nitro:/materials/p%03d.p3mr",resource);
                 if(p3dSourceMaterialLoad(&preview_source_materials,clip_path,
                        (unsigned)resource,
-                       (unsigned)previewStreamTriangleCount()))
-                    material_references_ready=
-                        p3dSourceMaterialTextureReferencesMatch(
-                            &preview_source_materials,&preview_materials,
-                            &preview_textures,(unsigned)resource,
-                            (unsigned)previewStreamTriangleCount());
+                       (unsigned)previewStreamTriangleCount())){
+                    /* C110 requires original C5 shader capability evidence.
+                     * The C5 CF_COLORMAP declaration is not a decoded source
+                     * sampler role: multiple distinct texture slots remain
+                     * untextured until their 3DS GPU selection is proven. */
+                    snprintf(clip_path,sizeof(clip_path),
+                             "nitro:/materials/p%03d.p3sc",resource);
+                    if(p3dSourceShaderCapsLoad(&preview_source_shaders,
+                                              clip_path,(unsigned)resource))
+                        material_references_ready=
+                            p3dSourceShaderColorReferencesMatch(
+                                &preview_source_shaders,
+                                &preview_source_materials,&preview_materials,
+                                &preview_textures,(unsigned)resource,
+                                (unsigned)previewStreamTriangleCount());
+                }
             }
             if(material_references_ready && previewStreamHasUv()){
                 /* Model-scoped paths avoid colliding texture IDs across species. */

@@ -28,6 +28,8 @@ class C85Tests(unittest.TestCase):
             self.assertIn("ui/pages/t0_10_records.rgb555",result["missing"])
             self.assertIn("ui/pages/t1_10_records.rgb555",result["missing"])
             self.assertIn("ui/pages/t1_01_dex_overlay.rgb555",result["missing"])
+            self.assertIn("source_C5_shader_capabilities: 730 model resources not staged",result["missing"])
+            self.assertFalse(result["original_shader_sampler_roles_verified"])
             self.assertGreater(len(result["missing"]),10)
             self.assertFalse(result["visual_accuracy_verified"])
     def test_zip_root_and_source_header_validation(self):
@@ -88,6 +90,36 @@ class C85Tests(unittest.TestCase):
             result=audit(src)
             src.close()
             self.assertTrue(any("p000.p3mr" in x for x in result["invalid"]))
+
+    def test_original_C5_shader_capability_sidecar(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p=pathlib.Path(folder)
+            sidecar=p/"materials/p000.p3sc"
+            sidecar.parent.mkdir(parents=True)
+            records=(struct.pack("<5H",0,3,2,65535,1)+
+                     struct.pack("<5H",1,4,7,65535,2))
+            good=struct.pack("<4s4HI",b"P3SC",1,0,2,0,zlib.crc32(records))+records
+            sidecar.write_bytes(good)
+            src=Assets(p)
+            report=audit(src)
+            src.close()
+            self.assertEqual(report["counts"]["source_C5_shader_capabilities"],1)
+            self.assertFalse(any("p000.p3sc" in x for x in report["invalid"]))
+            self.assertFalse(report["original_shader_sampler_roles_verified"])
+            sidecar.write_bytes(good[:-1]+bytes([good[-1]^1]))
+            src=Assets(p)
+            report=audit(src)
+            src.close()
+            self.assertTrue(any("p000.p3sc" in x for x in report["invalid"]))
+            # Even a valid CRC does not excuse an unknown shader role flag.
+            bad=bytearray(good)
+            struct.pack_into("<H",bad,16+8,0x8000)
+            struct.pack_into("<I",bad,12,zlib.crc32(bad[16:]))
+            sidecar.write_bytes(bad)
+            src=Assets(p)
+            report=audit(src)
+            src.close()
+            self.assertTrue(any("p000.p3sc" in x for x in report["invalid"]))
 
     def test_release_never_claims_partial_game_complete(self):
         with tempfile.TemporaryDirectory() as folder:
