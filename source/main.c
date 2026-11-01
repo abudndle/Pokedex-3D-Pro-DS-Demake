@@ -27,6 +27,7 @@
 #include "texture_asset.h"
 #include "preview_texture_set.h"
 #include "original_ui_page.h"
+#include "title_timeline.h"
 #include "move_dex.h"
 #include "move_text_view.h"
 #include "dex_text.h"
@@ -112,6 +113,7 @@ static int top_art_preview=-1;
 static int showing_original_top_art=0;
 /* Original 3DS title is its own boot state, separate from HOME. */
 static int title_active=0;
+static P3DTitleTimeline title_timeline;
 static int display_preview=0;
 static void prepare_original_top_art(void){
     int page=home?P3D_PAGE_HOME:(int)state.page;
@@ -292,6 +294,10 @@ static int show_original_title(void){
     p3dOriginalTitleDraw();
     showing_original_top_art=1;
     showing_original_art=1;
+    /* Optional private original 3DS timing/animation. No P3TL means the
+     * original frame-zero title stays visible, not synthetic animation. */
+    (void)p3dTitleTimelineLoad(&title_timeline,
+                              "nitro:/ui/title/timeline.p3tl");
     title_active=1;
     return 1;
 }
@@ -813,13 +819,22 @@ int main(void) {
         unsigned held=keysHeld();
         int redraw=0;
         if(title_active){
-            /* Do not treat the title's opening A/tap as a home menu click.
-             * There is no home bitmap reused as a fake 3DS title screen. */
+            /* A/START/touch always exits once, without forwarding the input
+             * to a HOME item. Original animation assets are optional, and
+             * a corrupt later pair does not paint half of a title frame. */
             if(down&(KEY_A|KEY_START|KEY_TOUCH)){
                 title_active=0;
+                title_timeline.ready=0;
                 art_page=-1;
                 top_art_page=-1;
                 render();
+            }else if(title_timeline.ready){
+                int frame=p3dTitleTimelineAdvance(&title_timeline);
+                if(frame>=0){
+                    if(p3dOriginalTitleFrameLoad((unsigned)frame))
+                        p3dOriginalTitleDraw();
+                    else title_timeline.ready=0; /* retain prior VRAM image */
+                }
             }
             continue;
         }
