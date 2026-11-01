@@ -105,7 +105,7 @@ class C85Tests(unittest.TestCase):
             audio.mkdir(parents=True)
             for screen in (0,1):
                 (title/f"t{screen}_title.rgb555").write_bytes(
-                    b"\\x21\\x9b"*(256*192))
+                    b"\x21\x9b"*(256*192))
             pcm=struct.pack("<16h",*range(16))
             sample=struct.pack("<4sHHII",b"P3SA",1,16000,16,
                                zlib.crc32(pcm))+pcm
@@ -129,7 +129,7 @@ class C85Tests(unittest.TestCase):
             (audio/"c01.p3sa").write_bytes(sample)
             for corrupt in (
                 original[:-1],
-                original+b"\\x00",
+                original+b"\x00",
                 original[:4]+struct.pack("<H",2)+original[6:],
             ):
                 cue_file.write_bytes(corrupt)
@@ -143,7 +143,7 @@ class C85Tests(unittest.TestCase):
                             zlib.crc32(timing))+timing)
             for screen in (0,1):
                 (title/f"t{screen}_01_title.rgb555").write_bytes(
-                    b"\\x22\\x94"*(256*192))
+                    b"\x22\x94"*(256*192))
             src=Assets(root);report=audit(src);src.close()
             self.assertTrue(any("cues.p3tc" in x for x in report["invalid"]))
 
@@ -260,7 +260,7 @@ class C85Tests(unittest.TestCase):
             self.assertFalse(report["original_shader_sampler_roles_verified"])
             for corrupt in (
                 good[:-1],
-                good+b"\\x00",
+                good+b"\x00",
                 good[:6]+struct.pack("<H",1)+good[8:],
                 good[:4]+struct.pack("<H",2)+good[6:],
                 good[:-1]+bytes([good[-1]^1]),
