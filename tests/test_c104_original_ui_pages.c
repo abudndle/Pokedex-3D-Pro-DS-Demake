@@ -41,6 +41,26 @@ int main(void) {
     assert(!p3dOriginalTopPageLoad(-1));
     assert(!p3dOriginalTopPageLoad(P3D_PAGE_COUNT));
 
+    /* C106: BG2 alpha bit must be preserved, revealing live BG0 3D only
+     * in the explicitly source-masked model viewport. */
+    assert(p3dOriginalTopOverlayLoad(P3D_PAGE_DEX));
+    assert(p3dOriginalTopOverlayReady());
+    p3dOriginalTopOverlayDraw();
+    assert(p3d_c105_top_bitmap[0] == 0x9123u);
+    assert(p3d_c105_top_bitmap[1] == 0x0000u);
+    assert(p3d_c105_top_bitmap[256u*96u+128u] == 0x0042u);
+    assert(p3d_c105_top_bitmap[256u*192u-1] == 0x9123u);
+    /* The original bottom-screen HUD is an independent asset. */
+    assert(p3d_c104_bitmap[0] == 0x801fu);
+    assert(!p3dOriginalTopOverlayLoad(P3D_PAGE_RECORDS));
+    assert(!p3dOriginalTopOverlayReady());
+    p3d_c105_top_bitmap[0] = 0x5555u;
+    p3dOriginalTopOverlayDraw();
+    assert(p3d_c105_top_bitmap[0] == 0x5555u);
+    assert(!p3dOriginalTopOverlayLoad(P3D_PAGE_SEARCH));
+    assert(!p3dOriginalTopOverlayLoad(-1));
+    assert(!p3dOriginalTopOverlayLoad(P3D_PAGE_COUNT));
+
     /* Missing, negative, and out-of-range originals fail closed. */
     assert(!p3dOriginalUiPageLoad(P3D_PAGE_AR));
     assert(!p3dOriginalUiPageReady());
@@ -49,6 +69,6 @@ int main(void) {
     assert(p3d_c104_bitmap[0] == 0x5678u);
     assert(!p3dOriginalUiPageLoad(-1));
     assert(!p3dOriginalUiPageLoad(P3D_PAGE_COUNT));
-    puts("C105: independent upper/lower original-art page loading: PASS");
+    puts("C106: masked native 3D overlay and upper/lower original UI loading: PASS");
     return 0;
 }
