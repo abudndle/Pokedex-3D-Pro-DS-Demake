@@ -49,12 +49,15 @@ int main(int argc,char **argv){
     assert(image.pixels[0]==0x1234 && image.pixels[1]==0x9234);
     /* Validation rejects unsupported source provenance. */
     image.version=3;
+    id=123;
     int attempts=uploaded;
     assert(!p3dDsTextureUpload(&image,&id));
-    assert(uploaded==attempts);
+    assert(uploaded==attempts && id==0);
     image.version=2;
     image.ready=0;
+    id=456;
     assert(!p3dDsTextureUpload(&image,&id));
+    assert(id==0);
     image.ready=1;
     assert(!p3dDsTextureUpload(&image,NULL));
     /* Failure must delete the allocated DS GPU texture, not leak VRAM. */

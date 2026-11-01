@@ -10,7 +10,9 @@ static int p3dTextureDimensionsValid(const P3DTexturePixels *pixels){
 #ifdef C7_TEST_HOST
 static int next_test_id=1;
 int p3dDsTextureUpload(const P3DTexturePixels *pixels,int *texture_id){
- if(!texture_id||!p3dTextureDimensionsValid(pixels))return 0;
+ if(!texture_id)return 0;
+ *texture_id=0;
+ if(!p3dTextureDimensionsValid(pixels))return 0;
  *texture_id=next_test_id++;
  return 1;
 }
@@ -18,8 +20,9 @@ int p3dDsTextureUpload(const P3DTexturePixels *pixels,int *texture_id){
 #include <nds.h>
 int p3dDsTextureUpload(const P3DTexturePixels *pixels,int *texture_id){
  int id=0,sx=0,sy=0;
- if(!texture_id||!p3dTextureDimensionsValid(pixels))return 0;
+ if(!texture_id)return 0;
  *texture_id=0;
+ if(!p3dTextureDimensionsValid(pixels))return 0;
  for(unsigned n=pixels->width;n>8;n>>=1)sx++;
  for(unsigned n=pixels->height;n>8;n>>=1)sy++;
  glGenTextures(1,&id);
