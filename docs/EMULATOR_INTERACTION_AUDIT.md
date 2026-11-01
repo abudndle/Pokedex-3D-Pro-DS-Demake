@@ -32,3 +32,18 @@ The latest main now includes C148 original C5 skeleton hierarchy recovery (#126)
 ## Main branch concurrency
 
 Main advanced through original skeleton C148 (#126) and native original skeleton C149 (#127) while this emulator regression was in review. The emulator gate is intentionally unnumbered, source-only, and rebased on latest main without modifying C148/C149 skeleton tests or gameplay source.
+
+## Verified CI regression evidence (2026-11-01)
+
+On current PR #125 at head `ae80af53d822fe715977921087426dc0d63c3554` (run `41285656601`), **Source checks**, **Port source tests**, the dedicated synthetic emulator XWD regression job, native BlocksDS compilation and ROM structure verification passed. The DeSmuME 0.9.13 asset-free ROM started and rendered both DS screens, but the **strict real input test failed**:
+
+- HOME→Pokédex after `x` (A): 9,317 changed pixels.
+- Pokédex `Right`: **0** changed pixels.
+- `z` (B): **0** changed pixels.
+- `s` (X) diagnostic: **0** changed pixels.
+- Subsequent `x` (A) diagnostic: **191** changed pixels.
+- DS bottom-right touchscreen diagnostic: **245** changed pixels.
+
+The last two results show the native game loop is still responding to A and touchscreen input after opening the Pokédex; do not claim the entire game has frozen. The installed X11 keyboard map has keysym `z` at keycode 52 and non-keypad `Right` at 114. A real Openbox window manager, explicit X11 activation and focus, and one-second key holds **did not fix** Right/B. The issue is not yet isolated between SDL key delivery, DeSmuME configuration and the DS input interface. No full emulator interaction pass or exact species #001→#002 claim is justified.
+
+**Next investigation:** instrument real X11 key events on the SDL window (e.g. `xev -id`), compare SDL input reception and native `keysDown()` bits, and test a second independent emulator frontend before changing game behavior. Keep #122 open and PR #125 unmerged while the strict gate is red. The existing C144 dual-screen captures remain valid as asset-free DeSmuME screenshots, not private original-asset visuals.
