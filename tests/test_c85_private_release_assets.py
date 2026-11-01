@@ -98,7 +98,7 @@ class C85Tests(unittest.TestCase):
             sidecar.parent.mkdir(parents=True)
             records=(struct.pack("<5H",0,3,2,65535,1)+
                      struct.pack("<5H",1,4,7,65535,2))
-            good=struct.pack("<4s4HI",b"P3SC",1,0,2,0,zlib.crc32(records))+records
+            good=struct.pack("<4s4HI",b"P3SC",2,0,2,0,zlib.crc32(records))+records
             sidecar.write_bytes(good)
             src=Assets(p)
             report=audit(src)
@@ -106,6 +106,23 @@ class C85Tests(unittest.TestCase):
             self.assertEqual(report["counts"]["source_C5_shader_capabilities"],1)
             self.assertFalse(any("p000.p3sc" in x for x in report["invalid"]))
             self.assertFalse(report["original_shader_sampler_roles_verified"])
+            # Legacy v1 loses all CF_* flags except COLOR/BUMP.
+            legacy=bytearray(good)
+            struct.pack_into("<H",legacy,4,1)
+            sidecar.write_bytes(legacy)
+            src=Assets(p)
+            legacy_report=audit(src)
+            src.close()
+            self.assertTrue(any("p000.p3sc" in x for x in legacy_report["invalid"]))
+            # P3SC v2 faithfully carries the OTHER declaration bit.
+            declared_other=bytearray(good)
+            struct.pack_into("<H",declared_other,16+8,5)
+            struct.pack_into("<I",declared_other,12,zlib.crc32(declared_other[16:]))
+            sidecar.write_bytes(declared_other)
+            src=Assets(p)
+            other_report=audit(src)
+            src.close()
+            self.assertFalse(any("p000.p3sc" in x for x in other_report["invalid"]))
             sidecar.write_bytes(good[:-1]+bytes([good[-1]^1]))
             src=Assets(p)
             report=audit(src)
