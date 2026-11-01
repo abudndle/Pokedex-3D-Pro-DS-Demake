@@ -12,6 +12,43 @@ NAMES = ("home", "dex", "search", "moves", "types", "favorites", "challenge",
          "settings", "album", "ar", "records")
 PIXELS = 256 * 192
 SIZE = PIXELS * 2
+# Native feature page IDs. This is a topology/geometry contract only:
+# coordinate boxes must be measured from actual recovered 3DS HOME art.
+HOME_PAGES = {"pokedex":1, "move_dex":3, "challenge":6, "records":10,
+              "album":8, "ar_viewer":9, "settings":7}
+
+def build_home_hotspots(source: pathlib.Path) -> bytes:
+    metadata=json.loads(source.read_text(encoding="utf-8"))
+    if not isinstance(metadata,dict) or set(metadata)!={"icons"} or (
+            not isinstance(metadata["icons"],list) or
+            len(metadata["icons"])!=len(HOME_PAGES)):
+        raise ValueError("original HOME needs seven source-measured icons")
+    visited=set()
+    rectangles=[]
+    records=[]
+    for entry in metadata["icons"]:
+        if not isinstance(entry,dict) or set(entry)!={"page","box"}:
+            raise ValueError("original HOME icon must specify page and source box")
+        page,box=entry["page"],entry["box"]
+        if not isinstance(page,str) or page not in HOME_PAGES or page in visited:
+            raise ValueError("duplicate or unknown original HOME feature icon")
+        if (not isinstance(box,list) or len(box)!=4 or
+            not all(type(v) is int for v in box)):
+            raise ValueError("invalid original HOME icon coordinates")
+        x0,y0,x1,y1=box
+        if not (0<=x0<x1<=256 and 0<=y0<y1<=192 and
+                x1-x0>=8 and y1-y0>=8):
+            raise ValueError("original HOME icon rectangle outside 256x192 DS touch screen")
+        for ax0,ay0,ax1,ay1 in rectangles:
+            if x0<ax1 and ax0<x1 and y0<ay1 and ay0<y1:
+                raise ValueError("overlapping original HOME source icon rectangles")
+        rectangles.append((x0,y0,x1,y1))
+        visited.add(page)
+        records.append(struct.pack("<5H",HOME_PAGES[page],*box))
+    if visited!=set(HOME_PAGES):
+        raise ValueError("missing original HOME feature icon")
+    body=b"".join(records)
+    return struct.pack("<4sHHII",b"P3HM",1,7,0,zlib.crc32(body))+body
 
 def convert(src: pathlib.Path, dst: pathlib.Path) -> None:
     data = src.read_bytes()
@@ -54,6 +91,18 @@ def main() -> int:
                     print(f"{source} -> {destination}")
                     count += 1
                     break
+    # C123: the original 3DS HOME artwork requires its own measured icon
+    # hitboxes; text-debug row coordinates would open the wrong original icon.
+    # Do not guess positions from a generic screenshot or fabricated grid.
+    hotspots=args.source/"home_hotspots.json"
+    if hotspots.is_file():
+        if not (args.output/"t0_00_home.rgb555").is_file():
+            raise ValueError("original HOME icon map requires private original HOME art")
+        payload=build_home_hotspots(hotspots)
+        target=args.output.parent/"home_hotspots.p3hm"
+        target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_bytes(payload)
+        print(f"{hotspots} -> {target}")
     # The original title is NOT the home menu. Require two independently
     # recovered 3DS title frames; missing either refuses to fabricate one.
     title_sources = []

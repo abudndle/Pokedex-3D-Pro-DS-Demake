@@ -28,6 +28,7 @@ class C85Tests(unittest.TestCase):
             self.assertIn("ui/pages/t0_10_records.rgb555",result["missing"])
             self.assertIn("ui/pages/t1_10_records.rgb555",result["missing"])
             self.assertIn("ui/pages/t1_01_dex_overlay.rgb555",result["missing"])
+            self.assertIn("ui/home_hotspots.p3hm",result["missing"])
             self.assertIn("ui/title/t0_title.rgb555",result["missing"])
             self.assertIn("ui/title/t1_title.rgb555",result["missing"])
             self.assertFalse(result["original_title_screen_visually_verified"])
@@ -48,6 +49,41 @@ class C85Tests(unittest.TestCase):
             self.assertFalse(any("data/dex_en.p3dx" in msg for msg in result["invalid"]))
             self.assertTrue(any("moves.p3dm" in msg for msg in result["invalid"]))
             self.assertEqual(result["counts"]["original_derived_texture_payloads"],0)
+    def test_source_home_hitboxes_required_and_strictly_validated(self):
+        # The original 3DS menu buttons need real measured rectangles, not
+        # the debug text rows. These positions are synthetic test evidence.
+        with tempfile.TemporaryDirectory() as folder:
+            root=pathlib.Path(folder)
+            ui=root/"ui"
+            ui.mkdir()
+            dest=ui/"home_hotspots.p3hm"
+            entries=[
+                (1,8,8,65,43),(3,75,8,132,43),(6,142,8,199,43),
+                (10,8,60,65,95),(8,75,60,132,95),
+                (9,142,60,199,95),(7,8,112,65,147)
+            ]
+            def fixture(values):
+                blob=b"".join(struct.pack("<5H",*entry) for entry in values)
+                return struct.pack("<4sHHII",b"P3HM",1,7,0,
+                                   zlib.crc32(blob))+blob
+            good=fixture(entries)
+            dest.write_bytes(good)
+            src=Assets(root);result=audit(src);src.close()
+            self.assertFalse(any("home_hotspots" in x
+                                 for x in result["missing"]+result["invalid"]))
+            self.assertFalse(result["asset_complete"])
+            for bad in (
+                good[:-1],
+                good+b"\x00",
+                good[:-1]+bytes([good[-1]^1]),
+                fixture(entries[:1]+[(1,75,8,132,43)]+entries[2:]),
+                fixture(entries[:1]+[(3,60,8,132,43)]+entries[2:]),
+                fixture(entries[:1]+[(3,75,8,300,43)]+entries[2:]),
+            ):
+                dest.write_bytes(bad)
+                src=Assets(root);result=audit(src);src.close()
+                self.assertTrue(any("home_hotspots" in x for x in result["invalid"]))
+
     def test_original_title_requires_both_independent_original_frames(self):
         with tempfile.TemporaryDirectory() as folder:
             p=pathlib.Path(folder)

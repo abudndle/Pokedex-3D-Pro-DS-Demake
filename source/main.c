@@ -30,6 +30,7 @@
 #include "texture_asset.h"
 #include "preview_texture_set.h"
 #include "original_ui_page.h"
+#include "original_home_hotspots.h"
 #include "title_timeline.h"
 #include "title_audio.h"
 #include "move_dex.h"
@@ -113,6 +114,7 @@ static size_t records_photo_total(void){
 static int art_page=-1;
 static int showing_original_art=0;
 static int original_art_available=0;
+static P3DHomeHotspots original_home_hotspots;
 static int prefer_original_art=1;
 /* The source 3DS upper artwork lives in DS main BG2; the original
  * 3D Pokémon renderer still owns BG0 on a Dex model page. */
@@ -173,6 +175,13 @@ static void prepare_original_art(void){
     if(page==art_page)return;
     art_page=page;
     original_art_available=prefer_original_art&&nitro_ready&&p3dOriginalUiPageLoad(page);
+    /* Source 3DS icons are not located at development text-menu rows.
+     * Only authentic privately measured original art hitboxes may route
+     * touches on original HOME artwork; keyboard navigation always works. */
+    if(page==P3D_PAGE_HOME){
+        (void)p3dHomeHotspotsLoad(&original_home_hotspots,
+                                 "nitro:/ui/home_hotspots.p3hm");
+    }else original_home_hotspots.ready=0;
     if(original_art_available){
         /* Reuse the existing bitmap layer; changing pages must not reset VRAM
          * that the console also uses. Keep the text console hidden only while
@@ -1109,7 +1118,16 @@ int main(void) {
             if(down&KEY_TOUCH) {
                 touchPosition point;
                 touchRead(&point);
-                int hit=p3dMenuTouchIndex(point.px,point.py,count,highlighted);
+                int hit=-1;
+                if(showing_original_art){
+                    int page=p3dHomeHotspotsHit(&original_home_hotspots,
+                                                point.px,point.py);
+                    for(int i=0;i<count;i++)
+                        if(page>=0 && pages[i]==(P3DPage)page){hit=i;break;}
+                }else{
+                    /* Text fallback positions are never used on source art. */
+                    hit=p3dMenuTouchIndex(point.px,point.py,count,highlighted);
+                }
                 if(hit>=0) {
                     highlighted=hit;
                     if(p3dMenuEnter(&state,caps,pages[highlighted])){home=0;if(state.page==P3D_PAGE_CHALLENGE)p3dChallengeReset(&quiz);if(state.page==P3D_PAGE_SEARCH)state.selected_dex=dex_index;}
