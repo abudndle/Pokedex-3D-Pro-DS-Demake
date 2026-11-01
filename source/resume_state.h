@@ -12,4 +12,9 @@ int p3dResumeLoad(const char *base,P3DResumeState *out);
 int p3dResumeStore(const char *base,const P3DResumeState *state);
 int p3dResumeApply(const P3DResumeState *state,P3DCapabilities caps,
                    int *home,P3DMenu *menu,int *highlight);
+/* A valid checkpoint means reset must open the saved screen directly.
+ * No checkpoint means the original title can be shown on a fresh start. */
+int p3dResumeRestoreBoot(const char *base,P3DResumeState *restored,
+                         P3DCapabilities caps,int *home,
+                         P3DMenu *menu,int *highlight);
 #endif

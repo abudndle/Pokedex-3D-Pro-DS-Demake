@@ -197,7 +197,14 @@ static void prepare_original_art(void){
 static void reload_preview(void){
     /* Free all prior per-material VRAM allocations on species/form changes. */
     p3dPreviewTextureSetRelease(&preview_gl_textures);
-    int resource=selected_form?p3dFormResolve(&alternate_models,dex_index,selected_form):p3dModelMapResolve(&species_models,dex_index);
+    /* C120: title idle Pokémon is NOT the saved Dex entry. Its source
+     * species/form preview is separate; leaving idle reloads the last
+     * saved user's own Dex selection with no temporary save mutation. */
+    int species=(title_active && title_idle.active && title_idle.has_species)
+        ?(int)title_idle.species:dex_index;
+    int form=(title_active && title_idle.active)?0:selected_form;
+    int resource=form?p3dFormResolve(&alternate_models,species,form):
+                      p3dModelMapResolve(&species_models,species);
     char clip_path[80];
     previewStreamPreferChunks(prefer_source_chunks);
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
@@ -333,6 +340,8 @@ static int show_original_title(void){
                           title_timeline.ready?title_timeline.frames:1u);
     title_active=1;
     p3dTitleIdleReset(&title_idle);
+    /* Console RTC/session entropy, never dex_index or saved Pokémon. */
+    p3dTitleIdleSeed(&title_idle,(uint32_t)time(NULL)^(uint32_t)challenge_seed);
     idle_refresh=0;
     if(title_cues.ready){
         soundEnable();
@@ -414,12 +423,13 @@ static void draw_title_idle_info(void){
     consoleClear();
     if(p3dTitleIdleClock(clock,sizeof(clock),now))
         printf("%s\n",clock);
+    unsigned species=title_idle.has_species?title_idle.species:0u;
     if(dex_text_ready){
         P3DDexText entry;
-        if(p3dDexTextRead(dex_index,&entry))
-            printf("#%03d %.25s\n",dex_index+1,entry.name);
-        else printf("Pokémon #%03d\n",dex_index+1);
-    }else printf("Pokémon #%03d\n",dex_index+1);
+        if(p3dDexTextRead((int)species,&entry))
+            printf("#%03u %.25s\n",species+1u,entry.name);
+        else printf("Pokémon #%03u\n",species+1u);
+    }else printf("Pokémon #%03u\n",species+1u);
     printf("\nCheck this Pokémon's\nPokédex entry?\n\nA: CHECK ENTRY\nB/START: CONTINUE");
 }
 
@@ -437,6 +447,20 @@ static P3DResumeState current_resume(void){
         999:(album_offset/P3D_ALBUM_PAGE_MAX));
     return view;
 }
+/* Commit page/selection immediately when it changes. The independent
+ * CRC P3RV checkpoint survives even if older P3SV progress is missing. */
+static int save_resume_checkpoint(void){
+    P3DResumeState view;
+    if(!storage_ready)return 0;
+    view=current_resume();
+    if(last_checkpoint_valid &&
+       memcmp(&view,&last_checkpoint,sizeof(view))==0)return 1;
+    if(!p3dResumeStore(P3D_SAVE_BASE,&view))return 0;
+    last_checkpoint=view;
+    last_checkpoint_valid=1;
+    checkpoint_ticks=0;
+    return 1;
+}
 static int save_progress(void){
     P3DSaveState record;
     if(!storage_ready){save_message=2;return 0;}
@@ -445,14 +469,7 @@ static int save_progress(void){
         return 0;
     }
     int saved=p3dSaveStore(P3D_SAVE_BASE,&record)?1:0;
-    if(saved){
-        P3DResumeState screen=current_resume();
-        if(p3dResumeStore(P3D_SAVE_BASE,&screen)){
-            last_checkpoint=screen;
-            last_checkpoint_valid=1;
-            checkpoint_ticks=0;
-        }else saved=0;
-    }
+    if(saved && !save_resume_checkpoint())saved=0;
     if(saved && records_dirty){
         if(p3dRecordsStore(P3D_SAVE_BASE,&records))records_dirty=0;
         else saved=0;
@@ -896,17 +913,19 @@ int main(void) {
                 challenge_correct_total=(int)record.challenge_correct;
                 challenge_answer_total=(int)record.challenge_total;
                 save_message=3;
-                P3DResumeState resume;
-                if(p3dResumeLoad(P3D_SAVE_BASE,&resume) &&
-                   p3dResumeApply(&resume,caps,&home,&state,&highlighted)){
-                    dex_index=(int)resume.dex;
-                    move_index=(int)resume.move;
-                    records_tab=(int)resume.records_tab;
-                    album_offset=(size_t)resume.album_page*P3D_ALBUM_PAGE_MAX;
-                    last_checkpoint=resume;
-                    last_checkpoint_valid=1;
-                }
             }
+        }
+        /* P3RV is independent of legacy P3SV/P3RC: an intact last-screen
+         * checkpoint can restore a page even if progress is not available. */
+        P3DResumeState resume;
+        if(p3dResumeRestoreBoot(P3D_SAVE_BASE,&resume,caps,
+                                &home,&state,&highlighted)){
+            dex_index=(int)resume.dex;
+            move_index=(int)resume.move;
+            records_tab=(int)resume.records_tab;
+            album_offset=(size_t)resume.album_page*P3D_ALBUM_PAGE_MAX;
+            last_checkpoint=resume;
+            last_checkpoint_valid=1;
         }
     }
     /* libfat mounts the default writable device as fat:/; create the album
@@ -920,9 +939,10 @@ int main(void) {
     }
     reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
-    /* The real original 3DS title uses private source art on both screens.
-     * The asset-free developer ROM still boots directly to a test menu. */
-    if(!show_original_title())render();
+    /* Reset/power-on with a valid checkpoint opens that same active page,
+     * bypassing title. New games still use the genuine original 3DS title
+     * when the private source art is present. */
+    if(last_checkpoint_valid || !show_original_title())render();
     while(1) {
         swiWaitForVBlank();
         challenge_seed+=0x9E3779B9u; /* Vary each game session's quiz sequence. */
@@ -931,11 +951,14 @@ int main(void) {
         unsigned held=keysHeld();
         int redraw=0;
         if(title_active){
-            /* Idle A opens the remembered Pokémon entry. Otherwise the
-             * first title input resumes the last saved screen. No input is
-             * forwarded twice to the menu underneath the original title. */
+            /* Idle A opens the independently chosen title Pokémon entry.
+             * The usual title exit still resumes the saved page and Pokémon.
+             * No input is forwarded twice to the menu underneath. */
             if(down&(KEY_A|KEY_B|KEY_START|KEY_TOUCH)){
-                if(title_idle.active && (down&KEY_A)){
+                if(title_idle.active && (down&KEY_A) &&
+                   title_idle.has_species){
+                    dex_index=(int)title_idle.species;
+                    selected_form=0;
                     home=0;
                     state.page=P3D_PAGE_DEX;
                     state.selected_dex=dex_index;
@@ -944,6 +967,9 @@ int main(void) {
                 title_timeline.ready=0;
                 title_cues.ready=0;
                 p3dTitleIdleReset(&title_idle);
+                /* Restore the last saved species preview on ordinary exit;
+                 * on idle A load the chosen species's Pokédex entry. */
+                reload_preview();
                 if(title_audio_channel>=0){
                     soundKill(title_audio_channel);
                     title_audio_channel=-1;
@@ -952,10 +978,19 @@ int main(void) {
                 top_art_page=-1;
                 showing_original_top_art=0;
                 render();
+                (void)save_resume_checkpoint();
             }else if(p3dTitleIdleAdvance(&title_idle)){
+                p3dTitleIdleChooseSpecies(&title_idle);
+                reload_preview();
                 enter_title_idle();
                 draw_title_idle_info();
             }else if(title_idle.active){
+                if(p3dTitleIdleSceneDue(&title_idle)){
+                    p3dTitleIdleChooseSpecies(&title_idle);
+                    reload_preview();
+                    update_preview_mode();
+                    draw_title_idle_info();
+                }
                 if(++idle_refresh>=60){
                     idle_refresh=0;
                     draw_title_idle_info(); /* refresh actual console RTC */
@@ -1482,7 +1517,12 @@ int main(void) {
          * render_model() ran with the prior frame's display_preview flag:
          * switching between a model and a text page could render a stale
          * model for one extra frame. */
-        if(redraw)render();
+        if(redraw){
+            render();
+            /* Flush a changed screen/selection immediately instead of
+             * waiting for the old one-second progress flush interval. */
+            (void)save_resume_checkpoint();
+        }
         /* The DS cannot intercept a hard power-off. Save after a short
          * quiet interval rather than pretending to save on shutdown.
          * Dual-slot CRC records preserve the last active page on restart. */

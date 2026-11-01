@@ -8,7 +8,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/feature_menu.c",
-      "gap": "C119 preserves original HOME graphics/title assets while keeping AR Viewer visible as a disabled text-fallback entry on DS or without a working DSi camera. Native title idle starts after 720 VBlanks, previews the last restored/visited original-derived Pokémon scene and prints the console weekday, date and time plus the 'check this Pokémon's Pokédex entry?' prompt; A opens that species. Original exact idle background, icon sprites/hitboxes, greyed source AR art and original idle timing/animations are NOT recovered or visually verified. C116–C118 separate original title still works.",
+      "gap": "C120 fixes C119 title idle: after inactivity, an independent session-seeded picker chooses ANY of the 649 Pokédex species, unrelated to viewed/favorite/last-saved Pokémon, and can switch species repeatedly while idle. The top scene uses existing original-derived model files when available, with live console weekday/date/time and a prompt to open the CURRENT scene Pokémon; ordinary exit restores the saved page and original saved model. No fabricated Pokémon art is used when original source geometry is unavailable. The exact original 3DS idle Pokémon selection algorithm, scene change cadence, transitions, artwork and visual parity are not verified. C116–C118 original dual-screen title art, animation and audio requirements remain.",
       "verified_end_to_end": false
     },
     {
@@ -128,7 +128,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/records.c",
-      "gap": "C119 introduces dual-slot CRC P3RV exact last-screen resume (home/page/highlight/dex/move/records tab/album page) and automatically flushes changed view/progress after a 60-VBlank checkpoint if writable FAT storage is present. The original P3SV/P3RC progress persists. No storage means volatile state; abrupt power removal is not interceptable and exact power-off-time persistence cannot be guaranteed. Original 3DS save parity remains unverified.",
+      "gap": "C120 saves last-page/selection changes immediately into the independently CRC-validated dual-slot P3RV file on writable FAT/DLDI storage, and restores that screen DIRECTLY on game reset/relaunch instead of showing the original title first. Legacy P3SV/P3RC progress persistence still operates; P3RV can restore even when a legacy progress file is missing, and corrupt newest P3RV falls back to an older valid slot. Original title remains available to fresh starts with no checkpoint, and any idle Pokémon display never mutates P3RV. A reset before a storage write finishes may lose the newest change, and full original 3DS save compatibility remains unverified.",
       "verified_end_to_end": false
     },
     {
