@@ -90,13 +90,27 @@ def audit(src):
                 return False
             cursor+=count
         return cursor==triangles
+    def source_shader_caps(a,p,model_id):
+        """Verify source C5 shader declaration provenance, never sampler roles."""
+        b=a.read(p)
+        if len(b)<16:return False
+        magic,version,mid,nrecords,reserved,crc=struct.unpack_from("<4s4HI",b,0)
+        if (magic!=b"P3SC" or version!=1 or mid!=model_id or reserved!=0 or
+                not 1<=nrecords<=256 or len(b)!=16+nrecords*10 or
+                zlib.crc32(b[16:])!=crc):
+            return False
+        for i in range(nrecords):
+            mat,shader,t0,t1,flags=struct.unpack_from("<5H",b,16+10*i)
+            if mat!=i or flags&~3:return False
+        return True
     categories={
         "mesh_previews":"preview/p%03d.ds3m",
         "verified_uv":"preview/p%03d.p3uv",
         "verified_material_bindings":"materials/p%03d.p3mt",
         "original_texture_manifests":"materials/p%03d.p3tx",
         "original_texture_catalogs":"catalogs/p%03d.p3tm",
-        "source_C5_material_provenance":"materials/p%03d.p3mr"
+        "source_C5_material_provenance":"materials/p%03d.p3mr",
+        "source_C5_shader_capabilities":"materials/p%03d.p3sc"
     }
     counts={}
     for category,pattern in categories.items():
@@ -105,7 +119,10 @@ def audit(src):
             path=pattern%ident
             if src.exists(path):
                 count+=1
-                if category=="source_C5_material_provenance":
+                if category=="source_C5_shader_capabilities":
+                    if not source_shader_caps(src,path,ident):
+                        invalid.append(path+": invalid C5 shader capability declarations or CRC")
+                elif category=="source_C5_material_provenance":
                     if not source_material_map(src,path,ident):
                         invalid.append(path+": invalid C5 material provenance, counts or CRC")
                 elif src.length(path)==0:
@@ -128,6 +145,7 @@ def audit(src):
             "counts":counts,"missing":missing,"invalid":invalid,
             "asset_complete":not missing and not invalid,
             "visual_accuracy_verified":False,
+            "original_shader_sampler_roles_verified":False,
             "full_gameplay_verified":False}
 
 def main():
