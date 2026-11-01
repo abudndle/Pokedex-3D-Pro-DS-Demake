@@ -6,7 +6,7 @@ import struct
 import sys
 
 NAMES = ("home", "dex", "search", "moves", "types", "favorites", "challenge",
-         "settings", "album", "ar")
+         "settings", "album", "ar", "records")
 PIXELS = 256 * 192
 SIZE = PIXELS * 2
 
