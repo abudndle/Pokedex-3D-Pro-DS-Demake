@@ -97,6 +97,56 @@ class C85Tests(unittest.TestCase):
                 src=Assets(root);invalid=audit(src);src.close()
                 self.assertTrue(any("timeline.p3tl" in x for x in invalid["invalid"]))
 
+    def test_private_original_title_pcm_cues_are_source_timed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=pathlib.Path(folder)
+            title=root/"ui/title"
+            audio=title/"audio"
+            audio.mkdir(parents=True)
+            for screen in (0,1):
+                (title/f"t{screen}_title.rgb555").write_bytes(
+                    b"\x21\x9b"*(256*192))
+            pcm=struct.pack("<16h",*range(16))
+            sample=struct.pack("<4sHHII",b"P3SA",1,16000,16,
+                               zlib.crc32(pcm))+pcm
+            (audio/"c01.p3sa").write_bytes(sample)
+            body=struct.pack("<HH",0,1)
+            cue_file=title/"cues.p3tc"
+            original=struct.pack("<4s4HI",b"P3TC",1,1,1,0,
+                                 zlib.crc32(body))+body
+            cue_file.write_bytes(original)
+            src=Assets(root);report=audit(src);src.close()
+            self.assertFalse(any("cues.p3tc" in x or "c01.p3sa" in x
+                                 for x in report["missing"]+report["invalid"]))
+            self.assertFalse(report["original_title_screen_visually_verified"])
+            # A valid CRC is not sufficient if cue references are missing.
+            (audio/"c01.p3sa").unlink()
+            src=Assets(root);report=audit(src);src.close()
+            self.assertIn("ui/title/audio/c01.p3sa",report["missing"])
+            (audio/"c01.p3sa").write_bytes(sample[:-1]+bytes([sample[-1]^1]))
+            src=Assets(root);report=audit(src);src.close()
+            self.assertTrue(any("c01.p3sa" in x for x in report["invalid"]))
+            (audio/"c01.p3sa").write_bytes(sample)
+            for corrupt in (
+                original[:-1],
+                original+b"\x00",
+                original[:4]+struct.pack("<H",2)+original[6:],
+            ):
+                cue_file.write_bytes(corrupt)
+                src=Assets(root);report=audit(src);src.close()
+                self.assertTrue(any("cues.p3tc" in x for x in report["invalid"]))
+            # If animation is declared, static-only cue map count mismatches.
+            cue_file.write_bytes(original)
+            timing=struct.pack("<4H",0,2,1,2)
+            (title/"timeline.p3tl").write_bytes(
+                struct.pack("<4s4HI",b"P3TL",1,2,0,0,
+                            zlib.crc32(timing))+timing)
+            for screen in (0,1):
+                (title/f"t{screen}_01_title.rgb555").write_bytes(
+                    b"\x22\x94"*(256*192))
+            src=Assets(root);report=audit(src);src.close()
+            self.assertTrue(any("cues.p3tc" in x for x in report["invalid"]))
+
     def test_original_3d_hud_mask_requires_both_opacity_states(self):
         with tempfile.TemporaryDirectory() as folder:
             p=pathlib.Path(folder)
@@ -210,7 +260,7 @@ class C85Tests(unittest.TestCase):
             self.assertFalse(report["original_shader_sampler_roles_verified"])
             for corrupt in (
                 good[:-1],
-                good+b"\\x00",
+                good+b"\x00",
                 good[:6]+struct.pack("<H",1)+good[8:],
                 good[:4]+struct.pack("<H",2)+good[6:],
                 good[:-1]+bytes([good[-1]^1]),

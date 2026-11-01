@@ -8,7 +8,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/feature_menu.c",
-      "gap": "C117 adds optional P3TL source-timed animation for the separate original dual-screen 3DS title boot sequence, with verified manifest structure/CRC, independently recovered upper/lower frame pairs, bounded per-frame VBlank timing and no fabricated transitions. The C116 static original-title pair is still mandatory, and the asset-free development ROM still has no authenticated original title art. Real 3DS title animation frames/timing, audio, visual comparison, exact original touchscreen behavior and full game UI/gameplay remain unverified.",
+      "gap": "C118 adds native libnds playback of optional privately recovered PCM16 title cues (P3SA) at source-specified original C117 title-frame events (CRC-checked P3TC), with valid static-title cue support, silence on missing source assets, safe audio-buffer lifetime, and stops on HOME transition. C117 P3TL image timings, C116 original separate dual-screen title assets remain required and not verified against the actual 3DS. Complete original 3DS title music, transitions, behavior, graphics and other menus/gameplay are not yet fully ported or visually/aurally verified.",
       "verified_end_to_end": false
     },
     {
@@ -112,7 +112,7 @@
       "required_for_release": true,
       "status": "missing",
       "source": "source/main.c",
-      "gap": "C103 can privately decode original 3DS CWAV DSP ADPCM sources to PCM and validated five original 32-kHz wave previews. Full 4,407 source wave decode, original CSAR sound-event IDs, 11 CSTM stream/loop playback, ARM7 sound mixer, music/cries/speech and real DS sound verification remain missing.",
+      "gap": "C118 integrates only short original-source PCM16 title audio cue playback from optional P3TC/P3SA private NitroFS files (no invented sounds, limited 32KiB per mono cue). Full source-original title theme/music, Pokémon cries, speech and gameplay effects remain unimplemented/not source-verified, and original-asset playback has not been compared with real 3DS recordings.",
       "verified_end_to_end": false
     },
     {
