@@ -57,6 +57,18 @@ int main(void){
  assert(!previewStreamHasModel());
  assert(!previewStreamLoad(4)); /* v2 colors truncated */
  assert(!previewStreamLoad(2)); /* 601 triangles must not overflow the buffer. */
+ /* C103: invalid reserved header bytes, implausible source face
+  * count, and source count exceeding signed native int must fail closed. */
+ assert(!previewStreamLoad(7));
+ assert(!previewStreamHasModel());
+ assert(previewStreamTriangleCount()==0);
+ assert(previewStreamOriginalTriangleCount()==0);
+ assert(!previewStreamLoad(8));
+ assert(!previewStreamHasModel());
+ assert(previewStreamTriangleCount()==0);
+ assert(!previewStreamLoad(9));
+ assert(!previewStreamHasModel());
+ assert(previewStreamOriginalTriangleCount()==0);
  assert(!previewStreamLoad(721));
  assert(previewStreamLoad(737));
  assert(previewStreamTriangleCount()==1);
