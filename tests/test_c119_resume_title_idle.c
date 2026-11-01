@@ -69,6 +69,50 @@ int main(int argc,char **argv){
     assert(!p3dTitleIdleClock(NULL,0,time(NULL)));
     p3dTitleIdleReset(&idle);
     assert(!idle.active && !idle.ticks);
-    puts("C119 resume, DS/DSi AR gating and idle RTC: PASS");
+    /* C120: idle can pick ANY Pokédex species without looking at the
+     * resumed/saved Dex entry (which remains intact until idle A is used). */
+    {
+        unsigned char seen[P3D_TITLE_POKEDEX_COUNT]={0};
+        unsigned covered=0;
+        P3DTitleIdle first,second;
+        for(uint32_t seed=1;seed<=20000;seed++){
+            p3dTitleIdleReset(&first);
+            p3dTitleIdleSeed(&first,seed);
+            unsigned species=p3dTitleIdleChooseSpecies(&first);
+            assert(species<P3D_TITLE_POKEDEX_COUNT);
+            if(!seen[species]){seen[species]=1;covered++;}
+        }
+        assert(covered==P3D_TITLE_POKEDEX_COUNT);
+        p3dTitleIdleReset(&first);
+        p3dTitleIdleReset(&second);
+        p3dTitleIdleSeed(&first,0x12345678u);
+        p3dTitleIdleSeed(&second,0x12345678u);
+        /* Different saved Pokédex entries do not influence idle species. */
+        a.dex=1;
+        unsigned one=p3dTitleIdleChooseSpecies(&first);
+        a.dex=648;
+        unsigned two=p3dTitleIdleChooseSpecies(&second);
+        assert(one==two);
+        assert(a.dex==648);
+        assert(!p3dTitleIdleSceneDue(&first)); /* inactive title */
+        first.active=1;
+        for(unsigned i=1;i<P3D_TITLE_SCENE_TICKS;i++)
+            assert(!p3dTitleIdleSceneDue(&first));
+        assert(p3dTitleIdleSceneDue(&first));
+        unsigned previous=first.species;
+        unsigned next=p3dTitleIdleChooseSpecies(&first);
+        assert(next<P3D_TITLE_POKEDEX_COUNT && next!=previous);
+        assert(!first.scene_ticks);
+        for(unsigned i=0;i<10000;i++){
+            previous=next;
+            next=p3dTitleIdleChooseSpecies(&first);
+            assert(next!=previous && next<P3D_TITLE_POKEDEX_COUNT);
+        }
+        assert(!p3dTitleIdleSceneDue(NULL));
+        assert(p3dTitleIdleChooseSpecies(NULL)==0);
+        p3dTitleIdleReset(&first);
+        assert(!first.active && !first.has_species);
+    }
+    puts("C120 independent full-Pokédex title scenes, resume and RTC: PASS");
     return 0;
 }
