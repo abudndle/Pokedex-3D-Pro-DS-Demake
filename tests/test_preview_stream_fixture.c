@@ -42,6 +42,19 @@ int main(void){
  assert(emitted==0);
  previewStreamDrawRange(0,0,0,0);
  assert(emitted==0);
+ assert(previewStreamLoad(5)); /* stream 1202 original triangles via 600 buffers */
+ assert(previewStreamIsChunked());
+ assert(previewStreamTriangleCount()==1202);
+ assert(previewStreamOriginalTriangleCount()==5000);
+ assert(!previewStreamHasUv()); /* sampler binding stays intentionally disabled */
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==1202*3);
+ emitted=0;
+ previewStreamDrawRange(0,1,8,8); /* no external range without matched source textures */
+ assert(emitted==0);
+ assert(!previewStreamLoad(6)); /* corrupted CRC must not reach GL rendering */
+ assert(!previewStreamHasModel());
  assert(!previewStreamLoad(4)); /* v2 colors truncated */
  assert(!previewStreamLoad(2)); /* 601 triangles must not overflow the buffer. */
  assert(!previewStreamLoad(721));

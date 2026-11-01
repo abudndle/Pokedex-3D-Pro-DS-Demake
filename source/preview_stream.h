@@ -7,6 +7,8 @@ int previewStreamInit(void);
 int previewStreamLoad(int resource_index);
 int previewStreamHasModel(void);
 int previewStreamHasUv(void);
+/* P3CS is a geometry-only diagnostic path until GPU sampler roles are proven. */
+int previewStreamIsChunked(void);
 int previewStreamTriangleCount(void);
 int previewStreamOriginalTriangleCount(void);
 /* With verified texture+UV only, use white vertices to avoid tinting RGB555. */
