@@ -37,6 +37,38 @@ int main(int argc,char **argv){
         &source,&candidate,&textures,25,4,face_textures,5));
     assert(face_textures[0]==2&&face_textures[1]==2&&
            face_textures[2]==2&&face_textures[3]==7&&face_textures[4]==-1);
+    /* C139: the ACTUAL native draw-range binding predicate must reject
+     * every unverified source face, texture ID and sampler/UV combination.
+     * A valid source reference alone is not proof of the diffuse sampler. */
+#define READY(first,n,tex,role,uv) p3dSourceCandidateTextureRangeReady(\
+        face_textures,5,4,(first),(n),(tex),(role),(uv))
+    assert(READY(0,1,2,1,1));
+    assert(READY(0,3,2,1,1));
+    assert(READY(1,2,2,1,1));
+    assert(READY(3,1,7,1,1));
+    assert(!READY(2,2,2,1,1));  /* cross original source texture boundary */
+    assert(!READY(3,1,2,1,1));  /* wrong source texture on final face */
+    assert(!READY(0,3,7,1,1));
+    assert(!READY(0,3,2,0,1));  /* shader colormap role unverified */
+    assert(!READY(0,3,2,1,0));  /* missing or unsafe paired source UV */
+    assert(!READY(0,0,2,1,1));
+    assert(!READY(4,1,7,1,1));
+    assert(!READY(3,2,7,1,1));
+    assert(!READY(0,5,2,1,1));
+    assert(!READY((unsigned)-1,1,2,1,1));
+    assert(!READY(0,(unsigned)-1,2,1,1));
+    assert(!READY(0,3,P3D_SOURCE_MATERIAL_NO_TEXTURE,1,1));
+    assert(!READY(0,3,(unsigned)-1,1,1));
+    assert(!p3dSourceCandidateTextureRangeReady(NULL,5,4,0,3,2,1,1));
+    assert(!p3dSourceCandidateTextureRangeReady(face_textures,3,4,0,3,2,1,1));
+    assert(!p3dSourceCandidateTextureRangeReady(face_textures,601,4,0,3,2,1,1));
+    assert(!p3dSourceCandidateTextureRangeReady(face_textures,5,601,0,3,2,1,1));
+    assert(!p3dSourceCandidateTextureRangeReady(face_textures,5,0,0,3,2,1,1));
+    face_textures[2]=-1;
+    assert(!READY(0,3,2,1,1)); /* partially cleared source map */
+    face_textures[2]=2;
+#undef READY
+
     assert(!p3dSourceCandidateTextureMap(
         &source,&candidate,&textures,26,4,face_textures,5));
     for(unsigned i=0;i<5;i++)assert(face_textures[i]==-1);
