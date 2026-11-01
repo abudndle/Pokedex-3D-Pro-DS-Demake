@@ -34,7 +34,7 @@ int p3dSourceShaderCapsLoad(P3DSourceShaderCaps *out,const char *path,
     if(ferror(f)||fgetc(f)!=EOF){fclose(f);return 0;}
     fclose(f);
     if(got<P3SC_HEADER_BYTES||memcmp(file,"P3SC",4)!=0||
-       get16(file+4)!=1||get16(file+6)!=model_id||
+       get16(file+4)!=2||get16(file+6)!=model_id||
        get16(file+10)!=0)return 0;
     count=get16(file+8);
     if(!count||count>P3D_SHADER_MAX_MATERIALS||
@@ -50,7 +50,7 @@ int p3dSourceShaderCapsLoad(P3DSourceShaderCaps *out,const char *path,
         m->texture1=(uint16_t)get16(p+6);
         m->flags=(uint16_t)get16(p+8);
         if(m->material_id!=i||
-           (m->flags&~(P3D_SHADER_CAP_COLORMAP|P3D_SHADER_CAP_BUMPMAP)))
+           (m->flags&~(P3D_SHADER_CAP_COLORMAP|P3D_SHADER_CAP_BUMPMAP|P3D_SHADER_CAP_OTHER)))
             return 0;
     }
     out->model_id=(uint16_t)model_id;
@@ -83,7 +83,7 @@ int p3dSourceShaderColorReferencesMatch(
            /* CF_BUMPMAP indicates an additional source shader mapping.
             * With no decoded C5 sampler equations, even a single texture
             * reference is NOT evidence that it drives color-only output. */
-           (cap->flags&P3D_SHADER_CAP_BUMPMAP))return 0;
+           (cap->flags&(P3D_SHADER_CAP_BUMPMAP|P3D_SHADER_CAP_OTHER)))return 0;
         candidate_id=cap->texture0;
         other_id=cap->texture1;
         /* A source material with two DIFFERENT textures needs actual C5
