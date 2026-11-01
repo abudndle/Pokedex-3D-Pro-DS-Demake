@@ -71,3 +71,34 @@ python3 tools/audit_private_recovery_workspace.py --root private --strict
 ```
 
 This reads local archive metadata and CRCs, rejects duplicate/unsafe ZIP entries, and reports missing or invalid inputs. The public CI does not have access to original assets; `--strict` is for a privately staged asset workspace, not the asset-free CI ROM. No archive is unpacked or uploaded by this audit.
+
+## Recover C56 C5 containers locally (C133)
+
+The following **source-only** tools are now in GitHub: `tools/native_z5_decoder.py`,
+`tools/c5_dual_table_parser.py`, `tools/validate_c56.py`, and
+`tools/resume_parallel.py`. Their original game input/output bytes and the
+private `C56_validation.csv` catalog are **not** in GitHub.
+
+When you have your own private extracted `pNNN.z5` files, place them in
+`private/recovery/z5/` and run:
+
+```sh
+python3 tools/validate_c56.py \
+  --source private/recovery/z5 \
+  --decoded private/recovery/c5 \
+  --report private/reports/C56_local_validation.csv
+
+# Or recover batches; existing C5 outputs are structurally revalidated.
+python3 tools/resume_parallel.py \
+  --source private/recovery/z5 \
+  --output private/recovery/c5 \
+  --workers 4 --limit 50
+```
+
+A C56 strict-valid result means only descriptor **structural checks** passed.
+The seven source models historically carrying an original C5 descriptor
+`0x26` are classified as *warnings*, not verified finished renders.
+C56 does not yet assign source-exact UV layouts, material sampler roles,
+textures or original Pokémon appearance. C62/C63 recovery and C84/C86/C98
+NitroFS staging remain separate, later steps. Keep source dumps, decoded
+C5 files and per-model hashes in private storage.
