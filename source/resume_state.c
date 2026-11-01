@@ -93,7 +93,10 @@ int p3dResumeStore(const char *base,const P3DResumeState *s){
 int p3dResumeApply(const P3DResumeState *s,P3DCapabilities caps,
                    int *home,P3DMenu *menu,int *highlight){
     if(!p3dResumeStateValid(s)||!home||!menu||!highlight)return 0;
-    *highlight=s->highlight;
+    /* Old P3RV saves may refer to a longer development menu; clamp to
+     * the seven genuine main-screen feature icons without discarding data. */
+    size_t entry_count=p3dMenuEntries(caps,NULL);
+    *highlight=s->highlight<entry_count?s->highlight:(int)(entry_count-1);
     if(s->home){*home=1;return 1;}
     /* AR is present but greyed out on DS/noncamera DSi. A previously
      * saved camera-only page must not resume into unusable hardware. */
