@@ -68,6 +68,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c146_c5_owner_control_fields.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c147_c5_named_nodes.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c148_c5_skeleton_hierarchy.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c149_original_skeleton_loader.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v
@@ -118,3 +119,12 @@ private-host-probe:
 	    tests/c138_native_preview_probe.c -o "$$tmp/native-preview-probe"; \
 	  ln -s "$$(realpath "$(PRIVATE_NITROFS_STAGE)")" "$$tmp/nitrofs"; \
 	  (cd "$$tmp" && ./native-preview-probe "$(PRIVATE_PREVIEW_EXPECTED_UV)")
+
+# C149: test the real compiled native P3SK reader against private source rigs.
+.PHONY: private-host-skeleton-probe
+private-host-skeleton-probe:
+	@test -d "$(PRIVATE_NITROFS_STAGE)/skeleton" || { echo "ERROR: stage private P3SK sidecars under $(PRIVATE_NITROFS_STAGE)/skeleton" >&2; exit 1; }
+	@set -eu; tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT HUP INT TERM; \
+	  $(P3D_HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -Isource \
+	    source/original_skeleton.c tests/c149_skeleton_probe.c -o "$$tmp/c149-skeleton-probe"; \
+	  "$$tmp/c149-skeleton-probe" --all "$(PRIVATE_NITROFS_STAGE)/skeleton" 35840 4199
