@@ -128,7 +128,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/records.c",
-      "gap": "C121 upgrades dual-slot source-independent DS P3RV checkpoints to 48-byte v2 while retaining backward-compatible 32-byte C119/C120 v1 loading and old-record rollback during migration. The exact last screen context now also persists selected Pokémon form, album thumbnail cursor, Records recent cursor, Move Dex effect/text position, Search region/scope/field and menu/favorites subcursor. On direct reset-to-page boot, restored original forms require a valid original source form map; removed photo entries, changed move text and invalid records cursors are clamped. Saved title-idle Pokémon selection remains independent. All source-original 3DS game save formats, transient submenus and full game completion are still unverified; interrupted storage writes can lose the latest checkpoint.",
+      "gap": "C122 adds an 80-byte dual-slot P3RV v3 checkpoint with saved exact Search query and initial-letter cursor, selected Challenge mode on a safely reset picker, Type Matchups attack/defend/optional second type, and currently selected Favorites entry. CRC/length/range/NUL validation and old 32-byte C119 v1 and 48-byte C121 v2 reads remain, with v2→v3 write in alternate slot for rollback. C121 in-screen Pokémon form, Move/Album/Records/Search and direct reset-to-last-screen are retained. A live Challenge question/result cannot be reconstructed safely from the mode only and is NOT falsely resumed. Private original 3DS graphics and whole-game save-format parity remain unverified.",
       "verified_end_to_end": false
     },
     {
