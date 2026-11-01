@@ -66,6 +66,7 @@ cc -std=c11 -O2 -Wall -Wextra -Werror -Isource \
    source/model_material_texture.c source/source_material_map.c \
    source/source_material_texture_match.c source/source_shader_caps.c \
    source/source_material_words.c \
+   source/source_color_ranges.c \
    tests/test_c110_shader_caps.c -o "$tmp/c110"
 "$tmp/c110" "$tmp/material.p3mt" "$tmp/textures.p3tx" \
   "$tmp/original.p3mr" "$tmp/original.p3sc" \
