@@ -128,7 +128,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/records.c",
-      "gap": "C120 saves last-page/selection changes immediately into the independently CRC-validated dual-slot P3RV file on writable FAT/DLDI storage, and restores that screen DIRECTLY on game reset/relaunch instead of showing the original title first. Legacy P3SV/P3RC progress persistence still operates; P3RV can restore even when a legacy progress file is missing, and corrupt newest P3RV falls back to an older valid slot. Original title remains available to fresh starts with no checkpoint, and any idle Pokémon display never mutates P3RV. A reset before a storage write finishes may lose the newest change, and full original 3DS save compatibility remains unverified.",
+      "gap": "C121 upgrades dual-slot source-independent DS P3RV checkpoints to 48-byte v2 while retaining backward-compatible 32-byte C119/C120 v1 loading and old-record rollback during migration. The exact last screen context now also persists selected Pokémon form, album thumbnail cursor, Records recent cursor, Move Dex effect/text position, Search region/scope/field and menu/favorites subcursor. On direct reset-to-page boot, restored original forms require a valid original source form map; removed photo entries, changed move text and invalid records cursors are clamped. Saved title-idle Pokémon selection remains independent. All source-original 3DS game save formats, transient submenus and full game completion are still unverified; interrupted storage writes can lose the latest checkpoint.",
       "verified_end_to_end": false
     },
     {
