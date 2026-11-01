@@ -25,13 +25,35 @@ class Assets:
         self.archive=zipfile.ZipFile(path) if path.is_file() else None
         if self.archive is None and not path.is_dir():
             raise ValueError("asset root must be a directory or ZIP")
-        self.names=set(self.archive.namelist()) if self.archive else None
+        self.names=None
+        if self.archive:
+            entries=self.archive.namelist()
+            if len(entries)!=len(set(entries)):
+                self.archive.close()
+                raise ValueError("ambiguous private asset ZIP: duplicate member names")
+            self.names=set(entries)
+    def _local(self,name):
+        # Do not let private asset staging follow links outside the selected
+        # original-asset root or accept non-canonical source paths.
+        p=pathlib.PurePosixPath(name)
+        if (not name or p.is_absolute() or
+            any(part in ("", ".", "..") for part in name.split("/")) or
+            str(p)!=name):
+            raise ValueError("invalid private asset path")
+        root=self.path.resolve()
+        target=(root/name).resolve()
+        if not target.is_relative_to(root):
+            raise ValueError("private asset path escapes its staging root")
+        return target
     def exists(self,name):
-        return name in self.names if self.archive else (self.path/name).is_file()
+        if self.archive:return name in self.names
+        return self._local(name).is_file()
     def read(self,name):
-        return self.archive.read(name) if self.archive else (self.path/name).read_bytes()
+        if self.archive:return self.archive.read(name)
+        return self._local(name).read_bytes()
     def length(self,name):
-        return self.archive.getinfo(name).file_size if self.archive else (self.path/name).stat().st_size
+        if self.archive:return self.archive.getinfo(name).file_size
+        return self._local(name).stat().st_size
     def close(self):
         if self.archive:self.archive.close()
 
