@@ -49,6 +49,7 @@
 
 static PrintConsole top_console, bottom_console;
 static P3DMenu state;
+static P3DCapabilities hardware_caps;
 static P3DPage pages[P3D_MENU_MAX];
 static int highlighted=0, count=0, home=1;
 static int dex_index=0, move_index=0;
@@ -685,7 +686,7 @@ static void render(void) {
             /* Original 3DS AR Viewer icon stays in its menu position on
              * DS; the unactionable fallback is explicitly greyed out. */
             if(pages[index]==P3D_PAGE_AR &&
-               !p3dCanEnterFeature(caps,P3D_FEATURE_AR))
+               !p3dCanEnterFeature(hardware_caps,P3D_FEATURE_AR))
                 printf(" [DSi camera only]");
         }
         printf("\x1b[24;1HUse A to open selected");
@@ -885,6 +886,7 @@ int main(void) {
     /* Hardware-aware DSi detection; never claim working camera AR before
      * the DSi enhanced camera backend is actually integrated/initialized. */
     caps=p3dCapabilities(isDSiMode()?1:0,storage_ready,0);
+    hardware_caps=caps;
     if(storage_ready){
         /* Bad or missing records slots leave a clean in-memory history. */
         (void)p3dRecordsLoad(P3D_SAVE_BASE,&records);
