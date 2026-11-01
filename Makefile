@@ -58,6 +58,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c135_missing_previews.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c136_native_uv_stage.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c137_private_asset_integration.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c138_native_preview_probe.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v
@@ -93,3 +94,18 @@ private-qa-rom:
 	@python3 tools/c137_stage_private_nitrofs.py --input "$(PRIVATE_NITROFS_ZIP)" --dest "$(PRIVATE_NITROFS_STAGE)" --report private/reports/C137_LOCAL_STAGING.json
 	@$(MAKE) -B -f Makefile.native NITROFSDIR="$(PRIVATE_NITROFS_STAGE)" rom
 	@echo "Private original-asset development ROM built. Release fidelity NOT verified; run emulator/hardware QA separately."
+
+# C138: exercise the ACTUAL compiled native C preview loader against a local
+# private NitroFS directory; never upload original art, models, or screenshots.
+P3D_HOST_CC ?= cc
+PRIVATE_PREVIEW_EXPECTED_UV ?= 0
+.PHONY: private-host-probe
+private-host-probe:
+	@test -d "$(PRIVATE_NITROFS_STAGE)/preview" || { echo "ERROR: stage the private NitroFS package first" >&2; exit 1; }
+	@set -eu; tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT HUP INT TERM; \
+	  $(P3D_HOST_CC) -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST \
+	    -Itools/host_stub -Isource source/preview_stream.c \
+	    source/preview_chunk_stream.c source/model_uv.c \
+	    tests/c138_native_preview_probe.c -o "$$tmp/native-preview-probe"; \
+	  ln -s "$$(realpath "$(PRIVATE_NITROFS_STAGE)")" "$$tmp/nitrofs"; \
+	  (cd "$$tmp" && ./native-preview-probe "$(PRIVATE_PREVIEW_EXPECTED_UV)")
