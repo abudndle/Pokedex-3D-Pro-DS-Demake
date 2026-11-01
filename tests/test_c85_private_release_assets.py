@@ -67,6 +67,36 @@ class C85Tests(unittest.TestCase):
             src=Assets(p);report=audit(src);src.close()
             self.assertTrue(any("ui/title/t1_title.rgb555" in x for x in report["invalid"]))
 
+    def test_private_source_timed_title_animation_must_be_complete(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=pathlib.Path(folder)
+            title=root/"ui/title"
+            title.mkdir(parents=True)
+            for screen in (0,1):
+                (title/f"t{screen}_title.rgb555").write_bytes(
+                    bytes((0x21,0x9b))*(256*192))
+                (title/f"t{screen}_01_title.rgb555").write_bytes(
+                    bytes((0x33,0x91))*(256*192))
+            timeline=title/"timeline.p3tl"
+            payload=struct.pack("<4H",0,2,1,3)
+            good=struct.pack("<4s4HI",b"P3TL",1,2,0,0,
+                             zlib.crc32(payload))+payload
+            timeline.write_bytes(good)
+            src=Assets(root);valid=audit(src);src.close()
+            self.assertFalse(any("timeline.p3tl" in x for x in valid["invalid"]))
+            self.assertFalse(any("t1_01_title.rgb555" in x for x in valid["missing"]))
+            self.assertFalse(valid["original_title_screen_visually_verified"])
+            # A missing upper frame cannot be silently replaced by lower art.
+            (title/"t1_01_title.rgb555").unlink()
+            src=Assets(root);missing=audit(src);src.close()
+            self.assertIn("ui/title/t1_01_title.rgb555",missing["missing"])
+            (title/"t1_01_title.rgb555").write_bytes(bytes((0,0))*(256*192))
+            for broken in (good[:-1],good[:-1]+bytes([good[-1]^1]),
+                           good[:4]+struct.pack("<H",2)+good[6:]):
+                timeline.write_bytes(broken)
+                src=Assets(root);invalid=audit(src);src.close()
+                self.assertTrue(any("timeline.p3tl" in x for x in invalid["invalid"]))
+
     def test_original_3d_hud_mask_requires_both_opacity_states(self):
         with tempfile.TemporaryDirectory() as folder:
             p=pathlib.Path(folder)
