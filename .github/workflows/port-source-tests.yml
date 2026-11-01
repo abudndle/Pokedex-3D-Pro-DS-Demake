@@ -88,6 +88,9 @@ jobs:
       - name: C177 source-verified vertex transport and exact primitive bridge (synthetic only)
         run: sh tests/run_c177_native_vertex_stream.sh
 
+      - name: C178 bounded private geometry pair loader (synthetic only)
+        run: sh tests/run_c178_native_geometry_pair.sh
+
       - name: Compile C154 asset-free Linux private-offline native P3CS checker
         run: |
           cc -std=c11 -O2 -Wall -Wextra -Werror \
