@@ -29,5 +29,5 @@ with open(sys.argv[1].replace("p000", "p737"), "wb") as f:
     f.write(struct.pack("<4sHHII", b"DS3M", 1, 1, 0, 1))
     f.write(struct.pack("<9h", *range(9)))
 PY
-cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST -Itools/host_stub -Isource source/preview_stream.c source/model_uv.c tests/test_preview_stream_fixture.c -o "$tmp/test_preview"
+cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST -Itools/host_stub -Isource source/preview_stream.c source/preview_chunk_stream.c source/model_uv.c tests/test_preview_stream_fixture.c -o "$tmp/test_preview"
 (cd "$tmp" && ./test_preview)
