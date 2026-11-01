@@ -31,6 +31,9 @@ jobs:
       - name: Verify C140 original source C5 shader declaration recovery
         run: python3 -m unittest discover -s tests -p 'test_c140_c5_shader_inventory.py' -v
 
+      - name: Verify C141 original C5 source mesh boundaries and DS3M consistency
+        run: python3 -m unittest discover -s tests -p 'test_c141_c5_mesh_provenance.py' -v
+
       # Public-source x86_64 host executable only. NO private Nintendo data.
       - name: Compile portable C138 host probe for private offline asset test
         run: |
