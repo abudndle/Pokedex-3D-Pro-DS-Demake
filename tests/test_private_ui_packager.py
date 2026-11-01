@@ -12,6 +12,15 @@ with tempfile.TemporaryDirectory() as tmp:
     source = root / "private"
     source.mkdir()
     (source / "home.rgba").write_bytes(bytes((255, 0, 0, 255)) * (256 * 192))
+    # Synthetic measured boxes: the real project must substitute independent
+    # original 3DS HOME icon source coordinates, never these test rectangles.
+    home_boxes=[
+        ("pokedex",[8,8,65,43]),("move_dex",[75,8,132,43]),
+        ("challenge",[142,8,199,43]),("records",[8,60,65,95]),
+        ("album",[75,60,132,95]),("ar_viewer",[142,60,199,95]),
+        ("settings",[8,112,65,147])]
+    (source/"home_hotspots.json").write_text(json.dumps({
+        "icons":[{"page":name,"box":bounds} for name,bounds in home_boxes]}))
     (source / "dex.rgb555").write_bytes(b"\x1f\x80" * (256 * 192))
     (source / "records.rgb555").write_bytes(b"\x00\x00" * (256 * 192))
     top = source / "top"
@@ -47,6 +56,12 @@ with tempfile.TemporaryDirectory() as tmp:
     result = subprocess.run(
         [sys.executable, "tools/package_private_ui.py", str(source), "--output", str(dst)],
         capture_output=True, text=True, check=True)
+    source_home=(dst.parent/"home_hotspots.p3hm").read_bytes()
+    assert len(source_home)==86
+    assert struct.unpack_from("<4sHHII",source_home)[:4]==(b"P3HM",1,7,0)
+    assert zlib.crc32(source_home[16:])==struct.unpack_from("<I",source_home,12)[0]
+    assert struct.unpack_from("<5H",source_home,16)==(1,8,8,65,43)
+    assert struct.unpack_from("<5H",source_home,16+5*10)==(9,142,60,199,95)
     home = (dst / "t0_00_home.rgb555").read_bytes()
     dex = (dst / "t0_01_dex.rgb555").read_bytes()
     assert len(home) == len(dex) == 256 * 192 * 2
@@ -131,4 +146,16 @@ with tempfile.TemporaryDirectory() as tmp:
         capture_output=True,text=True)
     assert bad_event.returncode!=0
     assert "invalid source title cue order" in bad_event.stderr
+    # A valid original HOME bitmap and title must not authorize guessed
+    # click regions: overlapping or incomplete source annotations fail.
+    (source/"title_cues.json").unlink()
+    (source/"home_hotspots.json").write_text(json.dumps({
+        "icons":[{"page":name,"box":([8,8,65,43] if name=="move_dex" else box)}
+                 for name,box in home_boxes]}))
+    bad_home=subprocess.run(
+        [sys.executable,"tools/package_private_ui.py",str(source),
+         "--output",str(root/"bad_home"/"pages")],
+        capture_output=True,text=True)
+    assert bad_home.returncode!=0
+    assert "overlapping original HOME source icon" in bad_home.stderr
 print("Private UI page packaging: PASS")
