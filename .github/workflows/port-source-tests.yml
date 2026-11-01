@@ -34,6 +34,9 @@ jobs:
       - name: Verify C141 original C5 source mesh boundaries and DS3M consistency
         run: python3 -m unittest discover -s tests -p 'test_c141_c5_mesh_provenance.py' -v
 
+      - name: Verify C142 original C5 track table and fast summary audit
+        run: python3 -m unittest discover -s tests -p 'test_c142_c5_track_index.py' -v
+
       # Public-source x86_64 host executable only. NO private Nintendo data.
       - name: Compile portable C138 host probe for private offline asset test
         run: |

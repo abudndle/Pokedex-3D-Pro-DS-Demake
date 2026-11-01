@@ -457,3 +457,53 @@ Synthetic regression:
 ```sh
 python3 -m unittest discover -s tests -p 'test_c141_c5_mesh_provenance.py' -v
 ```
+
+## C142 — efficient, source-hashed opaque C5 track record recovery
+
+This milestone records **79,268 original pointer-indexed C5 track records**
+across the same **730/730 SHA-256-verified private C56 models**. Their 16-byte
+records hold one source-data pointer and three **opaque** control words.
+C142 verifies ascending aligned pointers, nonoverlapping ranges, in-bounds
+payloads, per-record source SHA-256, and cross-checks the prior C140 shader
+and C141 mesh identity, plus the corrected C141 private NitroFS preview
+source-face counts. The recovered records span **59,602,296 private bytes**.
+The source record's original material, face, shader, animation and sampler
+roles are **not verified**. No P3MR/P3SC/P3SW/P3MT sidecars or textured
+renderers are generated from guesses.
+
+To run the reproducible source inspection locally:
+
+```sh
+python3 tools/c142_c5_track_index.py \
+  --parts \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_2_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --c140-report private/reports/C140_PRIVATE_C5_SHADER_DECLARATION_INVENTORY.json \
+  --c141-report private/reports/C141_PRIVATE_C5_MESH_PROVENANCE_REPORT.json \
+  --nitrofs private/packages/C141_PRIVATE_CORRECTED_SOURCE_COUNT_NITROFS.zip \
+  --report private/reports/C142_PRIVATE_C5_TRACK_INVENTORY.json
+```
+
+**Faster repeat audits:** add `--summary-only` and use a different private
+report filename. This skips hashing and serializing the 79,268 individual
+record payloads, while still checking every original archive SHA-256,
+per-model track-table boundaries, total track bytes, aggregate track-payload
+hashes, C140/C141 identities and native DS3M geometry metadata. It
+significantly reduces the large (~41 MB) detailed report.
+
+The host/CI regression uses synthetic source files, including one complete
+730-model cross-stage fixture. Run tests **before** GitHub submission:
+
+```sh
+python3 -m unittest discover -s tests -p 'test_c142_c5_track_index.py' -v
+```
+
+**Speed priority for future milestones:** reuse verified C140/C141/C142
+private hashes and summaries; avoid repeating single-model extraction
+passes when a bounded batch can inspect all models together. Run host
+regressions locally and use GitHub's parallel source and native jobs.
+Native texture roles, accurate dual-screen UI, audio, gameplay, and
+private ARM9 emulator visuals remain open; an archive audit does not
+establish original-game parity.
