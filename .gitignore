@@ -27,3 +27,15 @@ __pycache__/
 .pytest_cache/
 *.pyc
 .env
+
+# Private C18–C98 recovery workspace and staged NitroFS source assets
+private/
+nitrofs/preview/
+nitrofs/uv_candidates/
+nitrofs/materials/
+nitrofs/textures/
+nitrofs/catalogs/
+nitrofs/ui/
+nitrofs/data/
+nitrofs/animations/
+nitrofs/moves.p3dm
