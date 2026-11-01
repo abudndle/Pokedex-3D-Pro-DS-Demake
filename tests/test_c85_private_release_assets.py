@@ -14,6 +14,37 @@ sys.path.insert(0,str(ROOT/"tools"))
 from check_private_release_assets import Assets,audit,MODEL_IDS
 
 class C85Tests(unittest.TestCase):
+    def test_c124_reject_duplicate_original_asset_zip_members(self):
+        # Two payloads under one canonical source name must not depend on
+        # whichever duplicate a ZIP reader happens to select.
+        import warnings
+        with tempfile.TemporaryDirectory() as folder:
+            archive=pathlib.Path(folder)/"assets.zip"
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore",UserWarning)
+                with zipfile.ZipFile(archive,"w") as z:
+                    z.writestr("ui/title/t0_title.rgb555",b"first")
+                    z.writestr("ui/title/t0_title.rgb555",b"second")
+            with self.assertRaisesRegex(ValueError,"duplicate member"):
+                Assets(archive)
+
+    def test_c124_reject_outside_root_asset_symlink(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=pathlib.Path(folder)
+            stage=root/"private";stage.mkdir()
+            outside=root/"not_in_stage.rgb555";outside.write_bytes(b"x")
+            (stage/"ui").mkdir()
+            (stage/"ui"/"leak.rgb555").symlink_to(outside)
+            source=Assets(stage)
+            try:
+                with self.assertRaisesRegex(ValueError,"escapes"):
+                    source.exists("ui/leak.rgb555")
+                with self.assertRaisesRegex(ValueError,"invalid private asset path"):
+                    source.exists("../not_in_stage.rgb555")
+                self.assertFalse(source.exists("ui/missing.rgb555"))
+            finally:
+                source.close()
+
     def test_expected_recovered_roster(self):
         self.assertEqual(len(MODEL_IDS),730)
         self.assertIn(733,MODEL_IDS)
