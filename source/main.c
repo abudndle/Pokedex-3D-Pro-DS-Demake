@@ -96,6 +96,43 @@ static int art_page=-1;
 static int showing_original_art=0;
 static int original_art_available=0;
 static int prefer_original_art=1;
+/* The source 3DS upper artwork lives in DS main BG2; the original
+ * 3D Pokémon renderer still owns BG0 on a Dex model page. */
+static int top_art_page=-1;
+static int top_art_preview=-1;
+static int showing_original_top_art=0;
+static int display_preview=0;
+static void prepare_original_top_art(void){
+    int page=home?P3D_PAGE_HOME:(int)state.page;
+    if(page==top_art_page && display_preview==top_art_preview)return;
+    top_art_page=page;
+    top_art_preview=display_preview;
+    int have_art=!display_preview && prefer_original_art && nitro_ready &&
+                 p3dOriginalTopPageLoad(page);
+    if(have_art){
+        if(!showing_original_top_art){
+            /* BG2 256x256 16-bit uses the full 128 KiB bank A.
+             * Never overlap its bitmap with the tiled BG3 text console.
+             * MODE_5_3D retains the hardware 3D engine on BG0. */
+            bgHide(3);
+            videoSetMode(MODE_5_3D);
+            bgInit(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
+            bgSetPriority(2,0);
+            REG_BG0CNT=(REG_BG0CNT & ~3) | 3;
+            bgShow(2);
+        }
+        p3dOriginalTopPageDraw();
+        showing_original_top_art=1;
+    }else if(showing_original_top_art){
+        bgHide(2);
+        videoSetMode(MODE_0_3D);
+        consoleInit(&top_console,3,BgType_Text4bpp,BgSize_T_256x256,
+                    31,0,true,true);
+        bgSetPriority(3,0);
+        REG_BG0CNT=(REG_BG0CNT & ~3) | 3;
+        showing_original_top_art=0;
+    }
+}
 /* Reversible source-geometry QA; not saved as an original game option. */
 static int prefer_source_chunks=0;
 static void prepare_original_art(void){
@@ -160,7 +197,6 @@ static void reload_preview(void){
         }
     }
 }
-static int display_preview=0;
 static int model_yaw=0;
 static void update_preview_mode(void){display_preview=!home&&state.page==P3D_PAGE_DEX&&preview_found;}
 static void render_model(void){
@@ -225,11 +261,13 @@ static void render(void) {
         progress_dirty=1;
     }
     update_preview_mode();
-    /* The upper BG3 text console is in front of the 3D layer. Hide it for
-     * model previews, restoring it for menu pages or missing meshes. */
-    if(display_preview)bgHide(3);
+    prepare_original_top_art();
+    /* BG2 source artwork has its own VRAM layout. Never run the upper
+     * tiled-console writer while it owns bank A. Model previews still
+     * render through native 3D BG0 with BG3 hidden. */
+    if(display_preview || showing_original_top_art)bgHide(3);
     else bgShow(3);
-    if(!display_preview){
+    if(!display_preview && !showing_original_top_art){
     consoleSelect(&top_console);
     consoleClear();
     printf("POKEDEX 3D PRO DS\n");
@@ -670,6 +708,7 @@ int main(void) {
              * screen mode changes, including returning to the text screen. */
             album_confirm_delete=0;
             art_page=-1; /* force re-evaluation of the same page */
+            top_art_page=-1; /* refresh upper artwork or dev fallback too */
             redraw=1;
         }
         /* START explicitly retries a previously failed save, including from
