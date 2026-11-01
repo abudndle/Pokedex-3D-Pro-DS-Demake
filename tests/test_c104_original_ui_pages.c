@@ -61,6 +61,30 @@ int main(void) {
     assert(!p3dOriginalTopOverlayLoad(-1));
     assert(!p3dOriginalTopOverlayLoad(P3D_PAGE_COUNT));
 
+    /* C116: original 3DS title is independent of the HOME art and uses
+     * both private source screens, not duplicated lower-screen contents. */
+    assert(p3dOriginalTitleLoad());
+    assert(p3dOriginalTitleReady());
+    p3dOriginalTitleDraw();
+    assert(p3d_c104_bitmap[0]==0x9234u);
+    assert(p3d_c105_top_bitmap[0]==0xa345u);
+    assert(p3dOriginalUiPageLoad(P3D_PAGE_HOME));
+    assert(p3dOriginalTopPageLoad(P3D_PAGE_HOME));
+    p3dOriginalUiPageDraw();
+    p3dOriginalTopPageDraw();
+    assert(p3d_c104_bitmap[0]==0x9234u);
+    assert(p3d_c105_top_bitmap[0]==0xa345u);
+    /* Delete upper title: a lower title alone is never a fake dual-screen
+     * original title. Old frame buffers may not be drawn after failure. */
+    assert(remove("nitro:/ui/title/t1_title.rgb555")==0);
+    assert(!p3dOriginalTitleLoad());
+    assert(!p3dOriginalTitleReady());
+    p3d_c104_bitmap[0]=0x3456u;
+    p3d_c105_top_bitmap[0]=0x5678u;
+    p3dOriginalTitleDraw();
+    assert(p3d_c104_bitmap[0]==0x3456u);
+    assert(p3d_c105_top_bitmap[0]==0x5678u);
+
     /* Missing, negative, and out-of-range originals fail closed. */
     assert(!p3dOriginalUiPageLoad(P3D_PAGE_AR));
     assert(!p3dOriginalUiPageReady());
