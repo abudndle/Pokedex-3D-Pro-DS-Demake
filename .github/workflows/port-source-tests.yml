@@ -46,6 +46,9 @@ jobs:
       - name: Verify material-to-texture cross-references
         run: sh tests/run_model_material_texture.sh
 
+      - name: C139 fail-closed source texture face and normalized UV draw guard
+        run: sh tests/run_c109_original_material_refs.sh
+
       - name: Verify VRAM-bounded multi-material texture rendering assets
         run: sh tests/run_preview_texture_set.sh
 
