@@ -107,9 +107,15 @@ static void prepare_original_top_art(void){
     if(page==top_art_page && display_preview==top_art_preview)return;
     top_art_page=page;
     top_art_preview=display_preview;
-    int have_art=!display_preview && prefer_original_art && nitro_ready &&
-                 p3dOriginalTopPageLoad(page);
-    if(have_art){
+    /* Use the original-source alpha mask on Pokémon model pages.
+     * This is a separate source asset from the solid information-page image:
+     * never fabricate a cutout from the background or hide the model with
+     * an all-opaque bitmap. */
+    int have_overlay=display_preview && prefer_original_art && nitro_ready &&
+                     p3dOriginalTopOverlayLoad(page);
+    int have_page=!display_preview && prefer_original_art && nitro_ready &&
+                  p3dOriginalTopPageLoad(page);
+    if(have_page || have_overlay){
         if(!showing_original_top_art){
             /* BG2 256x256 16-bit uses the full 128 KiB bank A.
              * Never overlap its bitmap with the tiled BG3 text console.
@@ -121,7 +127,8 @@ static void prepare_original_top_art(void){
             REG_BG0CNT=(REG_BG0CNT & ~3) | 3;
             bgShow(2);
         }
-        p3dOriginalTopPageDraw();
+        if(have_overlay)p3dOriginalTopOverlayDraw();
+        else p3dOriginalTopPageDraw();
         showing_original_top_art=1;
     }else if(showing_original_top_art){
         bgHide(2);
@@ -262,9 +269,9 @@ static void render(void) {
     }
     update_preview_mode();
     prepare_original_top_art();
-    /* BG2 source artwork has its own VRAM layout. Never run the upper
-     * tiled-console writer while it owns bank A. Model previews still
-     * render through native 3D BG0 with BG3 hidden. */
+    /* BG2 source art has its own bitmap VRAM layout. Keep the upper text
+     * console hidden when bitmap art (opaque page OR masked model overlay)
+     * occupies bank A; live Pokémon remains behind the BG2 mask on BG0. */
     if(display_preview || showing_original_top_art)bgHide(3);
     else bgShow(3);
     if(!display_preview && !showing_original_top_art){
