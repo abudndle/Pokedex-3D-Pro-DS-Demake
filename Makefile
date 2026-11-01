@@ -70,4 +70,6 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c110_original_shader_capabilities.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c111_original_sampler_evidence.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c113_private_material_words.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c114_crossfile_source_consistency.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c114_original_sampler_differential.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
