@@ -6,6 +6,7 @@
 #include <string.h>
 #define P3RV_V1_SIZE 32u
 #define P3RV_V2_SIZE 48u
+#define P3RV_V3_SIZE 80u
 static unsigned r16(const unsigned char *p){return (unsigned)p[0]|((unsigned)p[1]<<8);}
 static uint32_t r32(const unsigned char *p){
     return (uint32_t)r16(p)|((uint32_t)r16(p+2)<<16);
@@ -25,6 +26,19 @@ static uint32_t checksum(const unsigned char *p,unsigned n){
     }
     return crc^0xffffffffu;
 }
+static int valid_query(const char query[13]){
+    unsigned i;
+    for(i=0;i<13;i++){
+        unsigned c=(unsigned char)query[i];
+        if(c==0){
+            /* Canonical NUL padding prevents stale input from being saved. */
+            for(unsigned j=i+1;j<13;j++)if(query[j]!=0)return 0;
+            return 1;
+        }
+        if(i>=12 || c<'A'||c>'Z')return 0;
+    }
+    return 0;
+}
 int p3dResumeStateValid(const P3DResumeState *s){
     return s&&s->home<=1&&s->page<P3D_PAGE_COUNT &&
         s->highlight<P3D_MENU_MAX&&s->records_tab<=2&&
@@ -35,7 +49,11 @@ int p3dResumeStateValid(const P3DResumeState *s){
         s->search_scope<P3D_DEX_SCOPE_COUNT&&
         s->search_field<=P3D_DEX_SEARCH_DESCRIPTION&&
         s->favorite_cursor<P3D_FAVORITES_MAX&&
-        s->move_text_offset<=4096;
+        s->move_text_offset<=4096&&
+        valid_query(s->search_query)&&
+        (s->search_letter==0||(s->search_letter>='A'&&s->search_letter<='Z'))&&
+        s->challenge_mode<7&&s->type_attack<17&&s->type_defend<17&&
+        s->type_defend2_plus_one<=17&&s->favorites_selected<P3D_FAVORITES_MAX;
 }
 static int file_path(char path[256],const char *base,int slot){
     int n;
@@ -43,9 +61,9 @@ static int file_path(char path[256],const char *base,int slot){
     n=snprintf(path,256,"%s_resume_%c.sav",base,slot?'B':'A');
     return n>0&&n<256;
 }
-static void pack(unsigned char b[P3RV_V2_SIZE],const P3DResumeState *s,uint32_t seq){
-    memset(b,0,P3RV_V2_SIZE);
-    memcpy(b,"P3RV",4);b[4]=2;
+static void pack(unsigned char b[P3RV_V3_SIZE],const P3DResumeState *s,uint32_t seq){
+    memset(b,0,P3RV_V3_SIZE);
+    memcpy(b,"P3RV",4);b[4]=3;
     w32(b+8,seq);
     b[12]=s->home;b[13]=s->page;b[14]=s->highlight;b[15]=s->records_tab;
     w16(b+16,s->dex);w16(b+18,s->move);
@@ -57,7 +75,11 @@ static void pack(unsigned char b[P3RV_V2_SIZE],const P3DResumeState *s,uint32_t 
     w16(b+32,s->move_text_offset);
     w16(b+34,s->menu_cursor);
     b[36]=s->favorite_cursor;
-    w32(b+44,checksum(b,44));
+    memcpy(b+44,s->search_query,13);
+    b[57]=s->search_letter;b[58]=s->challenge_mode;
+    b[59]=s->type_attack;b[60]=s->type_defend;
+    b[61]=s->type_defend2_plus_one;b[62]=s->favorites_selected;
+    w32(b+76,checksum(b,76));
 }
 static int unpack(const unsigned char *b,unsigned size,
                   P3DResumeState *s,uint32_t *seq){
@@ -70,6 +92,10 @@ static int unpack(const unsigned char *b,unsigned size,
     }else if(version==2 && size==P3RV_V2_SIZE){
         for(unsigned i=37;i<44;i++)if(b[i]!=0)return 0;
         crc_offset=44;
+    }else if(version==3 && size==P3RV_V3_SIZE){
+        for(unsigned i=37;i<44;i++)if(b[i]!=0)return 0;
+        for(unsigned i=63;i<76;i++)if(b[i]!=0)return 0;
+        crc_offset=76;
     }else return 0;
     if(r32(b+crc_offset)!=checksum(b,crc_offset))return 0;
     memset(s,0,sizeof(*s));
@@ -77,7 +103,7 @@ static int unpack(const unsigned char *b,unsigned size,
     s->highlight=b[14];s->records_tab=b[15];
     s->dex=(uint16_t)r16(b+16);s->move=(uint16_t)r16(b+18);
     s->selected_dex=(uint16_t)r16(b+20);s->album_page=(uint16_t)r16(b+22);
-    if(version==2){
+    if(version>=2){
         s->selected_form=(uint16_t)r16(b+24);
         s->album_selected=b[26];s->records_recent_cursor=b[27];
         s->move_show_effect=b[28];s->search_region=b[29];
@@ -86,12 +112,18 @@ static int unpack(const unsigned char *b,unsigned size,
         s->menu_cursor=(uint16_t)r16(b+34);
         s->favorite_cursor=b[36];
     }
+    if(version==3){
+        memcpy(s->search_query,b+44,13);
+        s->search_letter=b[57];s->challenge_mode=b[58];
+        s->type_attack=b[59];s->type_defend=b[60];
+        s->type_defend2_plus_one=b[61];s->favorites_selected=b[62];
+    }
     return p3dResumeStateValid(s);
 }
 static int read_slot(const char *base,int slot,P3DResumeState *out,uint32_t *seq){
-    char name[256];unsigned char b[P3RV_V2_SIZE];FILE *f;unsigned size;int ok;
+    char name[256];unsigned char b[P3RV_V3_SIZE];FILE *f;unsigned size;int ok;
     if(!file_path(name,base,slot)||(f=fopen(name,"rb"))==NULL)return 0;
-    size=(unsigned)fread(b,1,P3RV_V2_SIZE,f);
+    size=(unsigned)fread(b,1,P3RV_V3_SIZE,f);
     ok=!ferror(f)&&fgetc(f)==EOF&&!ferror(f);
     fclose(f);
     return ok&&unpack(b,size,out,seq);
@@ -110,7 +142,7 @@ int p3dResumeLoad(const char *base,P3DResumeState *out){
 }
 int p3dResumeStore(const char *base,const P3DResumeState *s){
     P3DResumeState a,b;uint32_t sa=0,sb=0,seq=1;
-    int va,vb,slot;char name[256];unsigned char bytes[P3RV_V2_SIZE];FILE *f;
+    int va,vb,slot;char name[256];unsigned char bytes[P3RV_V3_SIZE];FILE *f;
     if(!p3dResumeStateValid(s))return 0;
     va=read_slot(base,0,&a,&sa);vb=read_slot(base,1,&b,&sb);
     if(va&&vb){
@@ -122,7 +154,7 @@ int p3dResumeStore(const char *base,const P3DResumeState *s){
     if(!file_path(name,base,slot))return 0;
     pack(bytes,s,seq);
     f=fopen(name,"wb");if(!f)return 0;
-    if(fwrite(bytes,1,P3RV_V2_SIZE,f)!=P3RV_V2_SIZE||fflush(f)!=0){
+    if(fwrite(bytes,1,P3RV_V3_SIZE,f)!=P3RV_V3_SIZE||fflush(f)!=0){
         fclose(f);return 0;
     }
     return fclose(f)==0;

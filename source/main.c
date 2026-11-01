@@ -455,6 +455,13 @@ static P3DResumeState current_resume(void){
     view.move_text_offset=(uint16_t)move_text_offset;
     view.menu_cursor=(uint16_t)state.cursor;
     view.favorite_cursor=(uint8_t)state.favorite_cursor;
+    memcpy(view.search_query,state.search_query,sizeof(view.search_query));
+    view.search_letter=(uint8_t)state.search_letter;
+    view.challenge_mode=(uint8_t)quiz.mode_cursor;
+    view.type_attack=(uint8_t)attack_type;
+    view.type_defend=(uint8_t)defend_type;
+    view.type_defend2_plus_one=(uint8_t)(defend_type2+1);
+    view.favorites_selected=(uint8_t)favorite_index;
     return view;
 }
 /* Commit page/selection immediately when it changes. The independent
@@ -941,6 +948,22 @@ int main(void) {
             search_region=resume.search_region;
             search_scope=resume.search_scope;
             search_field=resume.search_field;
+            memcpy(state.search_query,resume.search_query,
+                   sizeof(state.search_query));
+            state.search_letter=resume.search_letter?
+                resume.search_letter:'A';
+            /* A quiz in progress cannot be recreated from the mode alone:
+             * resume only the picker, never fabricate an answer or question. */
+            quiz.mode_cursor=resume.challenge_mode;
+            if(quiz.mode_cursor>=p3dChallengeAvailableModes(
+                    challenge_answer_total))
+                quiz.mode_cursor=p3dChallengeAvailableModes(
+                    challenge_answer_total)-1;
+            attack_type=resume.type_attack;
+            defend_type=resume.type_defend;
+            defend_type2=(int)resume.type_defend2_plus_one-1;
+            favorite_index=resume.favorites_selected;
+            if(favorite_index>=state.favorites_count)favorite_index=0;
             /* A saved form must exist in the actual recovered original
              * source map for this species; otherwise retain the base form. */
             selected_form=resume.selected_form &&

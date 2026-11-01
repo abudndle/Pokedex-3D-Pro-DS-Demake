@@ -11,6 +11,11 @@ typedef struct {
     uint16_t selected_form,move_text_offset,menu_cursor;
     uint8_t album_selected,records_recent_cursor,move_show_effect;
     uint8_t search_region,search_scope,search_field,favorite_cursor;
+    /* P3RV v3: exact typed Search text and additional subpage selection. */
+    char search_query[13];
+    uint8_t search_letter,challenge_mode;
+    uint8_t type_attack,type_defend,type_defend2_plus_one;
+    uint8_t favorites_selected;
 } P3DResumeState;
 int p3dResumeStateValid(const P3DResumeState *state);
 int p3dResumeLoad(const char *base,P3DResumeState *out);
