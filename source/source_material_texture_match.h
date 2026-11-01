@@ -18,4 +18,13 @@ int p3dSourceCandidateTextureForTriangle(
     const P3DMaterialMap *materials,
     const P3DTextureManifest *textures,
     unsigned model_id,unsigned mesh_triangles,unsigned triangle);
+/* Build an entire source-backed per-face texture map atomically.
+ * On failure no partial mapping is exposed; output remains -1 throughout.
+ * Does not infer original 3DS sampler/shader roles. */
+int p3dSourceCandidateTextureMap(
+    const P3DSourceMaterialMap *source,
+    const P3DMaterialMap *materials,
+    const P3DTextureManifest *textures,
+    unsigned model_id,unsigned mesh_triangles,
+    int *out,unsigned out_capacity);
 #endif
