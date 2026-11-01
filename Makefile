@@ -59,6 +59,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c136_native_uv_stage.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c137_private_asset_integration.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c138_native_preview_probe.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c140_c5_shader_inventory.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v

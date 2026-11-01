@@ -349,3 +349,53 @@ missing original P3MR, P3SC and P3SW provenance files, so this milestone
 does **not** imply 3DS-accurate texture output. Recover exact source
 material/shader and texture associations before enabling original textures
 in an asset-integrated ROM.
+
+## C140 — verified original C5 shader declaration recovery
+
+C140 adds `tools/c140_c5_shader_inventory.py`, a **private-input**
+source recovery tool. It reads the original C5 string-table offset from
+header byte `0x64`, extracts the contiguous original shader program
+declarations and `CF_...` capability flags, and verifies every decompressed
+model against its original C56 size and SHA-256 record before accepting it.
+It rejects missing/corrupted archives, displaced or duplicated source IDs,
+invalid string-table offsets and malformed shader flags.
+
+Locally verified against the user's complete private C56 source packages
+on 2026-11-01:
+
+- **730/730** decoded C5 models verified against original C56 SHA-256 records.
+- **2,556** original shader declarations recovered, including the original
+  `kawa` (1,826) and `shadow` (730) program declarations.
+- **1,818** `CF_COLORMAP` occurrences, **1,505** `CF_BUMPMAP`,
+  **1,405** `CF_SPECMAP`, **1,527** `CF_SHADOWMAP`, and
+  **710** `CF_UVANIM` occurrences. The source contains **92 distinct
+  capability combinations**.
+- These counts describe *declared effects*, not model-specific material-to-
+  shader assignments, verified diffuse samplers, or renderable textures.
+
+Reproduce locally, keeping the JSON report and all C5 payloads **private**:
+
+```sh
+python3 tools/c140_c5_shader_inventory.py \
+  --parts \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_2_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --report private/reports/C140_PRIVATE_C5_SHADER_DECLARATION_INVENTORY.json
+```
+
+This is material/shader **research evidence**, not a complete source
+material recovery. The original C5 draw-face-to-material indices and
+material-to-shader/sampler references still need to be decoded and
+cross-verified against the exact C135/C136 sampled DS3M face order
+before producing P3MR, P3SC, P3SW or P3MT. Never generate these production
+sidecars from declaration strings or infer that `CF_COLORMAP` identifies
+the original diffuse texture by itself. **Zero original textured models
+are certified**; the native C139 texture binding gate stays fail-closed.
+
+Source-only tests with synthetic C5 fixtures:
+
+```sh
+python3 -m unittest discover -s tests -p 'test_c140_c5_shader_inventory.py' -v
+```
