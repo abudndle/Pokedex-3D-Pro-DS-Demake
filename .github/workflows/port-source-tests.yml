@@ -52,6 +52,9 @@ jobs:
       - name: Verify C147 original named C5 transform track string pointers
         run: python3 -m unittest discover -s tests -p 'test_c147_c5_named_nodes.py' -v
 
+      - name: Verify C148 original node hierarchy and private P3SK staging format
+        run: python3 -m unittest discover -s tests -p 'test_c148_c5_skeleton_hierarchy.py' -v
+
       # Public-source x86_64 host executable only. NO private Nintendo data.
       - name: Compile portable C138 host probe for private offline asset test
         run: |
