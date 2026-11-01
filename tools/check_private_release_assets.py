@@ -12,7 +12,9 @@ import subprocess
 import sys
 import zipfile
 
-GUI_PAGES=("home","dex","search","moves","types","favorites","challenge","settings","album","ar")
+# All native P3DPage destinations require their original recovered lower-screen art.
+# Keep in exact enum order: P3D_PAGE_RECORDS is index 10.
+GUI_PAGES=("home","dex","search","moves","types","favorites","challenge","settings","album","ar","records")
 MODEL_IDS=tuple(i for i in range(734) if i not in (721,722,723,724))
 assert len(MODEL_IDS)==730
 

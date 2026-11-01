@@ -8,7 +8,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/feature_menu.c",
-      "gap": "Native navigation works; original menu layout/art needs visual parity testing",
+      "gap": "C104 stages original 3DS-derived lower-screen artwork for all eleven currently implemented native page destinations, including Records. Actual original 3DS top-screen art, exact menu layout, interactive hitboxes, transitions, animation, and visual parity still need source integration and private emulator verification.",
       "verified_end_to_end": false
     },
     {
