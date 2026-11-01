@@ -1,5 +1,6 @@
 import importlib.util
 import io
+import json
 import os
 import stat
 import tempfile
@@ -71,6 +72,48 @@ class C180Coverage(unittest.TestCase):
             report = mod.audit([archive])
         self.assertEqual(report["structural_failures"], [0])
         self.assertEqual(report["models"]["p000"]["error"], "invalid or oversized C5 member")
+
+    def test_aggregate_uncompressed_budget(self):
+        data = self.fixture()
+        archive = self.archive([("decoded_c5/p000.c5", data),
+                                ("decoded_c5/p001.c5", data)])
+        with mock.patch.object(mod, "MAX_TOTAL_C5_BYTES", len(data) + 1):
+            with self.assertRaisesRegex(ValueError, "aggregate C5"):
+                mod.audit([archive])
+
+    def test_archive_entry_budget(self):
+        archive = self.archive([("ignored.txt", b"x"),
+                                ("decoded_c5/p000.c5", self.fixture())])
+        with mock.patch.object(mod, "MAX_ZIP_ENTRIES", 1):
+            with self.assertRaisesRegex(ValueError, "ZIP entry budget"):
+                mod.audit([archive])
+
+    def test_reject_unexpected_c5_name_in_source_folder(self):
+        archive = self.archive([("decoded_c5/unexpected.c5", self.fixture())])
+        with self.assertRaisesRegex(ValueError, "noncanonical"):
+            mod.audit([archive])
+
+    def test_atomic_private_report_does_not_truncate_hardlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            original = pathlib.Path(directory) / "original.txt"
+            original.write_text("must stay unchanged")
+            report = pathlib.Path(directory) / "private.json"
+            os.link(original, report)
+            mod.write_private_report(report, {"models": {"p000": {"sha256": "synthetic"}}})
+            self.assertEqual(original.read_text(), "must stay unchanged")
+            self.assertEqual(json.loads(report.read_text())["models"]["p000"]["sha256"],
+                             "synthetic")
+            self.assertEqual(stat.S_IMODE(report.stat().st_mode), 0o600)
+
+    def test_refuse_symlink_report_destination(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = pathlib.Path(directory) / "destination.txt"
+            destination.write_text("unchanged")
+            link = pathlib.Path(directory) / "private.json"
+            link.symlink_to(destination)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                mod.write_private_report(link, {})
+            self.assertEqual(destination.read_text(), "unchanged")
 
     def test_private_report_mode_and_location(self):
         with tempfile.TemporaryDirectory() as directory:

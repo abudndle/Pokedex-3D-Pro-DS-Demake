@@ -9,12 +9,16 @@ import json
 import os
 import re
 import struct
+import tempfile
 import zipfile
 from pathlib import Path
 
 EXPECTED = set(range(734)) - {721, 722, 723, 724}
 MODEL_PATH = re.compile(r"decoded_c5/p([0-9]{3})\.c5\Z")
 MAX_C5_BYTES = 64 * 1024 * 1024  # Bound decompression of each untrusted ZIP member.
+MAX_TOTAL_C5_BYTES = 1024 * 1024 * 1024  # Bound the complete 730-model audit.
+MAX_ZIP_ENTRIES = 2048  # Reject archive metadata floods before inspecting entries.
+MAX_ARCHIVES = 16
 
 
 def inspect(data):
@@ -44,12 +48,19 @@ def inspect(data):
 
 
 def audit(archives):
+    archives = list(archives)
+    if len(archives) > MAX_ARCHIVES:
+        raise ValueError("too many C5 archives")
     records = {}
+    total_bytes = 0
     for path in archives:
         with zipfile.ZipFile(path) as archive:
-            for info in archive.infolist():
+            infos = archive.infolist()
+            if len(infos) > MAX_ZIP_ENTRIES:
+                raise ValueError("C5 ZIP entry budget exceeded")
+            for info in infos:
                 name = info.filename
-                if not (name.startswith("decoded_c5/p") and name.endswith(".c5")):
+                if not (name.startswith("decoded_c5/") and name.endswith(".c5")):
                     continue
                 match = MODEL_PATH.fullmatch(name)
                 if match is None:
@@ -62,6 +73,9 @@ def audit(archives):
                 if info.is_dir() or info.file_size > MAX_C5_BYTES:
                     records[model] = {"error": "invalid or oversized C5 member"}
                     continue
+                if total_bytes + info.file_size > MAX_TOTAL_C5_BYTES:
+                    raise ValueError("aggregate C5 uncompressed byte budget exceeded")
+                total_bytes += info.file_size
                 try:
                     with archive.open(info) as member:
                         data = member.read(MAX_C5_BYTES + 1)
@@ -80,18 +94,34 @@ def audit(archives):
 
 
 def write_private_report(path, result):
-    # Reports contain source-derived SHA-256 digests: never place them in this public repo.
-    repo_root = Path(__file__).resolve().parents[1]
-    target = path.expanduser().resolve()
-    if target == repo_root or repo_root in target.parents:
-        raise ValueError("private SHA report must be outside the public repository")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as stream:
-        os.fchmod(stream.fileno(), 0o600)
-        json.dump(result, stream, indent=2)
-        stream.write("\n")
+    """Atomically write a private 0600 report without following destination links.
 
+    Replacing an existing hard link rather than truncating its inode prevents
+    accidental mutation of a tracked public file through a private path.
+    """
+    repo_root = Path(__file__).resolve().parents[1]
+    requested = path.expanduser().absolute()
+    parent = requested.parent.resolve()
+    target = parent / requested.name
+    if parent == repo_root or repo_root in parent.parents:
+        raise ValueError("private SHA report must be outside the public repository")
+    if target.is_symlink():
+        raise ValueError("refusing symlink private report destination")
+    parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        fd, name = tempfile.mkstemp(prefix=".c180-report-", suffix=".tmp", dir=parent)
+        temporary = Path(name)
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            os.fchmod(stream.fileno(), 0o600)
+            json.dump(result, stream, indent=2)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, target)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 def main():
     parser = argparse.ArgumentParser()
