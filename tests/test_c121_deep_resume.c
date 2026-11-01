@@ -60,7 +60,7 @@ int main(int argc,char **argv){
     assert(fread(v3,1,sizeof(v3),f)==sizeof(v3));
     assert(fgetc(f)==EOF);
     assert(fclose(f)==0);
-    assert(!memcmp(v3,"P3RV",4)&&v3[4]==2);
+    assert(!memcmp(v3,"P3RV",4)&&v3[4]==3);
     /* Invalid in-screen cursor or Search filter must NOT be persisted. */
     before.album_selected=P3D_ALBUM_PAGE_MAX;
     assert(!p3dResumeStore(argv[1],&before));
@@ -85,7 +85,7 @@ int main(int argc,char **argv){
     before.dex=222;
     assert(p3dResumeStore(argv[1],&before));
     v3[26]=0xff;
-    put32(v2+44,crc(v3,44));
+    put32(v3+76,crc(v3,76));
     write_blob(v3_path,v3,sizeof(v3));
     assert(p3dResumeLoad(argv[1],&after));
     assert(after.dex==222); /* Valid B survived invalid A. */
@@ -124,7 +124,7 @@ int main(int argc,char **argv){
     f=fopen(v3_path,"rb");assert(f);
     assert(fread(v3,1,sizeof(v3),f)==sizeof(v3));
     assert(fclose(f)==0);
-    assert(v3[4]==2);
+    assert(v3[4]==3);
     /* Corrupt B; exact old A still restores, all extended fields default. */
     v3[5]=1; /* nonzero reserved is invalid even if other data correct */
     write_blob(v3_path,v3,sizeof(v3));
