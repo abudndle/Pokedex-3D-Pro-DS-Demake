@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <limits.h>
 #include "model_materials.h"
 #include "model_textures.h"
 #include "source_material_map.h"
@@ -37,6 +38,30 @@ int main(int argc,char **argv){
         &source,&candidate,&textures,25,4,face_textures,5));
     assert(face_textures[0]==2&&face_textures[1]==2&&
            face_textures[2]==2&&face_textures[3]==7&&face_textures[4]==-1);
+    /* C139: real native renderer authorizes the FULL source texture span,
+     * bounded by the currently loaded mesh rather than scratch capacity. */
+    assert(p3dSourceCandidateTextureRangeMatches(face_textures,5,4,0,3,2));
+    assert(p3dSourceCandidateTextureRangeMatches(face_textures,5,4,3,1,7));
+    assert(p3dSourceCandidateTextureRangeMatches(face_textures,5,4,1,2,2));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,4,1,3,2));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,4,0,3,7));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,4,3,1,2));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,4,4,1,7));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,4,0,0,2));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,4,0,5,2));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,4,UINT_MAX,1,2));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,4,1,UINT_MAX,2));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,4,0,3,UINT_MAX));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,3,4,0,3,2));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,0,0,1,2));
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,601,0,1,2));
+    assert(!p3dSourceCandidateTextureRangeMatches(NULL,5,4,0,1,2));
+    int partial[5]={2,2,-1,7,7};
+    assert(!p3dSourceCandidateTextureRangeMatches(partial,5,4,0,3,2));
+    /* A shorter loaded model rejects stale faces still present in 600-slot
+     * maps; checking only the array capacity would wrongly approve them. */
+    assert(!p3dSourceCandidateTextureRangeMatches(face_textures,5,3,3,1,7));
+    assert(p3dSourceCandidateTextureRangeMatches(face_textures,5,3,0,3,2));
     assert(!p3dSourceCandidateTextureMap(
         &source,&candidate,&textures,26,4,face_textures,5));
     for(unsigned i=0;i<5;i++)assert(face_textures[i]==-1);
@@ -98,6 +123,6 @@ int main(int argc,char **argv){
     assert(!source.ready); /* Bad original CRC must not leave stale binding. */
     assert(!p3dSourceMaterialLoad(&source,argv[5],25,4));
     assert(!source.ready);
-    puts("C109/C125/C126 source-backed triangle and atomic mesh texture map: PASS");
+    puts("C109/C125/C126/C139 source-backed triangle, map and draw range: PASS");
     return 0;
 }
