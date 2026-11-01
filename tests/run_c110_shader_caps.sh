@@ -38,13 +38,38 @@ bad[-1]^=1
 (root/"badcrc.p3sc").write_bytes(bad)
 (root/"truncated.p3sc").write_bytes(good[:-1])
 (root/"extra.p3sc").write_bytes(good+b'\0')
+# C113 private P3SW v1: preserve all thirteen raw C5 dwords per material.
+material_words=[]
+for i in range(13):
+    shader=0 if i!=12 else 1
+    references=0xffffffff
+    if i==10:references=(65535<<16)|2
+    elif i==12:references=(65535<<16)|7
+    material_words.append((shader,references,*([0]*6),52,0,0,0,0))
+word_bytes=b"".join(struct.pack("<13I",*row) for row in material_words)
+p3sw=struct.pack("<4s4HI",b"P3SW",1,25,13,0,zlib.crc32(word_bytes))+word_bytes
+(root/"original.p3sw").write_bytes(p3sw)
+badwords=bytearray(p3sw);badwords[-1]^=1
+(root/"badcrc.p3sw").write_bytes(badwords)
+(root/"truncated.p3sw").write_bytes(p3sw[:-1])
+(root/"wrongmodel.p3sw").write_bytes(
+    p3sw[:6]+struct.pack("<H",26)+p3sw[8:])
+# A valid CRC does not prove the correct original 3DS texture references.
+wrong_refs=bytearray(p3sw)
+struct.pack_into("<I",wrong_refs,16+10*52+4,(65535<<16)|8)
+struct.pack_into("<I",wrong_refs,12,zlib.crc32(wrong_refs[16:]))
+(root/"mismatch.p3sw").write_bytes(wrong_refs)
+
 PY
 cc -std=c11 -O2 -Wall -Wextra -Werror -Isource \
    source/model_materials.c source/model_textures.c \
    source/model_material_texture.c source/source_material_map.c \
    source/source_material_texture_match.c source/source_shader_caps.c \
+   source/source_material_words.c \
    tests/test_c110_shader_caps.c -o "$tmp/c110"
 "$tmp/c110" "$tmp/material.p3mt" "$tmp/textures.p3tx" \
   "$tmp/original.p3mr" "$tmp/original.p3sc" \
   "$tmp/badcrc.p3sc" "$tmp/truncated.p3sc" "$tmp/extra.p3sc" \
-  "$tmp/legacy_v1.p3sc" "$tmp/unknown_cap.p3sc"
+  "$tmp/legacy_v1.p3sc" "$tmp/unknown_cap.p3sc" \
+  "$tmp/original.p3sw" "$tmp/badcrc.p3sw" \
+  "$tmp/truncated.p3sw" "$tmp/wrongmodel.p3sw" "$tmp/mismatch.p3sw"

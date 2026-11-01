@@ -22,6 +22,7 @@
 #include "source_material_map.h"
 #include "source_material_texture_match.h"
 #include "source_shader_caps.h"
+#include "source_material_words.h"
 #include "texture_asset.h"
 #include "preview_texture_set.h"
 #include "original_ui_page.h"
@@ -65,6 +66,7 @@ static P3DAnimationLibrary preview_animation_library;
 static P3DMaterialMap preview_materials;
 static P3DSourceMaterialMap preview_source_materials;
 static P3DSourceShaderCaps preview_source_shaders;
+static P3DSourceMaterialWords preview_source_words;
 static P3DTextureManifest preview_textures;
 static int material_references_ready=0;
 static P3DTexturePixels preview_pixels;
@@ -185,6 +187,7 @@ static void reload_preview(void){
     preview_materials.ready=0;
     preview_source_materials.ready=0;
     preview_source_shaders.ready=0;
+    preview_source_words.ready=0;
     preview_textures.ready=0;
     material_references_ready=0;
     texture_payload_ready=0;
@@ -215,13 +218,26 @@ static void reload_preview(void){
                     snprintf(clip_path,sizeof(clip_path),
                              "nitro:/materials/p%03d.p3sc",resource);
                     if(p3dSourceShaderCapsLoad(&preview_source_shaders,
-                                              clip_path,(unsigned)resource))
-                        material_references_ready=
-                            p3dSourceShaderColorReferencesMatch(
-                                &preview_source_shaders,
-                                &preview_source_materials,&preview_materials,
-                                &preview_textures,(unsigned)resource,
-                                (unsigned)previewStreamTriangleCount());
+                                              clip_path,(unsigned)resource)){
+                        /* C113: original C5's complete 13-word material
+                         * operations must agree with P3SC and P3MR before
+                         * routing any preview texture. We still DO NOT
+                         * claim GPU shader/sampler operations are decoded. */
+                        snprintf(clip_path,sizeof(clip_path),
+                                 "nitro:/materials/p%03d.p3sw",resource);
+                        if(p3dSourceMaterialWordsLoad(&preview_source_words,
+                                                    clip_path,(unsigned)resource)
+                           && p3dSourceMaterialWordsMatch(
+                                &preview_source_words,&preview_source_shaders,
+                                &preview_source_materials,(unsigned)resource,
+                                (unsigned)previewStreamTriangleCount()))
+                            material_references_ready=
+                                p3dSourceShaderColorReferencesMatch(
+                                    &preview_source_shaders,
+                                    &preview_source_materials,&preview_materials,
+                                    &preview_textures,(unsigned)resource,
+                                    (unsigned)previewStreamTriangleCount());
+                    }
                 }
             }
             if(material_references_ready && previewStreamHasUv()){
