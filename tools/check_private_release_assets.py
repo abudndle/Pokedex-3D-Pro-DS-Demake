@@ -8,6 +8,7 @@ import argparse
 import json
 import pathlib
 import struct
+import zlib
 import subprocess
 import sys
 import zipfile
@@ -72,12 +73,30 @@ def audit(src):
         return indexes[0]==8+4*560 and indexes[-1]==len(b) and all(
             7<=indexes[i+1]-indexes[i]<=2048 for i in range(559))
     check("moves.p3dm",moves,"P3DM 559-entry seek table invalid")
+    def source_material_map(a,p,model_id):
+        """Check C90 P3MR original C5 provenance before native use."""
+        b=a.read(p)
+        if len(b)<16:return False
+        magic,version,mid,triangles,nranges,crc=struct.unpack_from("<4s4HI",b,0)
+        if magic!=b"P3MR" or version!=1 or mid!=model_id or not 1<=triangles<=600 or not 1<=nranges<=64:
+            return False
+        payload=b[16:]
+        if len(payload)!=nranges*12 or zlib.crc32(payload)!=crc:
+            return False
+        cursor=0
+        for i in range(nranges):
+            first,count,mat,t0,t1,mode=struct.unpack_from("<6H",payload,i*12)
+            if first!=cursor or count==0 or count>triangles-cursor or mat>255 or mode!=0x0c02:
+                return False
+            cursor+=count
+        return cursor==triangles
     categories={
         "mesh_previews":"preview/p%03d.ds3m",
         "verified_uv":"preview/p%03d.p3uv",
         "verified_material_bindings":"materials/p%03d.p3mt",
         "original_texture_manifests":"materials/p%03d.p3tx",
-        "original_texture_catalogs":"catalogs/p%03d.p3tm"
+        "original_texture_catalogs":"catalogs/p%03d.p3tm",
+        "source_C5_material_provenance":"materials/p%03d.p3mr"
     }
     counts={}
     for category,pattern in categories.items():
@@ -86,7 +105,11 @@ def audit(src):
             path=pattern%ident
             if src.exists(path):
                 count+=1
-                if src.length(path)==0:invalid.append(path+": empty")
+                if category=="source_C5_material_provenance":
+                    if not source_material_map(src,path,ident):
+                        invalid.append(path+": invalid C5 material provenance, counts or CRC")
+                elif src.length(path)==0:
+                    invalid.append(path+": empty")
         counts[category]=count
     texture_count=0
     for ident in MODEL_IDS:

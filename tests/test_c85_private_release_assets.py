@@ -2,6 +2,7 @@
 import json
 import pathlib
 import struct
+import zlib
 import subprocess
 import sys
 import tempfile
@@ -61,6 +62,32 @@ class C85Tests(unittest.TestCase):
             result=audit(src)
             src.close()
             self.assertFalse(any("t1_01_dex_overlay.rgb555" in x for x in result["invalid"]))
+
+    def test_original_C5_source_provenance_sidecar(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p=pathlib.Path(folder)
+            sidecar=p/"materials/p000.p3mr"
+            sidecar.parent.mkdir(parents=True)
+            ranges=struct.pack("<6H",0,2,10,2,7,0x0c02)+struct.pack(
+                "<6H",2,1,12,7,65535,0x0c02)
+            valid=struct.pack("<4s4HI",b"P3MR",1,0,3,2,zlib.crc32(ranges))+ranges
+            sidecar.write_bytes(valid)
+            src=Assets(p)
+            result=audit(src)
+            src.close()
+            self.assertEqual(result["counts"]["source_C5_material_provenance"],1)
+            self.assertFalse(any("p000.p3mr" in x for x in result["invalid"]))
+            self.assertFalse(result["asset_complete"])
+            sidecar.write_bytes(valid[:-1]+bytes([valid[-1]^1]))
+            src=Assets(p)
+            result=audit(src)
+            src.close()
+            self.assertTrue(any("p000.p3mr" in x for x in result["invalid"]))
+            sidecar.write_bytes(valid.replace(b"P3MR",b"P3MT",1))
+            src=Assets(p)
+            result=audit(src)
+            src.close()
+            self.assertTrue(any("p000.p3mr" in x for x in result["invalid"]))
 
     def test_release_never_claims_partial_game_complete(self):
         with tempfile.TemporaryDirectory() as folder:
