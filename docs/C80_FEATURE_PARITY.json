@@ -87,8 +87,8 @@
       "id": "original_pokemon_models",
       "required_for_release": true,
       "status": "partial",
-      "source": "source/preview_chunk_stream.c",
-      "gap": "C96 privately generates 500 original-derived chunked models (893,666 sampled triangles, 1,499 chunks), with native CRC-checked streaming of up to 1,800 source-sampled triangles in 600-triangle buffers. This is a geometry-only DS diagnostic path; full source polygon density, verified texture samplers, animations and authentic original game appearance remain incomplete.",
+      "source": "source/preview_stream.c",
+      "gap": "C98 adds runtime-only Settings X to toggle legacy DS3M (up to 600 faces) and opt-in P3CS streaming (up to 1,800 sampled source faces), safely reverting when P3CS is absent or corrupt. The private test ZIP stages 726 original-derived legacy and 500 chunked models, but original GPU sampler semantics, private emulator FPS, authoritative species mapping, complete models and gameplay remain unfinished.",
       "verified_end_to_end": false
     },
     {
