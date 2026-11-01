@@ -141,9 +141,18 @@ void previewStreamDraw(void) {
     const int total=s_triangle_count;
     for(unsigned i=0;i<s_chunk_stream.chunk_count;i++){
         if(!p3dChunkRead(&s_chunk_stream,i,s_xyz,s_uv.uv,s_face_rgb)){
+            /* A chunk can become unreadable after successful open (media
+             * corruption or truncated NitroFS asset). Invalidate all model
+             * metadata, not only the ready bit, before returning to UI. */
             s_uv.ready=0;
+            s_uv.triangles=0;
+            s_has_face_colors=0;
             s_loaded=0;
-            break; /* fail closed if NitroFS data changed after opening */
+            s_original_triangle_count=0;
+            s_chunked=0;
+            s_drawing_chunk=0;
+            s_triangle_count=0;
+            return; /* fail closed if NitroFS data changed after opening */
         }
         s_uv.ready=1;
         s_uv.triangles=s_chunk_stream.chunks[i].triangles;
