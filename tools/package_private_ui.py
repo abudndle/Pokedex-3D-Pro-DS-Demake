@@ -3,6 +3,7 @@
 import argparse
 import json
 import zlib
+import wave
 import pathlib
 import struct
 import sys
@@ -119,6 +120,63 @@ def main() -> int:
                              int(manifest["loop"]),0,zlib.crc32(records))+records
         (title_output/"timeline.p3tl").write_bytes(timeline)
         print(f"{timing} -> {title_output/'timeline.p3tl'}")
+    # Original title sound effects are private short PCM16 mono cues recovered
+    # from the owner's 3DS audio. No generic jingle or invented sound is used.
+    cues_json=args.source/"title_cues.json"
+    if cues_json.is_file():
+        if not all(title_sources):
+            raise ValueError("source title audio requires both original title screens")
+        meta=json.loads(cues_json.read_text(encoding="utf-8"))
+        if not isinstance(meta,dict) or set(meta)!={"events"} or (
+            not isinstance(meta["events"],list)):
+            raise ValueError("invalid source title audio cue schema")
+        frame_total=len(frames) if timing.is_file() else 1
+        events=meta["events"]
+        if not 1<=len(events)<=frame_total:
+            raise ValueError("invalid original title cue count")
+        last=-1
+        resources={}
+        records=bytearray()
+        for item in events:
+            if (not isinstance(item,dict) or set(item)!={"frame","cue"}
+                or type(item["frame"]) is not int
+                or type(item["cue"]) is not int):
+                raise ValueError("invalid original title audio event")
+            frame,cue=item["frame"],item["cue"]
+            if not last<frame<frame_total or not 1<=cue<=16:
+                raise ValueError("invalid source title cue order or number")
+            last=frame
+            records.extend(struct.pack("<HH",frame,cue))
+            if cue in resources:continue
+            original=args.source/"title_audio"/f"c{cue:02d}.wav"
+            try:
+                with wave.open(str(original),"rb") as wav:
+                    if (wav.getnchannels()!=1 or wav.getsampwidth()!=2 or
+                        wav.getcomptype()!="NONE" or
+                        not 8000<=wav.getframerate()<=32000 or
+                        not 1<=wav.getnframes()<=16384):
+                        raise ValueError("invalid source title PCM16 WAV layout/rate/length")
+                    rate=wav.getframerate()
+                    nsamples=wav.getnframes()
+                    pcm=wav.readframes(nsamples)
+            except (FileNotFoundError,wave.Error,EOFError) as exc:
+                raise ValueError(f"missing/malformed source title cue {cue}: {exc}") from exc
+            if len(pcm)!=nsamples*2:
+                raise ValueError("truncated source title PCM16 audio")
+            resources[cue]=struct.pack("<4sHHII",b"P3SA",1,rate,
+                    nsamples,zlib.crc32(pcm))+pcm
+        cue_dir=args.output.parent/"title"
+        cue_dir.mkdir(parents=True,exist_ok=True)
+        for cue,blob in sorted(resources.items()):
+            dst=cue_dir/"audio"/f"c{cue:02d}.p3sa"
+            dst.parent.mkdir(parents=True,exist_ok=True)
+            dst.write_bytes(blob)
+            print(f"private source title WAV -> {dst}")
+            count+=1
+        sequence=struct.pack("<4s4HI",b"P3TC",1,frame_total,
+                    len(events),0,zlib.crc32(records))+records
+        (cue_dir/"cues.p3tc").write_bytes(sequence)
+        print(f"{cues_json} -> {cue_dir/'cues.p3tc'}")
     # An original masked HUD is distinct from the full upper Dex page.
     # Preserve the source alpha bit: clear pixels reveal native BG0 3D.
     # Do not fabricate transparency by guessing at original artwork.
