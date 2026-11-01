@@ -98,3 +98,34 @@ fail:
     p3dOriginalSkeletonClear(out);
     return 0;
 }
+/* C150: exact original node name attachment for source-verified tracks.
+ * The loader already rejects duplicate names and invalid parent indices. */
+int p3dOriginalSkeletonFindNode(const P3DOriginalSkeleton *s,const char *name){
+    unsigned length=0;
+    if(!s||!s->ready||!name||!name[0])return -1;
+    /* Source node names are bounded to 96 bytes in P3SK. Never match an
+     * arbitrary long or truncated caller string. */
+    while(length<=96u && name[length])length++;
+    if(length==0||length>96u)return -1;
+    for(unsigned i=0;i<s->node_count;i++){
+        const char *source=p3dOriginalSkeletonName(s,i);
+        if(source && strcmp(source,name)==0)return (int)i;
+    }
+    return -1;
+}
+int p3dOriginalSkeletonIsAncestor(const P3DOriginalSkeleton *s,
+                                  unsigned ancestor,unsigned descendant){
+    if(!s||!s->ready||ancestor>=s->node_count||
+       descendant>=s->node_count||ancestor==descendant)return 0;
+    /* Even if memory is modified after loading, this bounded walk cannot
+     * cycle indefinitely or read outside the source-validated node table. */
+    unsigned current=descendant;
+    for(unsigned depth=0;depth<s->node_count;depth++){
+        int parent=p3dOriginalSkeletonParent(s,current);
+        if(parent<0||parent>=(int)s->node_count)return 0;
+        if((unsigned)parent==ancestor)return 1;
+        if((unsigned)parent>=current)return 0;
+        current=(unsigned)parent;
+    }
+    return 0;
+}
