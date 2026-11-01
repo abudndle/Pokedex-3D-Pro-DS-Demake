@@ -25,20 +25,27 @@ const P3DPreviewTexture *p3dPreviewTextureSetFind(const P3DPreviewTextureSet *se
    if(set->entries[i].id==texture_id)return &set->entries[i];
  return NULL;
 }
-int p3dPreviewTextureSetLoad(P3DPreviewTextureSet *set,
+static int load_selected(P3DPreviewTextureSet *set,
                             P3DTexturePixels *scratch,
                             const P3DMaterialMap *materials,
                             const P3DTextureManifest *manifest,
-                            const char *texture_directory){
+                            const char *texture_directory,
+                            const unsigned char *approved,
+                            unsigned approved_count){
  unsigned bytes=0;
  char path[128];
  if(!set)return 0;
  p3dPreviewTextureSetRelease(set);
- if(!scratch||!texture_directory||!p3dModelMaterialTexturesValid(materials,manifest))
-   return 0;
+ if(!scratch||!texture_directory||!p3dModelMaterialTexturesValid(materials,manifest)||
+    (approved && approved_count!=materials->count))return 0;
+ if(approved){
+   for(unsigned i=0;i<approved_count;i++)
+     if(approved[i]>1u)return 0;
+ }
  /* Validate all distinct material references and VRAM budget before uploading
   * anything. Repeated material ranges share their one texture allocation. */
  for(unsigned i=0;i<materials->count;i++){
+   if(approved && !approved[i])continue;
    unsigned id=materials->ranges[i].texture_id;
    const P3DTextureEntry *entry=p3dTextureFind(manifest,id);
    int found=0;
@@ -70,6 +77,26 @@ int p3dPreviewTextureSetLoad(P3DPreviewTextureSet *set,
    }
  }
  scratch->ready=0;
+ /* Nothing can be textured when all source shader roles remain unresolved. */
+ if(!set->count){p3dPreviewTextureSetRelease(set);return 0;}
  set->ready=1;
  return 1;
+}
+int p3dPreviewTextureSetLoadMasked(P3DPreviewTextureSet *set,
+                            P3DTexturePixels *scratch,
+                            const P3DMaterialMap *materials,
+                            const P3DTextureManifest *manifest,
+                            const char *texture_directory,
+                            const unsigned char *approved,
+                            unsigned approved_count){
+ if(!approved){if(set)p3dPreviewTextureSetRelease(set);return 0;}
+ return load_selected(set,scratch,materials,manifest,texture_directory,
+                      approved,approved_count);
+}
+int p3dPreviewTextureSetLoad(P3DPreviewTextureSet *set,
+                            P3DTexturePixels *scratch,
+                            const P3DMaterialMap *materials,
+                            const P3DTextureManifest *manifest,
+                            const char *texture_directory){
+ return load_selected(set,scratch,materials,manifest,texture_directory,0,0);
 }
