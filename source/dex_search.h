@@ -21,4 +21,10 @@ int p3dDexContains(const char *text,const char *query);
 /* Search only the original text records. No synthetic Pokémon names. */
 int p3dDexFindScoped(const char *query,int start,int direction,int field,int region,int scope,const P3DRecords *records,const P3DMenu *menu);
 int p3dDexFindFiltered(const char *query,int start,int direction,int field,int region);
+/* Validate the displayed selection against the current text and filters.
+ * An unmatched retained numeric index must not authorize open/favorite. */
+int p3dDexSelectionMatches(const char *query,int index,int field,int region,int scope,const P3DRecords *records,const P3DMenu *menu);
+/* Retain a valid selection, otherwise select the next match. A failed refresh
+ * leaves the numeric cursor intact and returns zero; callers show no-match. */
+int p3dDexRefreshSelection(const char *query,int *selection,int field,int region,int scope,const P3DRecords *records,const P3DMenu *menu);
 #endif

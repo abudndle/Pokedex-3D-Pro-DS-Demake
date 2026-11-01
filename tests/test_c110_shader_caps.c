@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "source_shader_caps.h"
+#include "source_material_texture_match.h"
 #include "source_material_words.h"
 #include "source_color_ranges.h"
 int main(int argc,char **argv){
