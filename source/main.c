@@ -24,6 +24,7 @@
 #include "model_material_texture.h"
 #include "source_material_map.h"
 #include "source_material_texture_match.h"
+#include "source_material_texture_match.h"
 #include "source_shader_caps.h"
 #include "source_material_words.h"
 #include "source_color_ranges.h"
@@ -81,6 +82,9 @@ static P3DSourceMaterialWords preview_source_words;
 static P3DSourceColorRanges preview_color_ranges;
 static P3DTextureManifest preview_textures;
 static int material_references_ready=0;
+/* C127: complete source-checked face map, never a guessed sampler role. */
+static int source_face_textures[600];
+static int source_face_map_ready=0;
 static P3DTexturePixels preview_pixels;
 static int texture_payload_ready=0;
 static P3DPreviewTextureSet preview_gl_textures;
@@ -226,6 +230,7 @@ static void reload_preview(void){
     preview_color_ranges.ready=0;
     preview_textures.ready=0;
     material_references_ready=0;
+    source_face_map_ready=0;
     texture_payload_ready=0;
     preview_pixels.ready=0;
     animation_tick=0;
@@ -277,6 +282,16 @@ static void reload_preview(void){
                     }
                 }
             }
+            /* C127: validate all source-backed face texture assignments before
+             * permitting any native texture upload. Unknown sampler roles
+             * still remain disabled by the existing color-range gate. */
+            if(material_references_ready)
+                source_face_map_ready=p3dSourceCandidateTextureMap(
+                    &preview_source_materials,&preview_materials,
+                    &preview_textures,(unsigned)resource,
+                    (unsigned)previewStreamTriangleCount(),
+                    source_face_textures,600);
+            if(!source_face_map_ready)material_references_ready=0;
             /* C116: a valid P3UV file still needs a verified wrap mode
              * for negative or >1 source UVs. Deny only those material ranges,
              * preserving the safe simple-color ranges and every face. */
@@ -388,8 +403,17 @@ static void render_model(void){
          * ranges keep their original geometry and untextured face colors. */
         for(unsigned i=0;i<preview_materials.count;i++){
             const P3DMaterialRange *range=&preview_materials.ranges[i];
-            const P3DPreviewTexture *tex=preview_color_ranges.ready &&
-                preview_color_ranges.enabled[i]?
+            int face_map_matches=source_face_map_ready;
+            if(face_map_matches){
+                unsigned end=(unsigned)range->first_triangle+range->triangle_count;
+                if(end>600)face_map_matches=0;
+                else for(unsigned face=range->first_triangle;face<end;face++)
+                    if(source_face_textures[face]!=(int)range->texture_id){
+                        face_map_matches=0;break;
+                    }
+            }
+            const P3DPreviewTexture *tex=face_map_matches &&
+                preview_color_ranges.ready && preview_color_ranges.enabled[i]?
                 p3dPreviewTextureSetFind(&preview_gl_textures,range->texture_id):NULL;
             if(tex){
                 glEnable(GL_TEXTURE_2D);
