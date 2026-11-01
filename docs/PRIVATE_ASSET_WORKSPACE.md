@@ -329,3 +329,36 @@ These achievements prove the compiled **host** rendering transport accepts
 the private source-derived files, not that a private asset-integrated ARM9
 ROM has been built or playtested. Actual 3DS reference comparisons,
 material/shader provenance, animations/audio and full game parity remain open.
+
+## C139 — exact original-source texture binding at the final draw call
+
+C138 proved that the native C preview loader can transport 730 private
+source-derived DS3M models and 49 geometrically matched, unit-range P3UV
+candidate companions. **Neither result proves that any texture is authorized
+for a particular face.** The C136 private packages still lack original C5
+source material ranges (P3MR), shader declarations (P3SC), raw material
+words (P3SW) and verified P3MT mesh-to-material assignments.
+
+C139 moves the final GL texture draw-time decision to
+`p3dSourceCandidateTextureRangeMatches()`. Every triangle in a candidate
+range must match the *same original C5-referenced texture* in an atomically
+verified per-face source map. A map for a prior model, a partly unknown
+texture (`-1`), a mixed range, an empty/out-of-model span, or an oversized
+texture ID **cannot authorize textured drawing**.
+
+The bounds use `previewStreamTriangleCount()`, the currently loaded
+mesh, not only the static 600-triangle scratch capacity. The native
+`preview_color_ranges` simple-color shader approval remains a separate
+mandatory gate, and the renderer continues drawing source geometry
+untextured whenever provenance is unresolved. C139 also bounds-checks
+the approved-range index before reading shader approval state.
+
+Host regression:
+```sh
+sh tests/run_c109_original_material_refs.sh
+```
+
+Original asset-derived 3DS texture/shader fidelity and real ARM9
+private-asset visual comparisons remain **unverified**. C139 protects
+against unsupported texture binding; it does not invent a missing material
+map or enable diffuse textures for the C136 QA previews.
