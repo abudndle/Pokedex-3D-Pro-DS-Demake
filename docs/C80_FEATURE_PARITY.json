@@ -96,7 +96,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "tools/c92_diagnostic_textured_preview_audit.py",
-      "gap": "C114 cross-checks independently CRC-valid original-source P3SW operation words, P3SC shader/texture declarations and P3MR source draw ranges in private release staging to reject mismatched material indices, counts and texture refs. A private C111 evidence differential analyzer verifies raw material SHA-256 and finds varying unknown operation words by shader/texture-reference layout, but reports ZERO decoded GPU sampler roles and generates no unproven diffuse/normal/effect assignments. Real original shader instruction disassembly, source-authentic model visuals and private emulator tests, original title-screen visual parity and entire 3DS gameplay remain incomplete.",
+      "gap": "C115 renders every original-preview triangle even when some source C5 materials have unresolved bump/effect/dual-sampler roles. It loads only distinct source-backed simple CF_COLORMAP texture candidates per material range and renders other original geometry untextured rather than disabling all Pokémon textures or hiding faces. All C113 source word, C112 shader flags, C109 material, C108 geometry and C107 alpha checks remain. Native source GPU shader equations, original normal/specular/effect roles, source UV transformations, model visual parity, unchanged title-screen visual verification and full 3DS gameplay remain incomplete.",
       "verified_end_to_end": false
     },
     {

@@ -2,12 +2,14 @@
 #include <stdio.h>
 #include "source_shader_caps.h"
 #include "source_material_words.h"
+#include "source_color_ranges.h"
 int main(int argc,char **argv){
     static P3DMaterialMap candidate;
     static P3DTextureManifest tex;
     static P3DSourceMaterialMap source;
     static P3DSourceShaderCaps shaders;
     static P3DSourceMaterialWords words;
+    static P3DSourceColorRanges selected;
     assert(argc==15);
     assert(p3dMaterialMapLoad(&candidate,argv[1],3));
     assert(p3dTextureManifestLoad(&tex,argv[2]));
@@ -21,6 +23,33 @@ int main(int argc,char **argv){
     assert(words.ready && words.count==13);
     assert(words.words[10][1]==0xffff0002u);
     assert(p3dSourceMaterialWordsMatch(&words,&shaders,&source,25,3));
+    /* C115: preserve the proven simple-color region even if another
+     * original source material has unknown bump/effect shader behavior. */
+    assert(p3dSourceColorRangesBuild(&selected,&words,&shaders,
+                                     &source,&candidate,&tex,25,3));
+    assert(selected.ready && selected.count==2 && selected.approved==2);
+    assert(selected.enabled[0] && selected.enabled[1]);
+    shaders.materials[10].flags=P3D_SHADER_CAP_COLORMAP|P3D_SHADER_CAP_BUMPMAP;
+    assert(p3dSourceColorRangesBuild(&selected,&words,&shaders,
+                                     &source,&candidate,&tex,25,3));
+    assert(selected.ready && selected.approved==1 &&
+           !selected.enabled[0] && selected.enabled[1]);
+    shaders.materials[12].flags=P3D_SHADER_CAP_COLORMAP|P3D_SHADER_CAP_OTHER;
+    assert(p3dSourceColorRangesBuild(&selected,&words,&shaders,
+                                     &source,&candidate,&tex,25,3));
+    assert(selected.ready && selected.approved==0);
+    shaders.materials[10].flags=P3D_SHADER_CAP_COLORMAP;
+    shaders.materials[12].flags=P3D_SHADER_CAP_COLORMAP;
+    candidate.ranges[0].texture_id=8;
+    assert(!p3dSourceColorRangesBuild(&selected,&words,&shaders,
+                                      &source,&candidate,&tex,25,3));
+    assert(!selected.ready && !selected.approved);
+    candidate.ranges[0].texture_id=2;
+    assert(!p3dSourceColorRangesBuild(&selected,&words,&shaders,
+                                      &source,&candidate,&tex,25,2));
+    assert(!selected.ready);
+    assert(!p3dSourceColorRangesBuild(NULL,&words,&shaders,
+                                      &source,&candidate,&tex,25,3));
     assert(!p3dSourceMaterialWordsMatch(&words,&shaders,&source,26,3));
     assert(!p3dSourceMaterialWordsMatch(&words,&shaders,&source,25,2));
     words.words[10][1]=0xffff0008u;

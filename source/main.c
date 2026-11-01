@@ -23,6 +23,7 @@
 #include "source_material_texture_match.h"
 #include "source_shader_caps.h"
 #include "source_material_words.h"
+#include "source_color_ranges.h"
 #include "texture_asset.h"
 #include "preview_texture_set.h"
 #include "original_ui_page.h"
@@ -67,6 +68,7 @@ static P3DMaterialMap preview_materials;
 static P3DSourceMaterialMap preview_source_materials;
 static P3DSourceShaderCaps preview_source_shaders;
 static P3DSourceMaterialWords preview_source_words;
+static P3DSourceColorRanges preview_color_ranges;
 static P3DTextureManifest preview_textures;
 static int material_references_ready=0;
 static P3DTexturePixels preview_pixels;
@@ -188,6 +190,7 @@ static void reload_preview(void){
     preview_source_materials.ready=0;
     preview_source_shaders.ready=0;
     preview_source_words.ready=0;
+    preview_color_ranges.ready=0;
     preview_textures.ready=0;
     material_references_ready=0;
     texture_payload_ready=0;
@@ -232,21 +235,24 @@ static void reload_preview(void){
                                 &preview_source_materials,(unsigned)resource,
                                 (unsigned)previewStreamTriangleCount()))
                             material_references_ready=
-                                p3dSourceShaderColorReferencesMatch(
-                                    &preview_source_shaders,
+                                p3dSourceColorRangesBuild(
+                                    &preview_color_ranges,
+                                    &preview_source_words,&preview_source_shaders,
                                     &preview_source_materials,&preview_materials,
                                     &preview_textures,(unsigned)resource,
                                     (unsigned)previewStreamTriangleCount());
                     }
                 }
             }
-            if(material_references_ready && previewStreamHasUv()){
+            if(material_references_ready && preview_color_ranges.approved &&
+               previewStreamHasUv()){
                 /* Model-scoped paths avoid colliding texture IDs across species. */
                 snprintf(clip_path,sizeof(clip_path),
                          "nitro:/textures/p%03d",resource);
-                texture_payload_ready=p3dPreviewTextureSetLoad(
+                texture_payload_ready=p3dPreviewTextureSetLoadMasked(
                     &preview_gl_textures,&preview_pixels,
-                    &preview_materials,&preview_textures,clip_path);
+                    &preview_materials,&preview_textures,clip_path,
+                    preview_color_ranges.enabled,preview_color_ranges.count);
             }
         }
     }
@@ -271,16 +277,28 @@ static void render_model(void){
     }
     glPolyFmt(POLY_ALPHA(31)|POLY_CULL_NONE);
     if(preview_gl_textures.ready){
-        glEnable(GL_TEXTURE_2D);
+        /* C115: draw EVERY original triangle exactly once. Only material
+         * ranges supported by original-source C5 simple-colormap references
+         * use a color texture. Unknown original bump/effect/dual-sampler
+         * ranges keep their original geometry and untextured face colors. */
         for(unsigned i=0;i<preview_materials.count;i++){
             const P3DMaterialRange *range=&preview_materials.ranges[i];
-            const P3DPreviewTexture *tex=p3dPreviewTextureSetFind(
-                &preview_gl_textures,range->texture_id);
-            if(!tex)continue; /* The loader validates every referenced ID. */
-            glBindTexture(0,tex->gl_id);
-            previewStreamDrawRange(range->first_triangle,range->triangle_count,
-                                   tex->width,tex->height);
+            const P3DPreviewTexture *tex=preview_color_ranges.ready &&
+                preview_color_ranges.enabled[i]?
+                p3dPreviewTextureSetFind(&preview_gl_textures,range->texture_id):NULL;
+            if(tex){
+                glEnable(GL_TEXTURE_2D);
+                glBindTexture(0,tex->gl_id);
+                previewStreamDrawRange(range->first_triangle,range->triangle_count,
+                                       tex->width,tex->height);
+            }else{
+                glDisable(GL_TEXTURE_2D);
+                glBindTexture(0,0);
+                previewStreamDrawRange(range->first_triangle,range->triangle_count,
+                                       0,0);
+            }
         }
+        glDisable(GL_TEXTURE_2D);
         glBindTexture(0,0);
     }else{
         glDisable(GL_TEXTURE_2D);
