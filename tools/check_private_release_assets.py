@@ -116,6 +116,45 @@ def audit(src):
         # meaning can safely be inferred here. Native cross-checks its known
         # original material/texture/shader reference fields against P3MR/P3SC.
         return True
+    def source_c5_crossfile_consistent(a,model_id):
+        """Cross-check three separately CRC-valid original C5 sidecars.
+
+        This verifies original material/shader/texture REFERENCES, never
+        interprets unknown original GPU sampler or effect operation words.
+        """
+        base=f"materials/p{model_id:03d}"
+        w=a.read(base+".p3sw")
+        c=a.read(base+".p3sc")
+        r=a.read(base+".p3mr")
+        # Individual validators below check header/CRC; the crossfile check
+        # also fails safely if called independently with invalid inputs.
+        if not (original_source_words(a,base+".p3sw",model_id) and
+                source_shader_caps(a,base+".p3sc",model_id) and
+                source_material_map(a,base+".p3mr",model_id)):
+            return False
+        nwords=struct.unpack_from("<H",w,8)[0]
+        nshader=struct.unpack_from("<H",c,8)[0]
+        nregions=struct.unpack_from("<H",r,10)[0]
+        if nwords!=nshader:
+            return False
+        for i in range(nwords):
+            shader=struct.unpack_from("<H",c,16+i*10+2)[0]
+            texture0,texture1=struct.unpack_from("<2H",c,16+i*10+4)
+            raw_shader=struct.unpack_from("<I",w,16+i*52)[0]
+            raw_texture_refs=struct.unpack_from("<I",w,16+i*52+4)[0]
+            if ((raw_shader&65535)!=shader or
+                (raw_texture_refs&65535)!=texture0 or
+                (raw_texture_refs>>16)!=texture1):
+                return False
+        for i in range(nregions):
+            first,count,material,t0,t1,mode=struct.unpack_from(
+                "<6H",r,16+12*i)
+            if material>=nwords:
+                return False
+            texture0,texture1=struct.unpack_from("<2H",c,16+material*10+4)
+            if (texture0,texture1)!=(t0,t1):
+                return False
+        return True
     categories={
         "mesh_previews":"preview/p%03d.ds3m",
         "verified_uv":"preview/p%03d.p3uv",
@@ -145,6 +184,16 @@ def audit(src):
                 elif src.length(path)==0:
                     invalid.append(path+": empty")
         counts[category]=count
+    # Three matching CRCs are NOT sufficient: inconsistent original model
+    # material/sampler references must also block an asset-bearing release.
+    # Missing sidecars are already reported by the individual categories.
+    for ident in MODEL_IDS:
+        paths=tuple(f"materials/p{ident:03d}{ext}"
+                    for ext in (".p3sw",".p3sc",".p3mr"))
+        if all(src.exists(path) for path in paths):
+            if not source_c5_crossfile_consistent(src,ident):
+                invalid.append(
+                    f"materials/p{ident:03d}: original C5 P3SW/P3SC/P3MR references disagree")
     texture_count=0
     for ident in MODEL_IDS:
         prefix=f"textures/p{ident:03d}/"
