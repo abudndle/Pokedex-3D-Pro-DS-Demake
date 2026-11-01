@@ -8,7 +8,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/feature_menu.c",
-      "gap": "C118 adds native libnds playback of optional privately recovered PCM16 title cues (P3SA) at source-specified original C117 title-frame events (CRC-checked P3TC), with valid static-title cue support, silence on missing source assets, safe audio-buffer lifetime, and stops on HOME transition. C117 P3TL image timings, C116 original separate dual-screen title assets remain required and not verified against the actual 3DS. Complete original 3DS title music, transitions, behavior, graphics and other menus/gameplay are not yet fully ported or visually/aurally verified.",
+      "gap": "C119 preserves original HOME graphics/title assets while keeping AR Viewer visible as a disabled text-fallback entry on DS or without a working DSi camera. Native title idle starts after 720 VBlanks, previews the last restored/visited original-derived Pokémon scene and prints the console weekday, date and time plus the 'check this Pokémon's Pokédex entry?' prompt; A opens that species. Original exact idle background, icon sprites/hitboxes, greyed source AR art and original idle timing/animations are NOT recovered or visually verified. C116–C118 separate original title still works.",
       "verified_end_to_end": false
     },
     {
@@ -80,7 +80,7 @@
       "required_for_release": true,
       "status": "missing",
       "source": "source/dsi_features.c",
-      "gap": "DSi-only camera backend and AR tracking are not implemented",
+      "gap": "C119 makes AR Viewer permanently visible in the native feature menu while rejecting entry if DSi camera mode is unavailable. Hardware DSi mode is detected at startup; actual camera-backed AR still needs DSi-enhanced hardware initialization and 3DS-equivalent AR code. Private original grey icon and touch geometry have not been verified.",
       "verified_end_to_end": false
     },
     {
@@ -128,7 +128,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/records.c",
-      "gap": "Legacy P3SV and separate CRC-checked P3RC now persist favorites, cumulative quiz totals, 649 viewed flags, eight recent species and 7 implemented quiz highscores; original full data/save parity not verified",
+      "gap": "C119 introduces dual-slot CRC P3RV exact last-screen resume (home/page/highlight/dex/move/records tab/album page) and automatically flushes changed view/progress after a 60-VBlank checkpoint if writable FAT storage is present. The original P3SV/P3RC progress persists. No storage means volatile state; abrupt power removal is not interceptable and exact power-off-time persistence cannot be guaranteed. Original 3DS save parity remains unverified.",
       "verified_end_to_end": false
     },
     {
@@ -144,7 +144,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/search_touch.c",
-      "gap": "Native DS touch keyboard and scoped search implemented in safe text mode; recovered original-art touch target mapping and complete original controls not verified",
+      "gap": "C119 title entry uses one input only, restores last saved page, and after the idle Pokémon prompt A opens the selected Pokédex entry without accidentally activating underlying HOME items. Source UI touch hitboxes, source icon animations and other original 3DS controls are not fully ported.",
       "verified_end_to_end": false
     },
     {

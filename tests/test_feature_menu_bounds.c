@@ -9,11 +9,12 @@ int main(void) {
     for(size_t i=0;i<P3D_MENU_MAX+1;i++) pages[i]=(P3DPage)255;
     size_t count=p3dMenuEntries(ds,pages);
     assert(count<=P3D_MENU_MAX);
-    assert(count==P3D_MENU_MAX-1);
+    assert(count==7);
     assert(pages[count]==(P3DPage)255);
     assert(pages[0]==P3D_PAGE_DEX);
-    assert(p3dMenuEntries(dsi,pages)==P3D_MENU_MAX);
-    assert(pages[P3D_MENU_MAX-1]==P3D_PAGE_AR);
+    assert(p3dMenuEntries(dsi,pages)==7);
+    assert(pages[5]==P3D_PAGE_AR);
+    assert(pages[6]==P3D_PAGE_SETTINGS);
     P3DMenu state;
     p3dMenuReset(&state);
     assert(state.type_defend2==-1);

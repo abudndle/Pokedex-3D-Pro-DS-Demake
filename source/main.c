@@ -5,6 +5,7 @@
 #include <nds.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <filesystem.h>
 #include "feature_menu.h"
 #include "menu_layout.h"
@@ -12,6 +13,8 @@
 #include "dsi_features.h"
 #include "challenge.h"
 #include "game_save_bridge.h"
+#include "resume_state.h"
+#include "title_idle.h"
 #include "preview_stream.h"
 #include "species_model_map.h"
 #include "form_model_map.h"
@@ -46,6 +49,7 @@
 
 static PrintConsole top_console, bottom_console;
 static P3DMenu state;
+static P3DCapabilities hardware_caps;
 static P3DPage pages[P3D_MENU_MAX];
 static int highlighted=0, count=0, home=1;
 static int dex_index=0, move_index=0;
@@ -62,6 +66,9 @@ static int storage_ready=0;
 static int nitro_ready=0;
 static int save_message=0;
 static int progress_dirty=0;
+static P3DResumeState last_checkpoint;
+static int last_checkpoint_valid=0;
+static unsigned checkpoint_ticks=0;
 static int preview_ready=0;
 static int preview_found=0;
 static P3DAnimationClip preview_animation;
@@ -114,6 +121,8 @@ static int top_art_preview=-1;
 static int showing_original_top_art=0;
 /* Original 3DS title is its own boot state, separate from HOME. */
 static int title_active=0;
+static P3DTitleIdle title_idle;
+static unsigned idle_refresh=0;
 static P3DTitleTimeline title_timeline;
 static P3DTitleCues title_cues;
 static P3DTitleAudio title_pcm;
@@ -323,6 +332,8 @@ static int show_original_title(void){
                           "nitro:/ui/title/cues.p3tc",
                           title_timeline.ready?title_timeline.frames:1u);
     title_active=1;
+    p3dTitleIdleReset(&title_idle);
+    idle_refresh=0;
     if(title_cues.ready){
         soundEnable();
         play_title_cue(0);
@@ -330,7 +341,11 @@ static int show_original_title(void){
     return 1;
 }
 static int model_yaw=0;
-static void update_preview_mode(void){display_preview=!home&&state.page==P3D_PAGE_DEX&&preview_found;}
+static void update_preview_mode(void){
+    display_preview=preview_found &&
+        ((!home && state.page==P3D_PAGE_DEX) ||
+         (title_active && title_idle.active));
+}
 static void render_model(void){
     if(!display_preview)return;
     glViewport(0,0,255,191);
@@ -378,8 +393,50 @@ static void render_model(void){
     }
     glFlush(0);
 }
+/* The original upper title scene changes after idle time. Show the last
+ * visited Pokémon only when its recovered source preview is available.
+ * The console's actual RTC provides weekday, date, and time. Unrecovered
+ * original idle artwork/animations remain out of this development preview. */
+static void enter_title_idle(void){
+    bgHide(2);
+    videoSetMode(MODE_0_3D);
+    consoleInit(&top_console,3,BgType_Text4bpp,BgSize_T_256x256,
+                31,0,true,true);
+    bgSetPriority(3,0);
+    REG_BG0CNT=(REG_BG0CNT & ~3)|3;
+    showing_original_top_art=0;
+    update_preview_mode();
+}
+static void draw_title_idle_info(void){
+    char clock[48];
+    time_t now=time(NULL);
+    consoleSelect(&top_console);
+    consoleClear();
+    if(p3dTitleIdleClock(clock,sizeof(clock),now))
+        printf("%s\n",clock);
+    if(dex_text_ready){
+        P3DDexText entry;
+        if(p3dDexTextRead(dex_index,&entry))
+            printf("#%03d %.25s\n",dex_index+1,entry.name);
+        else printf("Pokémon #%03d\n",dex_index+1);
+    }else printf("Pokémon #%03d\n",dex_index+1);
+    printf("\nCheck this Pokémon's\nPokédex entry?\n\nA: CHECK ENTRY\nB/START: CONTINUE");
+}
 
-#define P3D_SAVE_BASE "fat:/pokedex3d" 
+#define P3D_SAVE_BASE "fat:/pokedex3d"
+static P3DResumeState current_resume(void){
+    P3DResumeState view={0};
+    view.home=(uint8_t)(home!=0);
+    view.page=(uint8_t)state.page;
+    view.highlight=(uint8_t)highlighted;
+    view.records_tab=(uint8_t)records_tab;
+    view.dex=(uint16_t)dex_index;
+    view.move=(uint16_t)move_index;
+    view.selected_dex=(uint16_t)state.selected_dex;
+    view.album_page=(uint16_t)((album_offset/P3D_ALBUM_PAGE_MAX)>999?
+        999:(album_offset/P3D_ALBUM_PAGE_MAX));
+    return view;
+}
 static int save_progress(void){
     P3DSaveState record;
     if(!storage_ready){save_message=2;return 0;}
@@ -388,6 +445,14 @@ static int save_progress(void){
         return 0;
     }
     int saved=p3dSaveStore(P3D_SAVE_BASE,&record)?1:0;
+    if(saved){
+        P3DResumeState screen=current_resume();
+        if(p3dResumeStore(P3D_SAVE_BASE,&screen)){
+            last_checkpoint=screen;
+            last_checkpoint_valid=1;
+            checkpoint_ticks=0;
+        }else saved=0;
+    }
     if(saved && records_dirty){
         if(p3dRecordsStore(P3D_SAVE_BASE,&records))records_dirty=0;
         else saved=0;
@@ -618,6 +683,11 @@ static void render(void) {
             printf("\x1b[%d;1H%c %-25s",11+row*2,
                    (int)index==highlighted?'>':' ',
                    p3dPageName(pages[index]));
+            /* Original 3DS AR Viewer icon stays in its menu position on
+             * DS; the unactionable fallback is explicitly greyed out. */
+            if(pages[index]==P3D_PAGE_AR &&
+               !p3dCanEnterFeature(hardware_caps,P3D_FEATURE_AR))
+                printf(" [DSi camera only]");
         }
         printf("\x1b[24;1HUse A to open selected");
     } else {
@@ -760,7 +830,7 @@ static void render(void) {
     }
 }
 int main(void) {
-    P3DCapabilities caps=p3dCapabilities(0,0,0);
+    P3DCapabilities caps=p3dCapabilities(isDSiMode()?1:0,0,0);
     videoSetMode(MODE_0_3D);
     glInit();
     glEnable(GL_ANTIALIAS);
@@ -813,6 +883,10 @@ int main(void) {
     #else
     storage_ready=0; /* FAT support disabled for this build configuration */
     #endif
+    /* Hardware-aware DSi detection; never claim working camera AR before
+     * the DSi enhanced camera backend is actually integrated/initialized. */
+    caps=p3dCapabilities(isDSiMode()?1:0,storage_ready,0);
+    hardware_caps=caps;
     if(storage_ready){
         /* Bad or missing records slots leave a clean in-memory history. */
         (void)p3dRecordsLoad(P3D_SAVE_BASE,&records);
@@ -822,6 +896,16 @@ int main(void) {
                 challenge_correct_total=(int)record.challenge_correct;
                 challenge_answer_total=(int)record.challenge_total;
                 save_message=3;
+                P3DResumeState resume;
+                if(p3dResumeLoad(P3D_SAVE_BASE,&resume) &&
+                   p3dResumeApply(&resume,caps,&home,&state,&highlighted)){
+                    dex_index=(int)resume.dex;
+                    move_index=(int)resume.move;
+                    records_tab=(int)resume.records_tab;
+                    album_offset=(size_t)resume.album_page*P3D_ALBUM_PAGE_MAX;
+                    last_checkpoint=resume;
+                    last_checkpoint_valid=1;
+                }
             }
         }
     }
@@ -847,27 +931,47 @@ int main(void) {
         unsigned held=keysHeld();
         int redraw=0;
         if(title_active){
-            /* A/START/touch always exits once, without forwarding the input
-             * to a HOME item. Original animation assets are optional, and
-             * a corrupt later pair does not paint half of a title frame. */
-            if(down&(KEY_A|KEY_START|KEY_TOUCH)){
+            /* Idle A opens the remembered Pokémon entry. Otherwise the
+             * first title input resumes the last saved screen. No input is
+             * forwarded twice to the menu underneath the original title. */
+            if(down&(KEY_A|KEY_B|KEY_START|KEY_TOUCH)){
+                if(title_idle.active && (down&KEY_A)){
+                    home=0;
+                    state.page=P3D_PAGE_DEX;
+                    state.selected_dex=dex_index;
+                }
                 title_active=0;
                 title_timeline.ready=0;
                 title_cues.ready=0;
+                p3dTitleIdleReset(&title_idle);
                 if(title_audio_channel>=0){
                     soundKill(title_audio_channel);
                     title_audio_channel=-1;
                 }
                 art_page=-1;
                 top_art_page=-1;
+                showing_original_top_art=0;
                 render();
+            }else if(p3dTitleIdleAdvance(&title_idle)){
+                enter_title_idle();
+                draw_title_idle_info();
+            }else if(title_idle.active){
+                if(++idle_refresh>=60){
+                    idle_refresh=0;
+                    draw_title_idle_info(); /* refresh actual console RTC */
+                }
+                if(preview_found){
+                    render_model();
+                    if(preview_animation.ready)
+                        animation_tick=(animation_tick+1)%preview_animation.total_ticks;
+                }
             }else if(title_timeline.ready){
                 int frame=p3dTitleTimelineAdvance(&title_timeline);
                 if(frame>=0){
                     if(p3dOriginalTitleFrameLoad((unsigned)frame)){
                         p3dOriginalTitleDraw();
                         play_title_cue((unsigned)frame);
-                    }else title_timeline.ready=0; /* retain prior VRAM image */
+                    }else title_timeline.ready=0;
                 }
             }
             continue;
@@ -1379,6 +1483,19 @@ int main(void) {
          * switching between a model and a text page could render a stale
          * model for one extra frame. */
         if(redraw)render();
+        /* The DS cannot intercept a hard power-off. Save after a short
+         * quiet interval rather than pretending to save on shutdown.
+         * Dual-slot CRC records preserve the last active page on restart. */
+        if(storage_ready){
+            if(checkpoint_ticks<60)checkpoint_ticks++;
+            if(checkpoint_ticks>=60){
+                P3DResumeState view=current_resume();
+                if(progress_dirty||!last_checkpoint_valid||
+                   memcmp(&view,&last_checkpoint,sizeof(view))!=0){
+                    if(save_progress())progress_dirty=0;
+                }else checkpoint_ticks=0;
+            }
+        }
         if(display_preview){
             render_model();
             if(preview_animation.ready)animation_tick=(animation_tick+1)%preview_animation.total_ticks;

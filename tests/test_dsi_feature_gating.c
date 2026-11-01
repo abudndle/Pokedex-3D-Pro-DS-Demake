@@ -6,6 +6,7 @@ int main(void){
   P3DCapabilities caps=p3dCapabilities(dsi,sd,cam);
   assert(p3dCanEnterFeature(caps,P3D_FEATURE_POKEDEX));
   assert(p3dCanEnterFeature(caps,P3D_FEATURE_PHOTO_ALBUM));
+  assert(p3dFeatureVisible(caps,P3D_FEATURE_AR));
   assert(p3dCanEnterFeature(caps,P3D_FEATURE_AR)==(dsi&&cam));
   assert(!p3dCanEnterFeature(caps,(P3DFeature)999));
  }
