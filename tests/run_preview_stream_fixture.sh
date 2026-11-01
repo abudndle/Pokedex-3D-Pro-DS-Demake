@@ -25,6 +25,19 @@ with open(sys.argv[1].replace("p000", "p004"), "wb") as f:
 with open(sys.argv[1].replace("p000.ds3m", "p000.p3uv"), "wb") as f:
     f.write(struct.pack("<4sHH",b"P3UV",1,1))
     f.write(struct.pack("<6h",0,0,4096,0,0,4096))
+# C116: each material range must be evaluated independently. Unit-square
+# normalized original UVs are safe candidates; negative/over-1 source UVs
+# require 3DS sampler wrap/mirror modes that have not been decoded.
+with open(sys.argv[1].replace("p000","p010"),"wb") as f:
+    f.write(struct.pack("<4sHHII",b"DS3M",2,3,0,3))
+    f.write(struct.pack("<9h",*range(9))*3)
+    f.write(bytes((255,0,0,0,255,0,0,0,255)))
+uv=[(0,0,4096,0,0,4096),
+    (-2048,0,4096,0,0,4096),
+    (0,0,4608,0,0,4096)]
+with open(sys.argv[1].replace("p000.ds3m","p010.p3uv"),"wb") as f:
+    f.write(struct.pack("<4sHH",b"P3UV",1,3))
+    for triangle_uv in uv:f.write(struct.pack("<6h",*triangle_uv))
 with open(sys.argv[1].replace("p000", "p737"), "wb") as f:
     f.write(struct.pack("<4sHHII", b"DS3M", 1, 1, 0, 1))
     f.write(struct.pack("<9h", *range(9)))

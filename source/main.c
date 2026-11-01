@@ -110,6 +110,8 @@ static int prefer_original_art=1;
 static int top_art_page=-1;
 static int top_art_preview=-1;
 static int showing_original_top_art=0;
+/* Original 3DS title is its own boot state, separate from HOME. */
+static int title_active=0;
 static int display_preview=0;
 static void prepare_original_top_art(void){
     int page=home?P3D_PAGE_HOME:(int)state.page;
@@ -164,13 +166,13 @@ static void prepare_original_art(void){
             /* Mode 5 is needed only for the original 16-bit bitmap. */
             videoSetModeSub(MODE_5_2D);
             bgInitSub(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
-            bgHide(3);
-            bgShow(2);
+            bgHide(7);
+            bgShow(6);
         }
         p3dOriginalUiPageDraw();
         showing_original_art=1;
     }else if(showing_original_art){
-        bgHide(2);
+        bgHide(6);
         videoSetModeSub(MODE_0_2D);
         consoleInit(&bottom_console,3,BgType_Text4bpp,BgSize_T_256x256,31,0,false,true);
         showing_original_art=0;
@@ -244,6 +246,20 @@ static void reload_preview(void){
                     }
                 }
             }
+            /* C116: a valid P3UV file still needs a verified wrap mode
+             * for negative or >1 source UVs. Deny only those material ranges,
+             * preserving the safe simple-color ranges and every face. */
+            if(material_references_ready && previewStreamHasUv()){
+                for(unsigned i=0;i<preview_color_ranges.count;i++){
+                    if(preview_color_ranges.enabled[i] &&
+                       !previewStreamUvRangeUnit(
+                          preview_materials.ranges[i].first_triangle,
+                          preview_materials.ranges[i].triangle_count)){
+                        preview_color_ranges.enabled[i]=0;
+                        preview_color_ranges.approved--;
+                    }
+                }
+            }
             if(material_references_ready && preview_color_ranges.approved &&
                previewStreamHasUv()){
                 /* Model-scoped paths avoid colliding texture IDs across species. */
@@ -256,6 +272,28 @@ static void reload_preview(void){
             }
         }
     }
+}
+/* Original private 3DS title artwork is never fabricated from home art.
+ * Use independent source-derived top and bottom bitmaps at boot only. */
+static int show_original_title(void){
+    if(!nitro_ready || !prefer_original_art || !p3dOriginalTitleLoad())
+        return 0;
+    bgHide(3);
+    videoSetMode(MODE_5_3D);
+    bgInit(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
+    bgSetPriority(2,0);
+    REG_BG0CNT=(REG_BG0CNT & ~3) | 3;
+    bgShow(2);
+    videoSetModeSub(MODE_5_2D);
+    bgInitSub(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
+    /* libnds indexes sub BG2/BG3 as 6/7, not main BG2/BG3. */
+    bgHide(7);
+    bgShow(6);
+    p3dOriginalTitleDraw();
+    showing_original_top_art=1;
+    showing_original_art=1;
+    title_active=1;
+    return 1;
 }
 static int model_yaw=0;
 static void update_preview_mode(void){display_preview=!home&&state.page==P3D_PAGE_DEX&&preview_found;}
@@ -764,7 +802,9 @@ int main(void) {
     }
     reload_preview();
     count=(int)p3dMenuEntries(caps,pages);
-    render();
+    /* The real original 3DS title uses private source art on both screens.
+     * The asset-free developer ROM still boots directly to a test menu. */
+    if(!show_original_title())render();
     while(1) {
         swiWaitForVBlank();
         challenge_seed+=0x9E3779B9u; /* Vary each game session's quiz sequence. */
@@ -772,6 +812,17 @@ int main(void) {
         unsigned down=keysDown();
         unsigned held=keysHeld();
         int redraw=0;
+        if(title_active){
+            /* Do not treat the title's opening A/tap as a home menu click.
+             * There is no home bitmap reused as a fake 3DS title screen. */
+            if(down&(KEY_A|KEY_START|KEY_TOUCH)){
+                title_active=0;
+                art_page=-1;
+                top_art_page=-1;
+                render();
+            }
+            continue;
+        }
         /* SELECT makes the text navigation available even with a full-screen
          * recovered UI image. Press SELECT again to restore original art. */
         if(down&KEY_SELECT){

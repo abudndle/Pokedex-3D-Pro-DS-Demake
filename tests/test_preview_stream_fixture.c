@@ -25,6 +25,26 @@ int main(void){
  assert(uv_u[0]==0 && uv_v[0]==0);
  assert(uv_u[1]==128 && uv_v[1]==0);
  assert(uv_u[2]==0 && uv_v[2]==256);
+ /* C116: only original P3UV spans entirely in [0,1] are safe without
+  * the unknown original GPU wrap/mirror sampler state. Excluded spans
+  * must still be drawn untextured by the mixed-material renderer. */
+ assert(previewStreamUvRangeUnit(0,1));
+ assert(!previewStreamUvRangeUnit(-1,1));
+ assert(!previewStreamUvRangeUnit(1,0));
+ assert(!previewStreamUvRangeUnit(0,2));
+ assert(previewStreamLoad(10));
+ assert(previewStreamHasUv());
+ assert(previewStreamTriangleCount()==3);
+ assert(previewStreamUvRangeUnit(0,1));
+ assert(!previewStreamUvRangeUnit(1,1)); /* U=-0.5 */
+ assert(!previewStreamUvRangeUnit(2,1)); /* U=1.125 */
+ assert(!previewStreamUvRangeUnit(0,3));
+ assert(!previewStreamUvRangeUnit(3,1));
+ assert(!previewStreamUvRangeUnit(1,3));
+ emitted=0; uv_seen=0;white_seen=0;
+ previewStreamDrawRange(0,1,8,8);
+ assert(emitted==3 && uv_seen==3 && white_seen==1);
+ assert(uv_u[1]==128);
  assert(previewStreamLoad(1));
  assert(previewStreamTriangleCount()==600);
  assert(!previewStreamHasUv());

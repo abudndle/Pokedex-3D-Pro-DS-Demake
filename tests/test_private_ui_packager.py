@@ -12,6 +12,11 @@ with tempfile.TemporaryDirectory() as tmp:
     (source / "records.rgb555").write_bytes(b"\x00\x00" * (256 * 192))
     top = source / "top"
     top.mkdir()
+    # Title art is separately recovered from the 3DS boot scene.
+    (source / "title.rgba").write_bytes(
+        bytes((255, 255, 0, 255)) * (256 * 192))
+    (top / "title.rgba").write_bytes(
+        bytes((0, 255, 255, 255)) * (256 * 192))
     (top / "home.rgba").write_bytes(bytes((0, 0, 255, 255)) * (256 * 192))
     (top / "records.rgb555").write_bytes(b"\x00\x02" * (256 * 192))
     # Explicit original-art alpha: one visible UI pixel, remaining cutout.
@@ -34,10 +39,16 @@ with tempfile.TemporaryDirectory() as tmp:
     assert len(upper_home) == len(upper_records) == 256 * 192 * 2
     assert upper_home[:2] == b"\x00\xfc"  # blue, opaque A1 RGB555
     assert upper_records[:2] == b"\x00\x02"
+    title_low = (dst.parent / "title/t0_title.rgb555").read_bytes()
+    title_high = (dst.parent / "title/t1_title.rgb555").read_bytes()
+    assert len(title_low) == len(title_high) == 256 * 192 * 2
+    assert title_low[:2] == b"\xff\x83"  # yellow A1RGB555
+    assert title_high[:2] == b"\xe0\xff"  # cyan A1RGB555
+    assert title_low != home and title_high != upper_home
     overlay = (dst / "t1_01_dex_overlay.rgb555").read_bytes()
     assert len(overlay) == 256 * 192 * 2
     assert overlay[:4] == b"\x1f\x80\x00\x00"
-    assert "Prepared 6 private UI images" in result.stdout
+    assert "Prepared 8 private UI images" in result.stdout
     # Never accept an opaque original UI page as a fake transparent HUD.
     (top / "records_overlay.rgb555").write_bytes(b"\x34\x92" * (256 * 192))
     invalid = subprocess.run(
@@ -46,4 +57,14 @@ with tempfile.TemporaryDirectory() as tmp:
         capture_output=True, text=True)
     assert invalid.returncode != 0
     assert "original overlay requires opaque UI and transparent 3D cutout" in invalid.stderr
+    # Removing only one original 3DS title source must be rejected even
+    # when full HOME pages are available. Never substitute HOME for TITLE.
+    (top / "records_overlay.rgb555").unlink()
+    (top / "title.rgba").unlink()
+    partial = subprocess.run(
+        [sys.executable, "tools/package_private_ui.py", str(source),
+         "--output", str(root / "partial" / "pages")],
+        capture_output=True, text=True)
+    assert partial.returncode != 0
+    assert "needs both independent top and bottom" in partial.stderr
 print("Private UI page packaging: PASS")

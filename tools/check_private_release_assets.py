@@ -51,6 +51,12 @@ def audit(src):
             check(f"ui/pages/t{screen}_{i:02d}_{name}.rgb555",
                   lambda a,p:a.length(p)==256*192*2,
                   "not a full DS 256x192 16-bit page")
+    # The actual original 3DS title is distinct from both HOME bitmaps.
+    # A development fallback/menu screenshot never satisfies this requirement.
+    for screen in (0,1):
+        check(f"ui/title/t{screen}_title.rgb555",
+              lambda a,p:a.length(p)==256*192*2,
+              "missing/malformed original 3DS title frame")
     # The 3D Dex uses a separate source-derived alpha mask for the HUD:
     # require both real opaque UI pixels and the transparent model viewport.
     # File presence alone is not proof of the recovered 3DS composition.
@@ -210,6 +216,7 @@ def audit(src):
     return {"expected_resource_models":len(MODEL_IDS),
             "counts":counts,"missing":missing,"invalid":invalid,
             "asset_complete":not missing and not invalid,
+            "original_title_screen_visually_verified":False,
             "visual_accuracy_verified":False,
             "original_shader_sampler_roles_verified":False,
             "full_gameplay_verified":False}

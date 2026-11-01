@@ -3,7 +3,7 @@ set -eu
 cd "$(dirname "$0")/.."
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
-mkdir -p "$tmp/nitro:/ui/pages"
+mkdir -p "$tmp/nitro:/ui/pages" "$tmp/nitro:/ui/title"
 python3 - "$tmp" <<'PY'
 from pathlib import Path
 import struct
@@ -23,6 +23,12 @@ source_overlay[1] = 0x0000
 source_overlay[256*96+128] = 0x0042
 (base / "t1_01_dex_overlay.rgb555").write_bytes(
     struct.pack("<" + "H"*len(source_overlay), *source_overlay))
+# Title is a separate original source boot asset on BOTH 3DS screens.
+title = Path(sys.argv[1]) / "nitro:" / "ui" / "title"
+(title / "t0_title.rgb555").write_bytes(
+    struct.pack("<H",0x4b21) * (256*192))
+(title / "t1_title.rgb555").write_bytes(
+    struct.pack("<H",0x54ab) * (256*192))
 # An all-opaque overlay must never hide the Pokémon model.
 (base / "t1_10_records_overlay.rgb555").write_bytes(
     struct.pack("<H", 0x9234) * (256 * 192))

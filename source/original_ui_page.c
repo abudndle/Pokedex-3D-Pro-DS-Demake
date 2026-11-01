@@ -13,6 +13,7 @@ static unsigned short top_overlay_pixels[PAGE_PIXELS];
 static int top_overlay_ready;
 static int page_ready;
 static int top_page_ready;
+static int title_ready;
 static const char *const s_names[P3D_PAGE_COUNT]={
     [P3D_PAGE_HOME]="home",
     [P3D_PAGE_DEX]="dex",
@@ -26,15 +27,11 @@ static const char *const s_names[P3D_PAGE_COUNT]={
     [P3D_PAGE_AR]="ar",
     [P3D_PAGE_RECORDS]="records"
 };
-/* Separate main/sub video banks preserve both original source screen pages. */
-static int load_page(unsigned screen,int page,unsigned short *buffer){
-    char path[96];
-    FILE *file;
+/* Private 3DS title artwork is a separate boot screen, not the first
+ * home-menu page. Both source screens must exist or no title is shown. */
+static int load_bitmap(const char *path,unsigned short *buffer){
+    FILE *file=fopen(path,"rb");
     size_t count;
-    if(page<0 || page>=P3D_PAGE_COUNT || !s_names[page])return 0;
-    snprintf(path,sizeof(path),"nitro:/ui/pages/t%u_%02d_%s.rgb555",
-             screen,page,s_names[page]);
-    file=fopen(path,"rb");
     if(!file)return 0;
     count=fread(buffer,sizeof(buffer[0]),PAGE_PIXELS,file);
     if(count!=PAGE_PIXELS || fgetc(file)!=EOF || ferror(file)){
@@ -42,6 +39,28 @@ static int load_page(unsigned screen,int page,unsigned short *buffer){
     }
     fclose(file);
     return 1;
+}
+/* Separate main/sub video banks preserve both original source screen pages. */
+static int load_page(unsigned screen,int page,unsigned short *buffer){
+    char path[96];
+    if(page<0 || page>=P3D_PAGE_COUNT || !s_names[page])return 0;
+    snprintf(path,sizeof(path),"nitro:/ui/pages/t%u_%02d_%s.rgb555",
+             screen,page,s_names[page]);
+    return load_bitmap(path,buffer);
+}
+int p3dOriginalTitleLoad(void){
+    /* Reuse two page buffers to avoid allocating another 192 KiB on DS. */
+    title_ready=0;
+    page_ready=load_bitmap("nitro:/ui/title/t0_title.rgb555",page_pixels);
+    top_page_ready=load_bitmap("nitro:/ui/title/t1_title.rgb555",top_page_pixels);
+    title_ready=page_ready && top_page_ready;
+    return title_ready;
+}
+int p3dOriginalTitleReady(void){return title_ready;}
+void p3dOriginalTitleDraw(void){
+    if(!title_ready)return;
+    p3dOriginalTopPageDraw();
+    p3dOriginalUiPageDraw();
 }
 int p3dOriginalUiPageLoad(int page){
     page_ready=load_page(0,page,page_pixels);

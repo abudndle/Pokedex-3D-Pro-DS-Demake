@@ -7,6 +7,9 @@ int previewStreamInit(void);
 int previewStreamLoad(int resource_index);
 int previewStreamHasModel(void);
 int previewStreamHasUv(void);
+/* Only normalized source UV coordinates inside [0,1] can be sampled without
+ * knowing the original C5 GPU wrap/repeat modes. Per material face range. */
+int previewStreamUvRangeUnit(int first_triangle,int triangle_count);
 /* P3CS is a geometry-only diagnostic path until GPU sampler roles are proven. */
 int previewStreamIsChunked(void);
 /* Explicit diagnostic preference; default is legacy DS3M. */
