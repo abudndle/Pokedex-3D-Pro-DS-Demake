@@ -66,8 +66,8 @@ int main(void) {
     assert(p3dOriginalTitleLoad());
     assert(p3dOriginalTitleReady());
     p3dOriginalTitleDraw();
-    assert(p3d_c104_bitmap[0]==0x9234u);
-    assert(p3d_c105_top_bitmap[0]==0xa345u);
+    assert(p3d_c104_bitmap[0]==0xcb21u);
+    assert(p3d_c105_top_bitmap[0]==0xd4abu);
     assert(p3dOriginalUiPageLoad(P3D_PAGE_HOME));
     assert(p3dOriginalTopPageLoad(P3D_PAGE_HOME));
     p3dOriginalUiPageDraw();
