@@ -8,4 +8,8 @@ void p3dOriginalUiPageDraw(void);
 int p3dOriginalTopPageLoad(int page);
 int p3dOriginalTopPageReady(void);
 void p3dOriginalTopPageDraw(void);
+/* Source-verified A1 RGB555 UI overlay (bit15 clear = 3D cutout). */
+int p3dOriginalTopOverlayLoad(int page);
+int p3dOriginalTopOverlayReady(void);
+void p3dOriginalTopOverlayDraw(void);
 #endif

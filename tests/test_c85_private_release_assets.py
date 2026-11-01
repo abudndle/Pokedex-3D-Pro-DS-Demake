@@ -26,6 +26,7 @@ class C85Tests(unittest.TestCase):
             self.assertEqual(result["counts"]["mesh_previews"],0)
             self.assertIn("ui/pages/t0_10_records.rgb555",result["missing"])
             self.assertIn("ui/pages/t1_10_records.rgb555",result["missing"])
+            self.assertIn("ui/pages/t1_01_dex_overlay.rgb555",result["missing"])
             self.assertGreater(len(result["missing"]),10)
             self.assertFalse(result["visual_accuracy_verified"])
     def test_zip_root_and_source_header_validation(self):
@@ -40,6 +41,27 @@ class C85Tests(unittest.TestCase):
             self.assertFalse(any("data/dex_en.p3dx" in msg for msg in result["invalid"]))
             self.assertTrue(any("moves.p3dm" in msg for msg in result["invalid"]))
             self.assertEqual(result["counts"]["original_derived_texture_payloads"],0)
+    def test_original_3d_hud_mask_requires_both_opacity_states(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p=pathlib.Path(folder)
+            overlay=p/"ui/pages/t1_01_dex_overlay.rgb555"
+            overlay.parent.mkdir(parents=True)
+            overlay.write_bytes(bytes((0x34,0x92))*(256*192))
+            src=Assets(p)
+            result=audit(src)
+            src.close()
+            self.assertTrue(any("t1_01_dex_overlay.rgb555" in x for x in result["invalid"]))
+            overlay.write_bytes(bytes((0,0))*(256*192))
+            src=Assets(p)
+            result=audit(src)
+            src.close()
+            self.assertTrue(any("t1_01_dex_overlay.rgb555" in x for x in result["invalid"]))
+            overlay.write_bytes(bytes((0,0)) + bytes((0x34,0x92))*(256*192-1))
+            src=Assets(p)
+            result=audit(src)
+            src.close()
+            self.assertFalse(any("t1_01_dex_overlay.rgb555" in x for x in result["invalid"]))
+
     def test_release_never_claims_partial_game_complete(self):
         with tempfile.TemporaryDirectory() as folder:
             result=subprocess.run([sys.executable,str(ROOT/"tools"/"check_private_release_assets.py"),

@@ -51,10 +51,43 @@ def main() -> int:
                     print(f"{source} -> {destination}")
                     count += 1
                     break
+    # An original masked HUD is distinct from the full upper Dex page.
+    # Preserve the source alpha bit: clear pixels reveal native BG0 3D.
+    # Do not fabricate transparency by guessing at original artwork.
+    for page, name in enumerate(NAMES):
+        for ext in (".rgb555", ".rgba"):
+            candidates = (args.source / "top" / f"{name}_overlay{ext}",
+                          args.source / f"top_{name}_overlay{ext}")
+            source = next((path for path in candidates if path.is_file()), None)
+            if source is None:
+                continue
+            destination = args.output / f"t1_{page:02d}_{name}_overlay.rgb555"
+            data = source.read_bytes()
+            if len(data) == SIZE:
+                values = data
+            elif len(data) == PIXELS * 4:
+                values = bytearray(SIZE)
+                for i in range(PIXELS):
+                    r, g, b, a = data[4*i:4*i+4]
+                    pixel = (0x8000 if a else 0) | ((b>>3)<<10) | ((g>>3)<<5) | (r>>3)
+                    struct.pack_into("<H",values,i*2,pixel)
+            else:
+                raise ValueError(f"{source}: invalid transparent UI overlay size")
+            # Both an opaque original HUD region and a transparent model
+            # viewport are required; this is a binary A1 mask, not ARGB.
+            visible = any(values[j+1]&0x80 for j in range(0,SIZE,2))
+            cutout = any(not(values[j+1]&0x80) for j in range(0,SIZE,2))
+            if not (visible and cutout):
+                raise ValueError(f"{source}: original overlay requires opaque UI and transparent 3D cutout")
+            destination.parent.mkdir(parents=True,exist_ok=True)
+            destination.write_bytes(values)
+            print(f"{source} -> {destination}")
+            count += 1
+            break
     if not count:
         print("No recognized private UI pages supplied; ROM will use text fallback.", file=sys.stderr)
         return 1
-    print(f"Prepared {count}/{2*len(NAMES)} UI pages (private build only).")
+    print(f"Prepared {count} private UI images ({2*len(NAMES)} independent full-screen pages plus optional source masks).")
     return 0
 
 if __name__ == "__main__":

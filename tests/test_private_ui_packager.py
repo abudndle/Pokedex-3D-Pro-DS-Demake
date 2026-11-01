@@ -14,6 +14,9 @@ with tempfile.TemporaryDirectory() as tmp:
     top.mkdir()
     (top / "home.rgba").write_bytes(bytes((0, 0, 255, 255)) * (256 * 192))
     (top / "records.rgb555").write_bytes(b"\x00\x02" * (256 * 192))
+    # Explicit original-art alpha: one visible UI pixel, remaining cutout.
+    (top / "dex_overlay.rgba").write_bytes(
+        bytes((255, 0, 0, 255)) + bytes((0, 0, 0, 0)) * (256 * 192 - 1))
     dst = root / "nitrofs/ui/pages"
     result = subprocess.run(
         [sys.executable, "tools/package_private_ui.py", str(source), "--output", str(dst)],
@@ -31,5 +34,16 @@ with tempfile.TemporaryDirectory() as tmp:
     assert len(upper_home) == len(upper_records) == 256 * 192 * 2
     assert upper_home[:2] == b"\x00\xfc"  # blue, opaque A1 RGB555
     assert upper_records[:2] == b"\x00\x02"
-    assert "Prepared 5/22" in result.stdout
+    overlay = (dst / "t1_01_dex_overlay.rgb555").read_bytes()
+    assert len(overlay) == 256 * 192 * 2
+    assert overlay[:4] == b"\x1f\x80\x00\x00"
+    assert "Prepared 6 private UI images" in result.stdout
+    # Never accept an opaque original UI page as a fake transparent HUD.
+    (top / "records_overlay.rgb555").write_bytes(b"\x34\x92" * (256 * 192))
+    invalid = subprocess.run(
+        [sys.executable, "tools/package_private_ui.py", str(source),
+         "--output", str(root / "invalid")],
+        capture_output=True, text=True)
+    assert invalid.returncode != 0
+    assert "original overlay requires opaque UI and transparent 3D cutout" in invalid.stderr
 print("Private UI page packaging: PASS")

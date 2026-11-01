@@ -50,6 +50,16 @@ def audit(src):
             check(f"ui/pages/t{screen}_{i:02d}_{name}.rgb555",
                   lambda a,p:a.length(p)==256*192*2,
                   "not a full DS 256x192 16-bit page")
+    # The 3D Dex uses a separate source-derived alpha mask for the HUD:
+    # require both real opaque UI pixels and the transparent model viewport.
+    # File presence alone is not proof of the recovered 3DS composition.
+    def dex_overlay(a,p):
+        if a.length(p)!=256*192*2:return False
+        data=a.read(p)
+        return (any(data[i]&0x80 for i in range(1,len(data),2))
+                and any(not(data[i]&0x80) for i in range(1,len(data),2)))
+    check("ui/pages/t1_01_dex_overlay.rgb555",dex_overlay,
+          "original 3D Dex HUD must have opaque UI and transparent model cutout")
     def dex(a,p):
         if a.length(p)!=8+649*256:return False
         return a.read(p)[:8]==struct.pack("<4sHH",b"P3DX",1,649)
