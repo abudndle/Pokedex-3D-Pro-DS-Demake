@@ -25,13 +25,9 @@ The 730 model files are indexed model entries rather than 730 independently iden
 ## Repository setup
 Keep source code, scripts, manifests without copyrighted payload data, documentation and GitHub Actions here. Original model data and game dumps must be handled separately.
 
-## User-confirmed asset sequencing (October 30, 2026)
-- Do **not** require the user's original game assets for ongoing development or intermediate source/CI builds.
-- Implement source code, user interface, gameplay, model-loading/conversion interfaces, testing, and non-camera features first with synthetic or asset-free test fixtures.
-- Only after the rest of the game is finished, require the user's privately held original extracted game assets for the **final game build**.
-- The final asset-enabled build must explicitly validate the required assets and stop with a clear error if they are absent; do not substitute replicas or invent missing original assets.
-- Keep original proprietary game assets out of GitHub. Local historical restoration research may have used originals, but that does not change their role in future build requirements.
-- Verify the asset-integrated build in melonDS and, where possible, real hardware before claiming final completion.
+## Original-asset development policy
+
+The original 3DS-derived assets may be used for **private development and testing at every milestone**. They are not distributed from this public GitHub repository. Asset-free CI/dev ROM checks are separate from private original-asset integration tests. Missing model, UV, texture, artwork, or audio data must fail the relevant validation rather than be replaced by inaccurate replicas.
 
 ## Revised original-asset requirement (latest user instruction)
 The goal is to finish porting **the actual game with its original assets**, not produce a generic lookalike. Original assets may be used during development, restoration, and test builds as needed to faithfully implement and verify the port. The previous final-build-only timing requirement is superseded. Keep the decrypted game image and proprietary asset payloads out of GitHub source control; use the user's private local assets during source builds and tests. Missing required originals must be reported explicitly, never substituted with inaccurate replicas.
