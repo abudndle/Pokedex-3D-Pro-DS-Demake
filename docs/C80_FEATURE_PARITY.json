@@ -112,7 +112,7 @@
       "required_for_release": true,
       "status": "missing",
       "source": "source/main.c",
-      "gap": "No complete original audio, Pokémon cries or spoken content implemented",
+      "gap": "C102 privately recovered 4,407 source CWAV files, 11 CSTM streams, one CSAR and one CWAR with byte-identical SHA256. Native DS audio decoder, sound effects/music routing, Pokémon cries and speech playback are still missing; no 3DS audio parity verified.",
       "verified_end_to_end": false
     },
     {
