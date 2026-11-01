@@ -25,6 +25,7 @@ class C85Tests(unittest.TestCase):
             self.assertFalse(result["asset_complete"])
             self.assertEqual(result["counts"]["mesh_previews"],0)
             self.assertIn("ui/pages/t0_10_records.rgb555",result["missing"])
+            self.assertIn("ui/pages/t1_10_records.rgb555",result["missing"])
             self.assertGreater(len(result["missing"]),10)
             self.assertFalse(result["visual_accuracy_verified"])
     def test_zip_root_and_source_header_validation(self):
