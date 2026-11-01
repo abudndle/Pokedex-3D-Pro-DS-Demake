@@ -51,6 +51,27 @@ def main() -> int:
                     print(f"{source} -> {destination}")
                     count += 1
                     break
+    # The original title is NOT the home menu. Require two independently
+    # recovered 3DS title frames; missing either refuses to fabricate one.
+    title_sources = []
+    for screen in (0, 1):
+        candidates = []
+        for ext in (".rgb555", ".rgba"):
+            if screen == 0:
+                candidates.extend((args.source / f"title{ext}",
+                                   args.source / "bottom" / f"title{ext}"))
+            else:
+                candidates.extend((args.source / "top" / f"title{ext}",
+                                   args.source / f"top_title{ext}"))
+        title_sources.append(next((p for p in candidates if p.is_file()), None))
+    if any(title_sources):
+        if not all(title_sources):
+            raise ValueError("original 3DS title needs both independent top and bottom source frames")
+        for screen, source in enumerate(title_sources):
+            destination = args.output.parent / "title" / f"t{screen}_title.rgb555"
+            convert(source, destination)
+            print(f"{source} -> {destination}")
+            count += 1
     # An original masked HUD is distinct from the full upper Dex page.
     # Preserve the source alpha bit: clear pixels reveal native BG0 3D.
     # Do not fabricate transparency by guessing at original artwork.
@@ -85,7 +106,7 @@ def main() -> int:
             count += 1
             break
     if not count:
-        print("No recognized private UI pages supplied; ROM will use text fallback.", file=sys.stderr)
+        print("No original UI/title pages supplied; development ROM will use text fallback.", file=sys.stderr)
         return 1
     print(f"Prepared {count} private UI images ({2*len(NAMES)} independent full-screen pages plus optional source masks).")
     return 0
