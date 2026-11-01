@@ -25,6 +25,14 @@ int main(void){
     entry.effect[0]=0;
     assert(p3dMoveTextField(&entry,P3D_MOVE_FIELD_EFFECT)[0]==0);
     assert(strcmp(p3dMoveTextField(&entry,P3D_MOVE_FIELD_DESCRIPTION),"Original description fixture")==0);
-    puts("C100 original move effect/view helper: PASS");
+    /* C101: deliberately unterminated original record, exactly one fixed
+     * P3D_MOVE_TEXT_MAX buffer. Sanitizer runs must not overread it. */
+    memset(entry.effect,'E',sizeof(entry.effect));
+    assert(p3dMoveTextScroll(10000,entry.effect,0)==P3D_MOVE_TEXT_MAX-84);
+    assert(p3dMoveTextScroll(0,entry.effect,+1)==28);
+    assert(p3dMoveTextScroll(10000,entry.effect,+1)==P3D_MOVE_TEXT_MAX-84);
+    entry.effect[0]=0;
+    assert(p3dMoveTextScroll(10000,entry.effect,+1)==0);
+    puts("C100/C101 original move effect/view helper: PASS");
     return 0;
 }
