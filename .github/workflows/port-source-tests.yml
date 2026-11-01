@@ -55,6 +55,9 @@ jobs:
       - name: Verify C148 original node hierarchy and private P3SK staging format
         run: python3 -m unittest discover -s tests -p 'test_c148_c5_skeleton_hierarchy.py' -v
 
+      - name: Verify C151 original animation track owner-to-node identity binding
+        run: python3 -m unittest discover -s tests -p 'test_c151_original_track_binding.py' -v
+
       - name: Verify C150 native original-source skeleton name and ancestor bindings
         run: python3 -m unittest discover -s tests -p 'test_c150_skeleton_node_binding.py' -v
 
