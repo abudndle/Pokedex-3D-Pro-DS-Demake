@@ -22,6 +22,9 @@ jobs:
       - name: Verify C136 native DS3M header repair and exact UV paired opt-in
         run: python3 -m unittest discover -s tests -p 'test_c136_native_uv_stage.py' -v
 
+      - name: Verify C137 private NitroFS preflight and staging safety
+        run: python3 -m unittest discover -s tests -p 'test_c137_private_asset_integration.py' -v
+
       - name: Verify material-to-texture cross-references
         run: sh tests/run_model_material_texture.sh
 

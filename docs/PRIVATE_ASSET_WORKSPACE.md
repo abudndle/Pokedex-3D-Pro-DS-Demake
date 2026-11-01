@@ -218,3 +218,58 @@ material/shader provenance gates pass.
 A C136 package is **native-header-compatible**, not visually accurate or
 proven in a private asset-integrated emulator playthrough. Keep all original
 model geometry and conversion ZIPs outside the public GitHub repository.
+
+## C137 — asset-integrated private NitroFS preflight and build workflow
+
+The original C136 baseline/UV-QA ZIPs were inspected **outside GitHub** with
+full ZIP CRC checks. Both passed native DS3M and P3PX payload structural
+checks: 730 native-valid DS3M previews and 4,039 original-derived P3PX
+texture files. The UV QA archive has exactly 49 accepted P3UV companions.
+The full original asset packages contain 6,243 baseline entries (6,292
+with QA UVs) and approximately 325 MiB of uncompressed private NitroFS
+data. Those checks establish **file transport compatibility**, not original
+Nintendo 3DS appearance.
+
+The private input is NOT release-complete:
+- No original source material reference P3MR, shader capability P3SC, source
+  shader words P3SW or verified P3MT mesh assignments for any of 730 models.
+- The private pack has P3TX texture manifests for 726 of 730 models and
+  P3TM original texture catalogs for 730/730 models.
+- Only 10 lower-screen UI pages exist: the upper-screen set, the records
+  page, separate title art, original seven-icon HOME touch map and Dex
+  transparent upper overlay are absent.
+- Original animations, audio, all Challenge modes, AR and source-exact
+  UI/gameplay parity remain unverified or incomplete.
+
+Use the **safe, non-release** asset-integrated native build path on a computer
+with a working BlocksDS toolchain:
+
+```sh
+make private-qa-rom \
+  PRIVATE_NITROFS_ZIP=private/packages/C136_PRIVATE_NATIVE_COMPATIBLE_NITROFS.zip \
+  PRIVATE_NITROFS_STAGE=private/c137_nitrofs_stage
+```
+
+This performs the native-geometry preflight, full ZIP CRC check and
+safe extraction, refusing to overwrite an existing staging directory.
+It then forces recompilation of a private NitroFS-attached native
+`Pokedex3D_DS_BlocksDS.nds` development ROM. Do not commit or share
+the resulting ROM or NitroFS files. To test another archive, give it a
+different empty private staging directory.
+
+Separately, the release validator `tools/check_private_release_assets.py`
+and C137's `--require-release-ready` both reject the incomplete archive.
+Running the public source checks and asset-free DeSmuME job is **not**
+an asset-integrated boot or visual-comparison result. On the available
+local workspace, BlocksDS and melonDS/DeSmuME were not installed; therefore
+no source-integrated original-asset ROM or new screenshots can be certified
+from the C137 local audit.
+
+For diagnostics without a compiler:
+
+```sh
+python3 tools/c137_private_nitrofs_preflight.py \
+  --input private/packages/C136_PRIVATE_NATIVE_COMPATIBLE_NITROFS.zip \
+  --crc-all --require-preview-ready \
+  --output private/reports/C137_PRIVATE_PREFLIGHT.json
+```
