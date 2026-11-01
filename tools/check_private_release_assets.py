@@ -51,6 +51,33 @@ def audit(src):
             check(f"ui/pages/t{screen}_{i:02d}_{name}.rgb555",
                   lambda a,p:a.length(p)==256*192*2,
                   "not a full DS 256x192 16-bit page")
+    # A source-art HOME page is NOT compatible with the text-debug row
+    # hitboxes. Require a complete privately measured seven-icon touch map.
+    def original_home_hotspots(a,p):
+        body=a.read(p)
+        if len(body)!=86 or body[:4]!=b"P3HM":
+            return False
+        magic,version,count,reserved,crc=struct.unpack_from("<4sHHII",body)
+        if (version!=1 or count!=7 or reserved or
+            zlib.crc32(body[16:])!=crc):
+            return False
+        required={1,3,6,10,8,9,7}
+        seen=set()
+        rectangles=[]
+        for i in range(7):
+            page,x0,y0,x1,y1=struct.unpack_from("<5H",body,16+i*10)
+            if (page not in required or page in seen or
+                not 0<=x0<x1<=256 or not 0<=y0<y1<=192 or
+                x1-x0<8 or y1-y0<8):
+                return False
+            if any(x0<ax1 and ax0<x1 and y0<ay1 and ay0<y1
+                   for ax0,ay0,ax1,ay1 in rectangles):
+                return False
+            seen.add(page)
+            rectangles.append((x0,y0,x1,y1))
+        return seen==required
+    check("ui/home_hotspots.p3hm",original_home_hotspots,
+          "missing/inconsistent original 3DS seven-icon HOME touch geometry")
     # The actual original 3DS title is distinct from both HOME bitmaps.
     # A development fallback/menu screenshot never satisfies this requirement.
     for screen in (0,1):
