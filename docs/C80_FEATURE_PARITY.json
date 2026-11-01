@@ -8,7 +8,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/feature_menu.c",
-      "gap": "C104 stages original 3DS-derived lower-screen artwork for all eleven currently implemented native page destinations, including Records. Actual original 3DS top-screen art, exact menu layout, interactive hitboxes, transitions, animation, and visual parity still need source integration and private emulator verification.",
+      "gap": "C105 adds independent private original-art loaders for both DS upper and lower screens across all 11 native pages, requires 22 staged UI bitmaps, and switches native BG modes to retain the Pokémon 3D engine on model pages. Authentic 3DS per-pixel visuals, top-screen model overlays, source hitboxes, animations, transitions, and asset-bearing emulator parity are not verified.",
       "verified_end_to_end": false
     },
     {
