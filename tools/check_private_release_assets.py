@@ -84,6 +84,52 @@ def audit(src):
                         check(f"ui/title/t{screen}_{i:02d}_title.rgb555",
                               lambda a,p:a.length(p)==256*192*2,
                               "invalid original 3DS title animation frame")
+    # C118 source-observed short title sound cues are OPTIONAL, but a
+    # declared cue must reference a valid private original PCM16 asset and
+    # a real title frame. CRC-valid but impossible timing must block release.
+    cues="ui/title/cues.p3tc"
+    if src.exists(cues):
+        data=src.read(cues)
+        valid=(len(data)>=20 and data[:4]==b"P3TC")
+        if valid:
+            _,version,nframes,nevents,reserved,crc=struct.unpack_from(
+                "<4s4HI",data)
+            expected_frames=1
+            if src.exists(timeline):
+                t=src.read(timeline)
+                if len(t)>=16 and t[:4]==b"P3TL":
+                    expected_frames=struct.unpack_from("<H",t,6)[0]
+                else:
+                    expected_frames=0
+            valid=(version==1 and 1<=nframes<=16 and
+                   nframes==expected_frames and 1<=nevents<=nframes and
+                   reserved==0 and len(data)==16+nevents*4 and
+                   zlib.crc32(data[16:])==crc)
+        if not valid:
+            invalid.append(cues+": malformed original title audio event map")
+        else:
+            last=-1
+            sound_ids=set()
+            for i in range(nevents):
+                frame,cue=struct.unpack_from("<HH",data,16+i*4)
+                if not last<frame<nframes or not 1<=cue<=16:
+                    invalid.append(cues+": invalid source cue order or ID")
+                    break
+                last=frame
+                sound_ids.add(cue)
+            else:
+                for cue in sound_ids:
+                    file=f"ui/title/audio/c{cue:02d}.p3sa"
+                    def valid_pcm(a,p):
+                        wav=a.read(p)
+                        if len(wav)<18:return False
+                        magic,version,rate,samples,crc=struct.unpack_from(
+                            "<4sHHII",wav)
+                        return (magic==b"P3SA" and version==1 and
+                                8000<=rate<=32000 and 1<=samples<=16384 and
+                                len(wav)==16+samples*2 and
+                                zlib.crc32(wav[16:])==crc)
+                    check(file,valid_pcm,"invalid original source PCM16 title cue")
     # The 3D Dex uses a separate source-derived alpha mask for the HUD:
     # require both real opaque UI pixels and the transparent model viewport.
     # File presence alone is not proof of the recovered 3DS composition.
