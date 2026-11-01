@@ -128,7 +128,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/records.c",
-      "gap": "C119 introduces dual-slot CRC P3RV exact last-screen resume (home/page/highlight/dex/move/records tab/album page) and automatically flushes changed view/progress after a 60-VBlank checkpoint if writable FAT storage is present. The original P3SV/P3RC progress persists. No storage means volatile state; abrupt power removal is not interceptable and exact power-off-time persistence cannot be guaranteed. Original 3DS save parity remains unverified.",
+      "gap": "C120 saves last-page/selection changes immediately into the independently CRC-validated dual-slot P3RV file on writable FAT/DLDI storage, and restores that screen DIRECTLY on game reset/relaunch instead of showing the original title first. Legacy P3SV/P3RC progress persistence still operates; P3RV can restore even when a legacy progress file is missing, and corrupt newest P3RV falls back to an older valid slot. Original title remains available to fresh starts with no checkpoint, and any idle Pokémon display never mutates P3RV. A reset before a storage write finishes may lose the newest change, and full original 3DS save compatibility remains unverified.",
       "verified_end_to_end": false
     },
     {
