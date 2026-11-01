@@ -2,12 +2,23 @@
 #include <string.h>
 #define P3CS_HEADER_BYTES 24u
 #define P3CS_INDEX_BYTES 16u
+/* 32 source faces per IO: fixed 1056-byte stack scratch, not a full model. */
+#define P3CS_READ_BATCH_TRIANGLES 32u
 static unsigned rd16(const unsigned char *b){return (unsigned)b[0]|((unsigned)b[1]<<8);}
 static uint32_t rd32(const unsigned char *b){return (uint32_t)rd16(b)|((uint32_t)rd16(b+2)<<16);}
+/* Reflected CRC32 nibble lookup; 64 bytes in ROM, no dynamic RAM.
+ * Exactly matches IEEE CRC32 in the original-derived P3CS files. */
+static const uint32_t s_crc_nibble[16]={
+    0x00000000u, 0x1db71064u, 0x3b6e20c8u, 0x26d930acu,
+    0x76dc4190u, 0x6b6b51f4u, 0x4db26158u, 0x5005713cu,
+    0xedb88320u, 0xf00f9344u, 0xd6d6a3e8u, 0xcb61b38cu,
+    0x9b64c2b0u, 0x86d3d2d4u, 0xa00ae278u, 0xbdbdf21cu
+};
 static uint32_t crc_update(uint32_t crc,const unsigned char *b,unsigned n){
     for(unsigned i=0;i<n;i++){
         crc^=b[i];
-        for(unsigned j=0;j<8;j++)crc=(crc>>1)^((crc&1u)?0xedb88320u:0u);
+        crc=(crc>>4)^s_crc_nibble[crc&15u];
+        crc=(crc>>4)^s_crc_nibble[crc&15u];
     }
     return crc;
 }
@@ -58,7 +69,7 @@ int p3dChunkOpen(P3DChunkStream *s,const char *path,unsigned model_id){
     /* Read and checksum every chunk before any geometry is marked renderable.
      * The bounded scanner allocates 128 bytes, never the whole source model. */
     for(unsigned i=0;i<count;i++){
-        unsigned char scratch[128];
+        unsigned char scratch[P3CS_READ_BATCH_TRIANGLES*P3D_CHUNK_RECORD_BYTES];
         uint32_t crc=0xffffffffu;
         unsigned remain=s->chunks[i].triangles*P3D_CHUNK_RECORD_BYTES;
         if(fseek(f,(long)s->chunks[i].offset,SEEK_SET)){
@@ -88,18 +99,28 @@ int p3dChunkRead(P3DChunkStream *s,unsigned index,
                  int16_t xyz[P3D_CHUNK_TRIANGLES*9],
                  int16_t uv[P3D_CHUNK_TRIANGLES*6],
                  unsigned char rgb[P3D_CHUNK_TRIANGLES*3]){
-    unsigned char b[P3D_CHUNK_RECORD_BYTES];
+    /* Read and decode 32 original triangles per buffered operation.
+     * Per-chunk CRC is still checked after each read. */
+    unsigned char packed[P3CS_READ_BATCH_TRIANGLES*P3D_CHUNK_RECORD_BYTES];
     uint32_t crc=0xffffffffu;
     const P3DChunkInfo *c;
     if(!s||!s->ready||!s->file||index>=s->chunk_count||!xyz||!uv||!rgb)return 0;
     c=&s->chunks[index];
     if(fseek(s->file,(long)c->offset,SEEK_SET))return 0;
-    for(unsigned i=0;i<c->triangles;i++){
-        if(fread(b,1,sizeof(b),s->file)!=sizeof(b))return 0;
-        crc=crc_update(crc,b,sizeof(b));
-        for(unsigned j=0;j<9;j++)xyz[i*9+j]=(int16_t)rd16(b+j*2);
-        for(unsigned j=0;j<6;j++)uv[i*6+j]=(int16_t)rd16(b+18+j*2);
-        memcpy(rgb+i*3,b+30,3);
+    for(unsigned first=0;first<c->triangles;){
+        unsigned take=(unsigned)c->triangles-first;
+        if(take>P3CS_READ_BATCH_TRIANGLES)take=P3CS_READ_BATCH_TRIANGLES;
+        unsigned bytes=take*P3D_CHUNK_RECORD_BYTES;
+        if(fread(packed,1,bytes,s->file)!=bytes)return 0;
+        crc=crc_update(crc,packed,bytes);
+        for(unsigned i=0;i<take;i++){
+            const unsigned char *rec=packed+i*P3D_CHUNK_RECORD_BYTES;
+            unsigned dest=first+i;
+            for(unsigned j=0;j<9;j++)xyz[dest*9+j]=(int16_t)rd16(rec+j*2);
+            for(unsigned j=0;j<6;j++)uv[dest*6+j]=(int16_t)rd16(rec+18+j*2);
+            memcpy(rgb+dest*3,rec+30,3);
+        }
+        first+=take;
     }
     return (crc^0xffffffffu)==c->crc32;
 }
