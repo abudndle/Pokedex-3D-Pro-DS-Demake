@@ -95,13 +95,13 @@ def audit(src):
         b=a.read(p)
         if len(b)<16:return False
         magic,version,mid,nrecords,reserved,crc=struct.unpack_from("<4s4HI",b,0)
-        if (magic!=b"P3SC" or version!=1 or mid!=model_id or reserved!=0 or
+        if (magic!=b"P3SC" or version!=2 or mid!=model_id or reserved!=0 or
                 not 1<=nrecords<=256 or len(b)!=16+nrecords*10 or
                 zlib.crc32(b[16:])!=crc):
             return False
         for i in range(nrecords):
             mat,shader,t0,t1,flags=struct.unpack_from("<5H",b,16+10*i)
-            if mat!=i or flags&~3:return False
+            if mat!=i or flags&~7:return False
         return True
     categories={
         "mesh_previews":"preview/p%03d.ds3m",
