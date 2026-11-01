@@ -48,13 +48,27 @@ static int load_page(unsigned screen,int page,unsigned short *buffer){
              screen,page,s_names[page]);
     return load_bitmap(path,buffer);
 }
-int p3dOriginalTitleLoad(void){
-    /* Reuse two page buffers to avoid allocating another 192 KiB on DS. */
+int p3dOriginalTitleFrameLoad(unsigned frame){
+    char bottom[64],top[64];
+    /* Use the existing title pair for frame zero, independently recovered
+     * pairs for subsequent private original 3DS title animation frames. */
+    if(frame>=16)return 0;
+    if(frame==0){
+        snprintf(bottom,sizeof(bottom),"nitro:/ui/title/t0_title.rgb555");
+        snprintf(top,sizeof(top),"nitro:/ui/title/t1_title.rgb555");
+    }else{
+        snprintf(bottom,sizeof(bottom),"nitro:/ui/title/t0_%02u_title.rgb555",frame);
+        snprintf(top,sizeof(top),"nitro:/ui/title/t1_%02u_title.rgb555",frame);
+    }
     title_ready=0;
-    page_ready=load_bitmap("nitro:/ui/title/t0_title.rgb555",page_pixels);
-    top_page_ready=load_bitmap("nitro:/ui/title/t1_title.rgb555",top_page_pixels);
+    page_ready=load_bitmap(bottom,page_pixels);
+    top_page_ready=load_bitmap(top,top_page_pixels);
     title_ready=page_ready && top_page_ready;
     return title_ready;
+}
+int p3dOriginalTitleLoad(void){
+    /* Reuse two page buffers to avoid another 192 KiB on the DS ARM9. */
+    return p3dOriginalTitleFrameLoad(0);
 }
 int p3dOriginalTitleReady(void){return title_ready;}
 void p3dOriginalTitleDraw(void){
