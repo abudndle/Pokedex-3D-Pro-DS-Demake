@@ -96,7 +96,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "tools/c92_diagnostic_textured_preview_audit.py",
-      "gap": "C108 native material/texture binding validation now rejects mismatched mesh triangle counts, overlapping/gapped material ranges, malformed manifests, incorrect texture payloads, VRAM budget overruns and partial GPU uploads, with synthetic host GL tests. C107 preserved v2 texture alpha. Experimental C92 3DS GPU sampler/shader bindings are still unverified (including 38 exception models); original private emulator model visual parity and production sampler provenance remain incomplete.",
+      "gap": "C109 now requires CRC-validated source C5 P3MR draw-material evidence before native P3MT/P3TX texture upload, cross-checking original material indices and referenced texture slots per source triangle span; the private release audit requires original-source P3MR model sidecars. C108 geometry coverage and C107 alpha checks remain. Original shader/diffuse sampler role, UV transforms and visual fidelity are still unverified, so this is source-reference gating, not production-authenticated original 3DS materials.",
       "verified_end_to_end": false
     },
     {
