@@ -47,7 +47,7 @@ jobs:
       - name: Install Nintendo DS emulator and virtual display
         run: |
           sudo apt-get update
-          sudo apt-get install -y desmume xvfb x11-apps x11-utils xdotool
+          sudo apt-get install -y desmume xvfb x11-apps x11-utils x11-xserver-utils xdotool openbox
       - name: Attempt ROM startup in DeSmuME CLI
         shell: bash
         run: |
@@ -59,9 +59,13 @@ jobs:
           cat > /tmp/check_emulator.sh <<'SCRIPT'
           #!/usr/bin/env bash
           set -euo pipefail
+          # SDL under headless Xvfb can lose foreground keyboard ownership
+          # without a window manager. Use Openbox for real focus negotiation.
+          openbox >/tmp/openbox.log 2>&1 &
+          wm_pid=$!
           /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
           pid=$!
-          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          trap 'kill "$pid" "$wm_pid" 2>/dev/null || true' EXIT
           # Give NitroFS/FAT startup and the DS CPU more time to draw frames.
           # Record the early hardware palette probe and the later menu.
           window_id=""
@@ -80,11 +84,14 @@ jobs:
           xwd -id "$window_id" -silent -out emulator-before-down.xwd
           # SDL may ignore XSendEvent targeted at a window. Focus the
           # emulator and use XTEST keyboard injection instead.
+          xdotool windowactivate --sync "$window_id"
           xdotool windowfocus --sync "$window_id"
           # Do not click the touchscreen to focus: that can change the game.
           # XTEST key events are directed to the focused SDL CLI window.
           xdotool mousemove --window "$window_id" 128 190
           echo "Focused DeSmuME SDL window: $window_id"
+          echo "X11 active: $(xdotool getactivewindow) focused: $(xdotool getwindowfocus)"
+          xmodmap -pke | grep -E 'Right|Down| z | s ' | head -15 || true
           # Send the source-verified DeSmuME SDL CLI bindings while
           # collecting evidence. Keyboard layout and emulator bindings
           # differ between frontends, so no gameplay claim is implied.
@@ -100,12 +107,14 @@ jobs:
           xwd -id "$window_id" -silent -out emulator-after-down.xwd
           # Distinguish a frozen game loop from an unmapped B key:
           # Right should browse from Pokémon #001 to #002 on this page.
+          xdotool windowactivate --sync "$window_id"
           xdotool windowfocus --sync "$window_id"
           xdotool keydown Right
           sleep 1
           xdotool keyup Right
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-right.xwd
+          xdotool windowactivate --sync "$window_id"
           xdotool windowfocus --sync "$window_id"
           xdotool keydown z
           sleep 1
