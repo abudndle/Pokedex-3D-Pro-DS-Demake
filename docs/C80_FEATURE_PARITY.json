@@ -96,7 +96,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "tools/c92_diagnostic_textured_preview_audit.py",
-      "gap": "C109 now requires CRC-validated source C5 P3MR draw-material evidence before native P3MT/P3TX texture upload, cross-checking original material indices and referenced texture slots per source triangle span; the private release audit requires original-source P3MR model sidecars. C108 geometry coverage and C107 alpha checks remain. Original shader/diffuse sampler role, UV transforms and visual fidelity are still unverified, so this is source-reference gating, not production-authenticated original 3DS materials.",
+      "gap": "C110 adds private original C5 shader capability declaration (P3SC) extraction, CRC-validated native loading and source shader CF_COLORMAP gating. Ambiguous two-texture source materials are intentionally left untextured rather than guessing a diffuse slot. C109 original C5 texture references, C108 mesh-range validation and C107 alpha remain. Original 3DS GPU sampler execution, diffuse/normal/specular slot mapping, UV transforms, real-asset model visuals and exact shader fidelity are still unverified; no original production shader roles are claimed.",
       "verified_end_to_end": false
     },
     {
