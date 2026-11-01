@@ -16,13 +16,13 @@ int main(int argc,char **argv){
     static P3DTexturePixels pixels;
     assert(argc==7);
     assert(p3dTexturePixelsLoad(&pixels,argv[1]));
-    assert(pixels.ready && pixels.width==8 && pixels.height==8);
+    assert(pixels.ready && pixels.width==8 && pixels.height==8 && pixels.version==1);
     assert(pixels.pixels[0]==0x7fff);
     assert(p3dTexturePixelsLoad(&pixels,argv[2]));
-    assert(pixels.ready && pixels.pixels[0]==0x1234 && pixels.pixels[1]==0x9234);
+    assert(pixels.ready && pixels.version==2 && pixels.pixels[0]==0x1234 && pixels.pixels[1]==0x9234);
     for(int i=3;i<7;i++){
         assert(!p3dTexturePixelsLoad(&pixels,argv[i]));
-        assert(!pixels.ready && !pixels.width && !pixels.height);
+        assert(!pixels.ready && !pixels.width && !pixels.height && !pixels.version);
     }
     return 0;
 }
