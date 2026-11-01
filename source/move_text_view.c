@@ -1,5 +1,5 @@
 #include "move_text_view.h"
-#include <string.h>
+#include <stddef.h>
 const char *p3dMoveTextField(const P3DMove *entry,int field){
     if(!entry)return 0;
     if(field==P3D_MOVE_FIELD_DESCRIPTION)return entry->description;
@@ -7,10 +7,12 @@ const char *p3dMoveTextField(const P3DMove *entry,int field){
     return 0;
 }
 int p3dMoveTextScroll(int current,const char *text,int direction){
-    size_t length;
+    size_t length=0;
     int last;
     if(!text)return 0;
-    length=strlen(text);
+    /* Each P3DMove source field is fixed-size. Avoid reading beyond a
+     * malformed, unterminated original record when scrolling. */
+    while(length<P3D_MOVE_TEXT_MAX && text[length])++length;
     last=length>84u?(int)(length-84u):0;
     if(current<0)current=0;
     if(current>last)current=last;
