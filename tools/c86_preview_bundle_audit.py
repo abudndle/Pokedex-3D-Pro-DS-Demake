@@ -13,7 +13,7 @@ ROSTER = set(range(734)) - {721,722,723,724}
 def inspect_ds3m(raw):
     if len(raw)<16:raise ValueError('truncated DS3M')
     magic,ver,n,vertices,faces=struct.unpack_from('<4sHHII',raw)
-    if magic!=b'DS3M' or ver not in (1,2) or not 1<=n<=600 or not vertices or faces<n:
+    if magic!=b'DS3M' or ver not in (1,2) or not 1<=n<=600 or faces<n:
         raise ValueError('invalid DS3M header')
     if len(raw)!=16+n*(21 if ver==2 else 18):raise ValueError('DS3M size mismatch')
     xyz=struct.unpack_from('<'+'h'*(9*n),raw,16)
