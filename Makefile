@@ -57,6 +57,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c134_c56_geometry_bridge.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c135_missing_previews.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c136_native_uv_stage.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c137_private_asset_integration.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c87_original_material_declaration_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c88_original_material_references.py' -v
@@ -78,3 +79,17 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c114_crossfile_source_consistency.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c114_original_sampler_differential.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
+
+# C137 locally integrate an owner-supplied private NitroFS archive.
+# Asset-free CI is NOT this target. Does not imply release readiness.
+# Never upload/commit the resulting private ROM, image, or NitroFS files.
+PRIVATE_NITROFS_ZIP ?=
+PRIVATE_NITROFS_STAGE ?= private/c137_nitrofs_stage
+.PHONY: private-qa-rom
+private-qa-rom:
+	@test -n "$(PRIVATE_NITROFS_ZIP)" || { echo "ERROR: set PRIVATE_NITROFS_ZIP to an authorized local package" >&2; exit 1; }
+	@mkdir -p private/reports
+	@python3 tools/c137_private_nitrofs_preflight.py --input "$(PRIVATE_NITROFS_ZIP)" --crc-all --require-preview-ready --output private/reports/C137_LOCAL_PREFLIGHT.json
+	@python3 tools/c137_stage_private_nitrofs.py --input "$(PRIVATE_NITROFS_ZIP)" --dest "$(PRIVATE_NITROFS_STAGE)" --report private/reports/C137_LOCAL_STAGING.json
+	@$(MAKE) -B -f Makefile.native NITROFSDIR="$(PRIVATE_NITROFS_STAGE)" rom
+	@echo "Private original-asset development ROM built. Release fidelity NOT verified; run emulator/hardware QA separately."
