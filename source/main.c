@@ -272,8 +272,9 @@ static int show_original_title(void){
     bgShow(2);
     videoSetModeSub(MODE_5_2D);
     bgInitSub(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
-    bgHideSub(3);
-    bgShowSub(2);
+    /* libnds indexes sub BG2/BG3 as 6/7, not main BG2/BG3. */
+    bgHide(7);
+    bgShow(6);
     p3dOriginalTitleDraw();
     showing_original_top_art=1;
     showing_original_art=1;
