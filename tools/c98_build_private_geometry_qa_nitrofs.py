@@ -11,11 +11,35 @@ import json
 import re
 import struct
 import zipfile
+import zlib
 from pathlib import Path
 
 DS3M=re.compile(r"preview/p(\d{3})\.ds3m$")
 P3CS=re.compile(r"diagnostic_nitrofs/preview/p(\d{3})\.p3cs$")
 DIAGNOSTIC_MODELS=(0,1,25)
+
+def validate_p3cs(raw, model):
+    if len(raw)<40:raise ValueError("truncated original-derived chunk header")
+    magic,version,mid,count,reserved,total,original,index_crc=struct.unpack_from("<4s4H3I",raw)
+    if (magic!=b"P3CS" or version!=1 or mid!=model or not 1<=count<=3 or reserved
+            or not 1<=total<=1800 or original<total):
+        raise ValueError("invalid C98 original source chunk header")
+    table=raw[24:24+16*count]
+    if len(table)!=16*count or zlib.crc32(table)!=index_crc:
+        raise ValueError("corrupt C98 chunk index")
+    cursor=24+16*count
+    face=0
+    for i in range(count):
+        first,n,zero,offset,crc=struct.unpack_from("<IHHII",table,i*16)
+        if first!=face or not 1<=n<=600 or zero or offset!=cursor:
+            raise ValueError("C98 source chunk table mismatch")
+        blob=raw[cursor:cursor+n*33]
+        if len(blob)!=n*33 or zlib.crc32(blob)!=crc:
+            raise ValueError("corrupt original-derived source triangle chunk")
+        cursor+=n*33
+        face+=n
+    if cursor!=len(raw) or face!=total:
+        raise ValueError("incomplete C98 original geometry coverage")
 
 def qa_species_map():
     mapping=[0xffff]*649
@@ -39,6 +63,9 @@ def inspect_sources(legacy_zip,chunk_zip,expected_legacy=726,expected_chunks=500
         for n in old_names:
             if n.startswith("/") or ".." in n.split("/"):
                 raise ValueError("unsafe recovered asset path")
+        for member in chunk_names:
+            match=P3CS.fullmatch(member)
+            if match:validate_p3cs(chunks.read(member),int(match.group(1)))
         return old_names,[x for x in chunk_names if P3CS.fullmatch(x)]
 
 def build(legacy_zip,chunk_zip,out,expected_legacy=726,expected_chunks=500):
