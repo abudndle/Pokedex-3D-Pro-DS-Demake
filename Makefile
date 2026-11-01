@@ -68,4 +68,5 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c102_original_audio_source_recovery.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c103_original_cwav_dsp_to_pcm.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c110_original_shader_capabilities.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c111_original_sampler_evidence.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
