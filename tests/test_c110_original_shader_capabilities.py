@@ -34,11 +34,11 @@ class ShaderCapsTests(unittest.TestCase):
         self.assertEqual(counts["ambiguous_two_texture_colormap_materials"],1)
         self.assertEqual(len(encoded),16+2*10)
         self.assertEqual(struct.unpack_from("<4s4HI",encoded,0)[:5],
-                         (b"P3SC",1,0,2,0))
+                         (b"P3SC",2,0,2,0))
         self.assertEqual(struct.unpack_from("<5H",encoded,16),
                          (0,0,0,1,1))
         self.assertEqual(struct.unpack_from("<5H",encoded,26),
-                         (1,1,65535,65535,0))
+                         (1,1,65535,65535,4))
 
     def test_private_p3sc_zip_contains_no_original_c5_or_names(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -62,6 +62,30 @@ class ShaderCapsTests(unittest.TestCase):
         self.assertEqual(counts["declared_colormap_materials"],0)
         self.assertEqual(counts["original_sampler_roles_verified"],0)
         self.assertEqual(struct.unpack_from("<5H",encoded,16)[-1],2)
+
+    def test_additional_original_C5_capabilities_are_preserved_as_unknown(self):
+        raw,tex=sample()
+        # A new shader string at an independent source offset avoids changing
+        # C75 texture names and their original byte pointers.
+        b=bytearray(raw)
+        b.extend(bytes(200))
+        name=b"kawa;;;CF_COLORMAP,CF_CASTSHADOW\x00"
+        b[540:540+len(name)]=name
+        struct.pack_into("<I",b,124,140)  # string table starts at byte 400
+        encoded,counts=sidecar("p000",bytes(b),tex)
+        self.assertEqual(struct.unpack_from("<5H",encoded,16)[-1],5)
+        self.assertEqual(counts["materials_with_other_capabilities"],2)
+        self.assertEqual(counts["colormap_with_complex_capabilities"],1)
+        self.assertEqual(counts["original_sampler_roles_verified"],0)
+        # The same material must NOT look like a P3SC v1 color-only shader.
+        self.assertEqual(struct.unpack_from("<H",encoded,4)[0],2)
+
+    def test_original_effect_only_flags_are_not_assigned_color(self):
+        raw,tex=sample()
+        encoded,counts=sidecar("p000",raw,tex)
+        # Original CF_CASTSHADOW is retained instead of silently zeroed.
+        self.assertEqual(struct.unpack_from("<5H",encoded,26)[-1],4)
+        self.assertEqual(counts["materials_with_other_capabilities"],1)
 
     def test_missing_cross_checked_C75_cannot_emit_role_provenance(self):
         raw,tex=sample()
