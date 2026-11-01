@@ -57,7 +57,7 @@ class ShaderCapsTests(unittest.TestCase):
 
     def test_source_shader_bumpmap_does_not_claim_color(self):
         raw,tex=sample()
-        raw=raw.replace(b"CF_COLORMAP",b"CF_BUMPMAP")
+        raw=raw.replace(b"CF_COLORMAP",b"CF_BUMPMAP\0")
         encoded,counts=sidecar("p000",raw,tex)
         self.assertEqual(counts["declared_colormap_materials"],0)
         self.assertEqual(counts["original_sampler_roles_verified"],0)
