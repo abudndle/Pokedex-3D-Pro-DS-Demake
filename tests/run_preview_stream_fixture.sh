@@ -28,6 +28,18 @@ with open(sys.argv[1].replace("p000.ds3m", "p000.p3uv"), "wb") as f:
 with open(sys.argv[1].replace("p000", "p737"), "wb") as f:
     f.write(struct.pack("<4sHHII", b"DS3M", 1, 1, 0, 1))
     f.write(struct.pack("<9h", *range(9)))
+# Synthetic geometry-only three-chunk C96 source preview. No materials.
+import zlib
+triangle=struct.pack("<9h6h3B",*[0]*9,*[100]*6,192,224,232)
+chunks=[triangle*600,triangle*600,triangle*2]
+index=bytearray()
+offset=24+16*len(chunks)
+for k,block in enumerate(chunks):
+    index+=struct.pack("<IHHII",k*600,len(block)//33,0,offset,zlib.crc32(block))
+    offset+=len(block)
+full=struct.pack("<4s4H3I",b"P3CS",1,5,3,0,1202,5000,zlib.crc32(index))+index+b"".join(chunks)
+with open(sys.argv[1].replace("p000.ds3m","p005.p3cs"),"wb") as f:f.write(full)
+with open(sys.argv[1].replace("p000.ds3m","p006.p3cs"),"wb") as f:f.write(full[:-1]+bytes([full[-1]^1]))
 PY
 cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST -Itools/host_stub -Isource source/preview_stream.c source/preview_chunk_stream.c source/model_uv.c tests/test_preview_stream_fixture.c -o "$tmp/test_preview"
 (cd "$tmp" && ./test_preview)
