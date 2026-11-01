@@ -133,3 +133,46 @@ No matching original C5 material/sampler binding is proven by this join;
 private; it records every model's structural and preview availability, not a
 source-derived copyright payload. Do not merge or publish that private report
 or decoded original C5 files into public GitHub.
+
+## C135 — Original-source geometry recovery for p730–p733
+
+The four models that lacked C18/C86 preview meshes have been recovered from
+the user's private C56 part-3 decoded C5 archive. The recovered C7 geometry
+solver found exactly one valid source candidate per model, with bounds-checked
+index groups, finite source XYZ and positive triangle areas:
+
+| Model | Source mesh groups | Original source faces | DS3M v2 preview faces |
+|---|---:|---:|---:|
+| p730 | 14 | 8,120 | 600 |
+| p731 | 13 | 11,518 | 600 |
+| p732 | 10 | 11,340 | 600 |
+| p733 | 8 | 9,418 | 600 |
+
+`tools/c135_c5_geometry.py` restores the C7 source topology recovery logic
+without private binary payloads; `tools/c135_recover_missing_previews.py`
+validates the C56 manifest hash, requires unique recovered source topology,
+preserves at least one original triangle per mesh group, and converts sampled
+original triangles to bounded DS3M v2 geometry.
+
+Private local reproduction requires NumPy for the **C7 research converter**;
+the synthetic DS3M and archive regressions can run without it:
+
+```sh
+python3 -m pip install numpy
+python3 tools/c135_recover_missing_previews.py \
+  --c56-part3 private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --c86-report private/reports/C86_DS_MODEL_STAGE_REPORT.json \
+  --patch private/packages/C135_PRIVATE_DS3M_PREVIEWS.zip \
+  --report private/reports/C135_PRIVATE_MODEL_RECOVERY_REPORT.json \
+  --base-nitrofs private/packages/C86_PRIVATE_COMBINED_NITROFS_WITH_PREVIEWS.zip \
+  --combined-out private/packages/C135_PRIVATE_730_MODEL_NITROFS.zip
+```
+
+The private C135 NitroFS pack now has **730 source-derived fallback previews**,
+up from C86's 726. Preview triangles are proportional **samples** of original
+C5 geometry, not an exact full-resolution mesh. Every added face has the
+neutral preview color: **no original UV, shader, material, texture, or animation
+role has been inferred.** Neither original 3DS visual parity nor release
+readiness is demonstrated. Keep C135 ZIPs and their per-model report private;
+only the reconstruction source and synthetic fixtures belong on GitHub.
