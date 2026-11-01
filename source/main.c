@@ -19,6 +19,8 @@
 #include "model_animation.h"
 #include "model_animation_library.h"
 #include "model_material_texture.h"
+#include "source_material_map.h"
+#include "source_material_texture_match.h"
 #include "texture_asset.h"
 #include "preview_texture_set.h"
 #include "original_ui_page.h"
@@ -60,6 +62,7 @@ static int preview_found=0;
 static P3DAnimationClip preview_animation;
 static P3DAnimationLibrary preview_animation_library;
 static P3DMaterialMap preview_materials;
+static P3DSourceMaterialMap preview_source_materials;
 static P3DTextureManifest preview_textures;
 static int material_references_ready=0;
 static P3DTexturePixels preview_pixels;
@@ -178,6 +181,7 @@ static void reload_preview(void){
     preview_animation.ready=0;
     preview_animation_library.ready=0;
     preview_materials.ready=0;
+    preview_source_materials.ready=0;
     preview_textures.ready=0;
     material_references_ready=0;
     texture_payload_ready=0;
@@ -191,10 +195,22 @@ static void reload_preview(void){
         snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3mt",resource);
         if(p3dMaterialMapLoad(&preview_materials,clip_path,(unsigned)previewStreamTriangleCount())){
             snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3tx",resource);
-            if(p3dTextureManifestLoad(&preview_textures,clip_path))
-                material_references_ready=p3dModelMaterialTexturesMatchMesh(
-                    &preview_materials,&preview_textures,
-                    (unsigned)previewStreamTriangleCount());
+            if(p3dTextureManifestLoad(&preview_textures,clip_path) &&
+               previewStreamHasUv()){
+                /* C109: candidate textures must be referenced by the
+                 * matching original C5 draw material. A C92 color-name
+                 * hint is not enough to activate a native texture. */
+                snprintf(clip_path,sizeof(clip_path),
+                         "nitro:/materials/p%03d.p3mr",resource);
+                if(p3dSourceMaterialLoad(&preview_source_materials,clip_path,
+                       (unsigned)resource,
+                       (unsigned)previewStreamTriangleCount()))
+                    material_references_ready=
+                        p3dSourceMaterialTextureReferencesMatch(
+                            &preview_source_materials,&preview_materials,
+                            &preview_textures,(unsigned)resource,
+                            (unsigned)previewStreamTriangleCount());
+            }
             if(material_references_ready && previewStreamHasUv()){
                 /* Model-scoped paths avoid colliding texture IDs across species. */
                 snprintf(clip_path,sizeof(clip_path),
