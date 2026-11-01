@@ -59,6 +59,25 @@ int main(void){
  emitted=0;
  previewStreamDrawRange(0,1,8,8); /* no external range without matched source textures */
  assert(emitted==0);
+ /* Recheck an original-derived chunk *after* load. Its last source
+  * byte changes after the open CRC check, requiring draw-time fail-close. */
+ {
+     FILE *mut=fopen("nitrofs/preview/p005.p3cs","r+b");
+     assert(mut);
+     assert(fseek(mut,-1,SEEK_END)==0);
+     assert(fputc(0,mut)!=EOF);
+     assert(fclose(mut)==0);
+ }
+ emitted=0;
+ previewStreamDraw();
+ assert(!previewStreamHasModel());
+ assert(!previewStreamIsChunked());
+ assert(!previewStreamHasUv());
+ assert(previewStreamTriangleCount()==0);
+ assert(previewStreamOriginalTriangleCount()==0);
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==0);
  assert(previewStreamLoad(6)); /* invalid P3CS falls back to legacy DS3M */
  assert(!previewStreamIsChunked());
  assert(previewStreamTriangleCount()==1);
