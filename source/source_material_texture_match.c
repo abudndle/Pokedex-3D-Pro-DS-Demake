@@ -57,3 +57,24 @@ int p3dSourceCandidateTextureForTriangle(
         return -1;
     return p3dModelTextureForTriangle(materials,textures,triangle);
 }
+
+int p3dSourceCandidateTextureMap(
+    const P3DSourceMaterialMap *source,
+    const P3DMaterialMap *materials,
+    const P3DTextureManifest *textures,
+    unsigned model_id,unsigned mesh_triangles,
+    int *out,unsigned out_capacity){
+    if(!out || !out_capacity || out_capacity>600)return 0;
+    for(unsigned i=0;i<out_capacity;i++)out[i]=-1;
+    if(mesh_triangles>out_capacity ||
+       !p3dSourceMaterialTextureReferencesMatch(
+           source,materials,textures,model_id,mesh_triangles))
+        return 0;
+    unsigned cursor=0;
+    for(unsigned i=0;i<materials->count;i++){
+        const P3DMaterialRange *r=&materials->ranges[i];
+        for(unsigned j=0;j<r->triangle_count;j++)
+            out[cursor++]=(int)r->texture_id;
+    }
+    return cursor==mesh_triangles;
+}
