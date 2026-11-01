@@ -1079,6 +1079,17 @@ int main(void) {
         scanKeys();
         unsigned down=keysDown();
         unsigned held=keysHeld();
+#ifdef P3D_EMULATOR_DIAGNOSTICS
+        /* Asset-free CI only: distinguish frozen ARM9 gameplay from lost SDL
+         * key injection. Not enabled in private builds or release ROMs. */
+        static unsigned diag_frames=0;
+        diag_frames++;
+        if((diag_frames%60u)==0u || down){
+            consoleSelect(&top_console);
+            printf("\x1b[23;1Hdbg f%05lu d%04X h%04X  ",
+                   (unsigned long)(diag_frames%100000u),down,held);
+        }
+#endif
         int redraw=0;
         if(title_active){
             /* Idle A opens the independently chosen title Pokémon entry.
