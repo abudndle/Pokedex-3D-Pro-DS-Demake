@@ -28,6 +28,7 @@
 #include "preview_texture_set.h"
 #include "original_ui_page.h"
 #include "title_timeline.h"
+#include "title_audio.h"
 #include "move_dex.h"
 #include "move_text_view.h"
 #include "dex_text.h"
@@ -114,6 +115,9 @@ static int showing_original_top_art=0;
 /* Original 3DS title is its own boot state, separate from HOME. */
 static int title_active=0;
 static P3DTitleTimeline title_timeline;
+static P3DTitleCues title_cues;
+static P3DTitleAudio title_pcm;
+static int title_audio_channel=-1;
 static int display_preview=0;
 static void prepare_original_top_art(void){
     int page=home?P3D_PAGE_HOME:(int)state.page;
@@ -277,6 +281,23 @@ static void reload_preview(void){
 }
 /* Original private 3DS title artwork is never fabricated from home art.
  * Use independent source-derived top and bottom bitmaps at boot only. */
+/* A verified title cue can play only if its private source-derived
+ * PCM16 bytes and P3TC timing agree; no synthesized/menu sound fallback.
+ * Reuse the same 32-KiB buffer only after stopping the ARM7 sample DMA. */
+static void play_title_cue(unsigned frame){
+    unsigned cue=p3dTitleCueForFrame(&title_cues,frame);
+    char path[72];
+    if(!cue)return;
+    if(title_audio_channel>=0){
+        soundKill(title_audio_channel);
+        title_audio_channel=-1;
+    }
+    snprintf(path,sizeof(path),"nitro:/ui/title/audio/c%02u.p3sa",cue);
+    if(p3dTitleAudioLoad(&title_pcm,path))
+        title_audio_channel=soundPlaySample(
+            title_pcm.pcm,SoundFormat_16Bit,
+            title_pcm.sample_count*2u,title_pcm.rate,127,64,false,0);
+}
 static int show_original_title(void){
     if(!nitro_ready || !prefer_original_art || !p3dOriginalTitleLoad())
         return 0;
@@ -298,7 +319,14 @@ static int show_original_title(void){
      * original frame-zero title stays visible, not synthetic animation. */
     (void)p3dTitleTimelineLoad(&title_timeline,
                               "nitro:/ui/title/timeline.p3tl");
+    (void)p3dTitleCuesLoad(&title_cues,
+                          "nitro:/ui/title/cues.p3tc",
+                          title_timeline.ready?title_timeline.frames:1u);
     title_active=1;
+    if(title_cues.ready){
+        soundEnable();
+        play_title_cue(0);
+    }
     return 1;
 }
 static int model_yaw=0;
@@ -825,15 +853,21 @@ int main(void) {
             if(down&(KEY_A|KEY_START|KEY_TOUCH)){
                 title_active=0;
                 title_timeline.ready=0;
+                title_cues.ready=0;
+                if(title_audio_channel>=0){
+                    soundKill(title_audio_channel);
+                    title_audio_channel=-1;
+                }
                 art_page=-1;
                 top_art_page=-1;
                 render();
             }else if(title_timeline.ready){
                 int frame=p3dTitleTimelineAdvance(&title_timeline);
                 if(frame>=0){
-                    if(p3dOriginalTitleFrameLoad((unsigned)frame))
+                    if(p3dOriginalTitleFrameLoad((unsigned)frame)){
                         p3dOriginalTitleDraw();
-                    else title_timeline.ready=0; /* retain prior VRAM image */
+                        play_title_cue((unsigned)frame);
+                    }else title_timeline.ready=0; /* retain prior VRAM image */
                 }
             }
             continue;
