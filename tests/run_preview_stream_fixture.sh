@@ -28,6 +28,13 @@ with open(sys.argv[1].replace("p000.ds3m", "p000.p3uv"), "wb") as f:
 with open(sys.argv[1].replace("p000", "p737"), "wb") as f:
     f.write(struct.pack("<4sHHII", b"DS3M", 1, 1, 0, 1))
     f.write(struct.pack("<9h", *range(9)))
+# C103: synthetic DS3M headers with corrupt reserved/source-count fields.
+# These are not real Nintendo game assets.
+for model_id, reserved, original_count in ((7, 1, 42), (8, 0, 0), (9, 0, 0x80000000)):
+    target = sys.argv[1].replace("p000", f"p{model_id:03d}")
+    with open(target, "wb") as f:
+        f.write(struct.pack("<4sHHII", b"DS3M", 1, 1, reserved, original_count))
+        f.write(struct.pack("<9h", *range(9)))
 # Synthetic geometry-only three-chunk C96 source preview. No materials.
 import zlib
 triangle=struct.pack("<9h6h3B",*[0]*9,*[100]*6,192,224,232)
