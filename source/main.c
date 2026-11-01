@@ -197,7 +197,14 @@ static void prepare_original_art(void){
 static void reload_preview(void){
     /* Free all prior per-material VRAM allocations on species/form changes. */
     p3dPreviewTextureSetRelease(&preview_gl_textures);
-    int resource=selected_form?p3dFormResolve(&alternate_models,dex_index,selected_form):p3dModelMapResolve(&species_models,dex_index);
+    /* C120: title idle Pokémon is NOT the saved Dex entry. Its source
+     * species/form preview is separate; leaving idle reloads the last
+     * saved user's own Dex selection with no temporary save mutation. */
+    int species=(title_active && title_idle.active && title_idle.has_species)
+        ?(int)title_idle.species:dex_index;
+    int form=(title_active && title_idle.active)?0:selected_form;
+    int resource=form?p3dFormResolve(&alternate_models,species,form):
+                      p3dModelMapResolve(&species_models,species);
     char clip_path[80];
     previewStreamPreferChunks(prefer_source_chunks);
     preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
@@ -333,6 +340,8 @@ static int show_original_title(void){
                           title_timeline.ready?title_timeline.frames:1u);
     title_active=1;
     p3dTitleIdleReset(&title_idle);
+    /* Console RTC/session entropy, never dex_index or saved Pokémon. */
+    p3dTitleIdleSeed(&title_idle,(uint32_t)time(NULL)^(uint32_t)challenge_seed);
     idle_refresh=0;
     if(title_cues.ready){
         soundEnable();
@@ -414,12 +423,13 @@ static void draw_title_idle_info(void){
     consoleClear();
     if(p3dTitleIdleClock(clock,sizeof(clock),now))
         printf("%s\n",clock);
+    unsigned species=title_idle.has_species?title_idle.species:0u;
     if(dex_text_ready){
         P3DDexText entry;
-        if(p3dDexTextRead(dex_index,&entry))
-            printf("#%03d %.25s\n",dex_index+1,entry.name);
-        else printf("Pokémon #%03d\n",dex_index+1);
-    }else printf("Pokémon #%03d\n",dex_index+1);
+        if(p3dDexTextRead((int)species,&entry))
+            printf("#%03u %.25s\n",species+1u,entry.name);
+        else printf("Pokémon #%03u\n",species+1u);
+    }else printf("Pokémon #%03u\n",species+1u);
     printf("\nCheck this Pokémon's\nPokédex entry?\n\nA: CHECK ENTRY\nB/START: CONTINUE");
 }
 
@@ -931,11 +941,14 @@ int main(void) {
         unsigned held=keysHeld();
         int redraw=0;
         if(title_active){
-            /* Idle A opens the remembered Pokémon entry. Otherwise the
-             * first title input resumes the last saved screen. No input is
-             * forwarded twice to the menu underneath the original title. */
+            /* Idle A opens the independently chosen title Pokémon entry.
+             * The usual title exit still resumes the saved page and Pokémon.
+             * No input is forwarded twice to the menu underneath. */
             if(down&(KEY_A|KEY_B|KEY_START|KEY_TOUCH)){
-                if(title_idle.active && (down&KEY_A)){
+                if(title_idle.active && (down&KEY_A) &&
+                   title_idle.has_species){
+                    dex_index=(int)title_idle.species;
+                    selected_form=0;
                     home=0;
                     state.page=P3D_PAGE_DEX;
                     state.selected_dex=dex_index;
@@ -944,6 +957,9 @@ int main(void) {
                 title_timeline.ready=0;
                 title_cues.ready=0;
                 p3dTitleIdleReset(&title_idle);
+                /* Restore the last saved species preview on ordinary exit;
+                 * on idle A load the chosen species's Pokédex entry. */
+                reload_preview();
                 if(title_audio_channel>=0){
                     soundKill(title_audio_channel);
                     title_audio_channel=-1;
@@ -953,9 +969,17 @@ int main(void) {
                 showing_original_top_art=0;
                 render();
             }else if(p3dTitleIdleAdvance(&title_idle)){
+                p3dTitleIdleChooseSpecies(&title_idle);
+                reload_preview();
                 enter_title_idle();
                 draw_title_idle_info();
             }else if(title_idle.active){
+                if(p3dTitleIdleSceneDue(&title_idle)){
+                    p3dTitleIdleChooseSpecies(&title_idle);
+                    reload_preview();
+                    update_preview_mode();
+                    draw_title_idle_info();
+                }
                 if(++idle_refresh>=60){
                     idle_refresh=0;
                     draw_title_idle_info(); /* refresh actual console RTC */
