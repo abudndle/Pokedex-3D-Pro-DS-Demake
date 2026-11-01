@@ -18,8 +18,8 @@ def check_png(path):
     at=8
     dimensions=None
     found_iend=False
-    nontrivial=False
     raw_idat=bytearray()
+    saw_idat=False
     while at<len(data):
         if at+12>len(data):raise ValueError("PNG truncated chunk")
         n=struct.unpack_from(">I",data,at)[0]
@@ -36,14 +36,28 @@ def check_png(path):
                 raise ValueError("expected RGB888 noninterlaced PNG")
             dimensions=(width,height)
         elif tag==b"IDAT":
+            if dimensions is None or found_iend:raise ValueError("PNG chunk order invalid")
+            saw_idat=True
+            if len(raw_idat)+len(payload)>1024*1024:
+                raise ValueError("PNG compressed payload too large")
             raw_idat.extend(payload)
         elif tag==b"IEND":
             found_iend=True
             if end!=len(data):raise ValueError("extra bytes after IEND")
         at=end
-    if not found_iend or dimensions!=(256,192):raise ValueError("not a DS-resolution PNG")
-    pixels=zlib.decompress(raw_idat)
-    if len(pixels)!=(1+256*3)*192:raise ValueError("PNG image payload size invalid")
+    if not found_iend or not saw_idat or dimensions!=(256,192):
+        raise ValueError("not a DS-resolution PNG")
+    # Bound untrusted evidence image decoding before allocating pixel buffers.
+    expected=(1+256*3)*192
+    inflater=zlib.decompressobj()
+    try:
+        pixels=inflater.decompress(bytes(raw_idat),expected+1)
+        if (len(pixels)!=expected or not inflater.eof or
+            inflater.unused_data or inflater.unconsumed_tail or
+            inflater.flush()):
+            raise ValueError("PNG image payload size invalid")
+    except zlib.error as exc:
+        raise ValueError("PNG compressed payload invalid") from exc
     # Validate scanline filter markers; do not count compressed bytes as pixels.
     if any(pixels[row*(1+256*3)]>4 for row in range(192)):
         raise ValueError("invalid PNG row filter")
