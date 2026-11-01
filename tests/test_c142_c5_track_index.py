@@ -10,7 +10,7 @@ import tempfile
 import unittest
 import zipfile
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
 from c142_c5_track_index import parse_source_tracks, audit
 from c140_c5_shader_inventory import ROSTER, PART_RANGES
 
