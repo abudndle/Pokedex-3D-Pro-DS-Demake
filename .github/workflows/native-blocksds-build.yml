@@ -81,8 +81,11 @@ jobs:
           # SDL may ignore XSendEvent targeted at a window. Focus the
           # emulator and use XTEST keyboard injection instead.
           xdotool windowfocus --sync "$window_id"
-          xdotool mousemove --window "$window_id" 128 190
-          xdotool click 1
+          # The old click at upper-screen (128,190) left KEY_TOUCH held in
+          # real C152 ARM9 diagnostics, potentially swallowing later inputs.
+          # Keyboard focus is already confirmed by X11; release the mouse
+          # without injecting any new touchscreen press.
+          xdotool mouseup 1
           # Send several common DeSmuME directional bindings while
           # collecting evidence. Keyboard layout and emulator bindings
           # differ between frontends, so no gameplay claim is implied.
@@ -91,6 +94,12 @@ jobs:
           xdotool keyup Down
           sleep 0.5
           xwd -id "$window_id" -silent -out emulator-after-only-down.xwd
+          # Restore initial Pokédex selection before A, even when Down works.
+          xdotool keydown Up
+          sleep 0.5
+          xdotool keyup Up
+          sleep 0.5
+          xwd -id "$window_id" -silent -out emulator-after-up.xwd
           # DeSmuME's current CLI source (src/frontend/posix/cli/main.cpp)
           # maps x=A and z=B. The older Linux manpage is outdated.
           xdotool keydown x
@@ -228,6 +237,7 @@ jobs:
             emulator-early.xwd
             emulator-before-down.xwd
             emulator-after-only-down.xwd
+            emulator-after-up.xwd
             emulator-after-down.xwd
             emulator-input-diagnostics.txt
             emulator-after-right.xwd
