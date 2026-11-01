@@ -1,4 +1,5 @@
 #include "source_material_texture_match.h"
+#include <limits.h>
 int p3dSourceMaterialTextureReferencesMatch(
     const P3DSourceMaterialMap *source,
     const P3DMaterialMap *materials,
@@ -77,4 +78,20 @@ int p3dSourceCandidateTextureMap(
             out[cursor++]=(int)r->texture_id;
     }
     return cursor==mesh_triangles;
+}
+
+/* Verify the complete range BEFORE texture binding. Reject zero-length,
+ * stale and partial maps; use subtraction to avoid unsigned overflow. */
+int p3dSourceCandidateTextureRangeMatches(
+    const int *face_textures,unsigned face_capacity,
+    unsigned mesh_triangles,unsigned first_triangle,
+    unsigned triangle_count,unsigned texture_id){
+    if(!face_textures||!mesh_triangles||mesh_triangles>600||
+       mesh_triangles>face_capacity||!triangle_count||
+       first_triangle>=mesh_triangles||
+       triangle_count>mesh_triangles-first_triangle||
+       texture_id>(unsigned)INT_MAX)return 0;
+    for(unsigned face=first_triangle;face<first_triangle+triangle_count;face++)
+        if(face_textures[face]!=(int)texture_id)return 0;
+    return 1;
 }
