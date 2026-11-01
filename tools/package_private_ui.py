@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare privately recovered 256x192 UI pages for NitroFS; never distribute source assets."""
+"""Prepare private 3DS top and bottom UI pages for DS NitroFS; never distribute assets."""
 import argparse
 import pathlib
 import struct
@@ -33,19 +33,28 @@ def main() -> int:
     parser.add_argument("--output", type=pathlib.Path, default=pathlib.Path("nitrofs/ui/pages"))
     args = parser.parse_args()
     count = 0
-    for page, name in enumerate(NAMES):
-        for ext in (".rgb555", ".rgba"):
-            source = args.source / f"{name}{ext}"
-            if source.is_file():
-                destination = args.output / f"t0_{page:02d}_{name}.rgb555"
-                convert(source, destination)
-                print(f"{source} -> {destination}")
-                count += 1
-                break
+    # Legacy root files are the original bottom-screen pages. Top-screen art
+    # must be provided independently; do not duplicate or fabricate pages.
+    # Accept either <source>/top/<name> or <source>/top_<name> for the top.
+    for screen in (0, 1):
+        for page, name in enumerate(NAMES):
+            for ext in (".rgb555", ".rgba"):
+                candidates = (
+                    (args.source / f"{name}{ext}",) if screen == 0 else
+                    (args.source / "top" / f"{name}{ext}",
+                     args.source / f"top_{name}{ext}")
+                )
+                source = next((path for path in candidates if path.is_file()), None)
+                if source is not None:
+                    destination = args.output / f"t{screen}_{page:02d}_{name}.rgb555"
+                    convert(source, destination)
+                    print(f"{source} -> {destination}")
+                    count += 1
+                    break
     if not count:
         print("No recognized private UI pages supplied; ROM will use text fallback.", file=sys.stderr)
         return 1
-    print(f"Prepared {count}/{len(NAMES)} UI pages (private build only).")
+    print(f"Prepared {count}/{2*len(NAMES)} UI pages (private build only).")
     return 0
 
 if __name__ == "__main__":
