@@ -31,9 +31,9 @@ jobs:
       # Public-source x86_64 host executable only. NO private Nintendo data.
       - name: Compile portable C138 host probe for private offline asset test
         run: |
-          cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST \\
-            -Itools/host_stub -Isource source/preview_stream.c \\
-            source/preview_chunk_stream.c source/model_uv.c \\
+          cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST \
+            -Itools/host_stub -Isource source/preview_stream.c \
+            source/preview_chunk_stream.c source/model_uv.c \
             tests/c138_native_preview_probe.c -o c138-native-preview-probe
       - name: Retain offline C138 host probe (no game assets)
         uses: actions/upload-artifact@v4
