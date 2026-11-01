@@ -28,6 +28,9 @@ jobs:
       - name: Exercise C138 real native C preview loader for 730 synthetic models and UVs
         run: python3 -m unittest discover -s tests -p 'test_c138_native_preview_probe.py' -v
 
+      - name: Verify C140 original source C5 shader declaration recovery
+        run: python3 -m unittest discover -s tests -p 'test_c140_c5_shader_inventory.py' -v
+
       # Public-source x86_64 host executable only. NO private Nintendo data.
       - name: Compile portable C138 host probe for private offline asset test
         run: |
