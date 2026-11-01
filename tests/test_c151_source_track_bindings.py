@@ -62,7 +62,7 @@ class C151NativeTrackBindingTests(unittest.TestCase):
              ('index',[(0,0,3,b'BoneRoot')]),
              ('duplicate',[(1,0,3,b'BoneRoot'),(1,0,6,b'BoneRoot')]),
              ('order',[(1,0,6,b'BoneRoot'),(1,0,3,b'BoneRoot')]),
-             ('nonzero-padding',[(1,0,3,b'BoneRoot\\x00X')]),
+             ('nonzero-padding',[(1,0,3,b'BoneRoot\x00X')]),
              ('nonterminated',[(1,0,3,b'A'*104)])]
         for tag,records in bad:
             with self.subTest(tag=tag):self.check(tag,sk,binding(sk,records=records),False)
