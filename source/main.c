@@ -1084,7 +1084,7 @@ int main(void) {
          * key injection. Not enabled in private builds or release ROMs. */
         static unsigned diag_frames=0;
         diag_frames++;
-        if((diag_frames%60u)==0u || down){
+        if((diag_frames%5u)==0u || down){
             consoleSelect(&top_console);
             printf("\x1b[23;1Hdbg f%05lu d%04X h%04X  ",
                    (unsigned long)(diag_frames%100000u),down,held);
