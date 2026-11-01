@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <nds.h> /* Synthetic GL capture: the native upload path is exercised. */
 #include "model_material_texture.h"
 #include "model_uv.h"
 #include "preview_texture_set.h"
