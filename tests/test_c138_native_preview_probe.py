@@ -69,6 +69,29 @@ class TestNativePreviewProbe(unittest.TestCase):
             self.assertNotEqual(result.returncode,0)
             self.assertIn('invalid native DS3M header',result.stderr)
 
+    def test_loader_preserves_private_source_face_colors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);generate_fixture(root)
+            exe=root/'probe';compile_probe(exe)
+            path=root/'nitrofs'/'preview'/'p730.ds3m'
+            data=bytearray(path.read_bytes())
+            # Two source triangles, then two original RGB888 triplets.
+            first_color=16+2*18
+            data[first_color:first_color+3]=bytes((14,22,105))
+            path.write_bytes(data)
+            result=subprocess.run([str(exe),'0'],cwd=root,capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertIn('XYZ/RGB/UV',result.stdout)
+
+    def test_loader_fails_on_truncated_source_colors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);generate_fixture(root)
+            path=root/'nitrofs'/'preview'/'p729.ds3m'
+            path.write_bytes(path.read_bytes()[:-1])
+            exe=root/'probe';compile_probe(exe)
+            result=subprocess.run([str(exe),'0'],cwd=root,capture_output=True,text=True)
+            self.assertNotEqual(result.returncode,0)
+
     def test_loader_detects_modified_coordinates(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);generate_fixture(root)
