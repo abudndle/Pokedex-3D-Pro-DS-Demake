@@ -625,3 +625,49 @@ tests, including a full 730-model fixture.
 This recovery establishes a valid source data **encoding**, but cannot
 claim the original Pokémon skeletal animations have been faithfully ported.
 C139 material/shader/texture eligibility remains fail-closed.
+
+## C145 — recover original packed quaternion-like source keyframes
+
+C145 extends the source-verified C143/C144 track decoding to the FIRST
+track in each repeating source triplet. Each key is exactly **10 bytes**:
+`u16 integer time tag + four biased unsigned u16 quaternion-like values`.
+Original words are converted to floating-point candidate components by
+`(word - 32768) / 32767`, preserving their original component order without
+guessing which element is W/X/Y/Z. All 25,956 source tracks match their
+paired C144 float3 streams at the final original time tag.
+
+Private source validation across the 730 SHA-matched original C56 models:
+
+- **4,428,568** original packed quaternion-like keyframes validated.
+- **25,956** ordered first-track groups covered (all C143 candidates).
+- All packed time tags start at 0, increase strictly and finish at the
+  same time as the two float3 tracks; maximum observed tag **802**.
+- All decoded quaternion-like values have **squared norm within 0.001
+  of 1**, with maximum absolute deviation approximately **0.000123**.
+- **10,512** records have an extra two zero bytes for alignment; all
+  **21,024** extra bytes verified as zero. Other first streams end
+  exactly on a 10-byte record boundary.
+
+This strongly supports a *normalized quaternion rotation encoding*. It
+does **not** prove component order, bone ownership, clip/action boundaries,
+local/global transform semantics, rotation interpolation, or playback frame
+rate. Do not activate source animation in DS or claim source skeletal parity
+until the hierarchy/clip binding has been independently established.
+
+```sh
+python3 tools/c145_c5_packed_quaternions.py \
+  --parts \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_2_of_3.zip \
+    private/recovery/Pokedex3D_C56_Decoded_C5_Part_3_of_3.zip \
+  --decoder-bundle private/recovery/Pokedex3D_C56_Decoder_Tools_and_Validation.zip \
+  --c144-summary private/reports/C144_PRIVATE_TIMED_VEC3_SUMMARY.json \
+  --report private/reports/C145_PRIVATE_PACKED_QUATERNION_SUMMARY.json
+
+# Synthetic regression, including a SHA-bound 730-model fixture:
+python3 -m unittest discover -s tests -p 'test_c145_c5_packed_quaternions.py' -v
+```
+
+`--detailed-model p000` is an optional private-only diagnostic export for
+one selected model. Source originals, full keyframe reports, game models
+and original animations remain excluded from public GitHub.
