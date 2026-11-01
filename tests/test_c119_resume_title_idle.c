@@ -14,12 +14,20 @@ int main(int argc,char **argv){
     char path[260],clock[80];
     assert(argc==2);
     assert(!p3dResumeLoad(argv[1],&loaded));
+    assert(!p3dResumeRestoreBoot(argv[1],&loaded,ds,&home,&menu,
+                                 &highlight));
+    /* No valid checkpoint: the original 3DS title is allowed at boot. */
     a.home=0;a.page=P3D_PAGE_DEX;a.highlight=3;
     a.records_tab=2;a.dex=24;a.move=7;a.selected_dex=24;a.album_page=5;
     assert(p3dResumeStateValid(&a));
     assert(p3dResumeStore(argv[1],&a));
     assert(p3dResumeLoad(argv[1],&loaded));
     assert(loaded.dex==24 && loaded.page==P3D_PAGE_DEX);
+    /* Reset must enter the saved Pokédex page directly, regardless of
+     * whether legacy progress data was created with this checkpoint. */
+    p3dMenuReset(&menu);home=1;
+    assert(p3dResumeRestoreBoot(argv[1],&loaded,ds,&home,&menu,&highlight));
+    assert(!home && menu.page==P3D_PAGE_DEX && loaded.dex==24);
     p3dMenuReset(&menu);
     assert(p3dResumeApply(&loaded,ds,&home,&menu,&highlight));
     assert(!home && menu.page==P3D_PAGE_DEX && highlight==3);
@@ -32,6 +40,9 @@ int main(int argc,char **argv){
     assert(p3dResumeStore(argv[1],&a));
     assert(p3dResumeLoad(argv[1],&loaded));
     assert(loaded.move==100);
+    p3dMenuReset(&menu);home=1;
+    assert(p3dResumeRestoreBoot(argv[1],&loaded,ds,&home,&menu,&highlight));
+    assert(!home && menu.page==P3D_PAGE_MOVES && loaded.move==100);
     /* Corrupt latest A slot; older valid B slot remains recoverable. */
     assert(snprintf(path,sizeof(path),"%s_resume_A.sav",argv[1])>0);
     FILE *f=fopen(path,"wb");
@@ -40,6 +51,10 @@ int main(int argc,char **argv){
     assert(fclose(f)==0);
     assert(p3dResumeLoad(argv[1],&loaded));
     assert(loaded.page==P3D_PAGE_RECORDS && loaded.dex==25);
+    p3dMenuReset(&menu);home=1;
+    assert(p3dResumeRestoreBoot(argv[1],&loaded,ds,&home,&menu,&highlight));
+    assert(!home && menu.page==P3D_PAGE_RECORDS);
+    assert(loaded.dex==25);
     a.page=P3D_PAGE_AR;
     assert(p3dResumeStore(argv[1],&a));
     assert(p3dResumeLoad(argv[1],&loaded));
