@@ -120,6 +120,18 @@ int previewStreamLoad(int resource_index) {
 }
 int previewStreamHasModel(void) { return s_loaded; }
 int previewStreamHasUv(void) { return s_loaded && !s_chunked && s_uv.ready; }
+/* P3UV uses signed 4.12 normalized coordinates. Original repeat/mirror
+ * sampler settings are not decoded: refuse texture placement outside [0,1].
+ * A rejected span still draws all its original triangles without texture. */
+int previewStreamUvRangeUnit(int first_triangle,int triangle_count){
+    if(!previewStreamHasUv()||first_triangle<0||triangle_count<=0||
+       first_triangle>s_triangle_count||
+       triangle_count>s_triangle_count-first_triangle)return 0;
+    for(int i=first_triangle*6;i<(first_triangle+triangle_count)*6;i++){
+        if(s_uv.uv[i]<0||s_uv.uv[i]>4096)return 0;
+    }
+    return 1;
+}
 int previewStreamIsChunked(void) { return s_loaded && s_chunked; }
 int previewStreamTriangleCount(void) { return s_triangle_count; }
 int previewStreamOriginalTriangleCount(void) { return s_original_triangle_count; }
