@@ -1,0 +1,77 @@
+name: C251 synthetic geometry NitroFS ROM and DeSmuME integration
+on:
+  push:
+    paths:
+      - 'source/**'
+      - 'tests/c251_*'
+      - 'tests/test_c251_*'
+      - 'tests/run_c251_*'
+      - 'tools/c249_private_geometry_nitrofs.py'
+      - 'Makefile.native'
+      - '.github/workflows/c251-synthetic-geometry.yml'
+  pull_request:
+    paths:
+      - 'source/**'
+      - 'tests/c251_*'
+      - 'tests/test_c251_*'
+      - 'tests/run_c251_*'
+      - 'tools/c249_private_geometry_nitrofs.py'
+      - 'Makefile.native'
+      - '.github/workflows/c251-synthetic-geometry.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: c251-synthetic-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-synthetic-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test synthetic staging and frame gates without original assets
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c251_synthetic_rom_stage.py' -v
+          python3 -m unittest discover -s tests -p 'test_c251_synthetic_geometry_frame_gate.py' -v
+          python3 -m unittest discover -s tests -p 'test_c250_species_geometry_runtime.py' -v
+      - name: Stage only two synthetic native geometry pairs outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage_root="$(mktemp -d)"
+          echo "C251_STAGE_ROOT=$stage_root" >> "$GITHUB_ENV"
+          python3 tests/c251_synthetic_rom_stage.py "$stage_root"
+          test -s "$stage_root/staged/models/species_map.p3sm"
+          test -s "$stage_root/staged/geometry/p002.p3vx"
+          test -s "$stage_root/staged/geometry/p002.p3ix"
+      - name: Compile actual BlocksDS ROM with synthetic NitroFS only
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/work" -v "$C251_STAGE_ROOT/staged:/nitro:ro" \
+            -w /work skylyrac/blocksds:slim-latest \
+            make -f Makefile.native NITROFSDIR=/nitro \
+              EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS rom
+          test -s Pokedex3D_DS_BlocksDS.nds
+          python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
+          python3 tools/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
+      - name: Install DeSmuME and virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y desmume xvfb x11-apps x11-utils xdotool
+      - name: Real synthetic-geometry ROM navigation and dual-screen gate
+        shell: bash
+        run: |
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 70s \
+            bash tests/run_c251_synthetic_geometry_emulator.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds"
+      - name: Preserve synthetic-only emulator frames (no ROM or original assets)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c251-synthetic-only-desmume-frames
+          path: c251-*.xwd
+          retention-days: 3
+          if-no-files-found: ignore
