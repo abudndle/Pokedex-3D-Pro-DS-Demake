@@ -15,9 +15,20 @@ int main(int argc,char **argv){
         if(!binding.ready||binding.model_id!=model||binding.count!=1||
            binding.node[0]!=1||binding.source_first_track[0]!=3)return 4;
     }else if(binding.ready||binding.count||binding.model_id)return 5;
-    /* A failed model switch must never retain a prior binding. */
-    if(loaded && p3dSourceTrackBindingsLoad(&binding,&rig,argv[2],model+1))return 6;
-    if(binding.ready||binding.count)return 7;
+    /* A failed file open after success must clear every prior binding. */
+    if(loaded){
+        char missing[1024];
+        int n=snprintf(missing,sizeof(missing),"%s.missing",argv[2]);
+        if(n<0||(unsigned)n>=sizeof(missing))return 6;
+        if(p3dSourceTrackBindingsLoad(&binding,&rig,missing,model))return 7;
+        if(binding.ready||binding.count||binding.model_id||
+           binding.node[0]||binding.source_first_track[0])return 8;
+        /* Reload, then a failed model switch must also clear all state. */
+        if(!p3dSourceTrackBindingsLoad(&binding,&rig,argv[2],model))return 9;
+        if(p3dSourceTrackBindingsLoad(&binding,&rig,argv[2],model+1))return 10;
+        if(binding.ready||binding.count||binding.model_id||
+           binding.node[0]||binding.source_first_track[0])return 11;
+    }
     puts("C151 original source track-owner binding: PASS");
     return 0;
 }
