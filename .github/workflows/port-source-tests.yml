@@ -182,6 +182,9 @@ jobs:
       - name: Validate bounded model material ranges
         run: sh tests/run_model_materials.sh
 
+      - name: C230 Pokédex animation pause/resume/restart and render gating
+        run: sh tests/run_c230_playback_controls.sh
+
       - name: Verify optional multi-clip animation discovery and switching
         run: sh tests/run_model_animation_library.sh
 
