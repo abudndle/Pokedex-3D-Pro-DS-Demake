@@ -43,6 +43,9 @@ jobs:
       - name: C213 validate actual C5 descriptor table boundaries (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c213_c5_descriptor_bounds.py' -v
 
+      - name: C227 verify private C5 topology batch and ZIP roster handling (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c227_private_topology_batch.py' -v
+
       - name: Validate private asset loader contracts
         run: python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 
