@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import stat
@@ -130,6 +131,10 @@ def prepare(stage, output):
 
 
 def build(nitro, output):
+    # Makefile.native interpolates NITROFSDIR into shell recipes and find.
+    # Reject shell metacharacters and whitespace in private output paths.
+    if not re.fullmatch(r'[A-Za-z0-9_./-]+', str(nitro)):
+        raise ValueError('unsafe private NitroFS path for native Makefile')
     work = output / 'work'
     work.mkdir(mode=0o700)
     shutil.copytree(REPO / 'source', work / 'source')
