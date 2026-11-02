@@ -10,6 +10,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int adapt_0913(void) {
+    const char *s = getenv("P3D_C240_ADAPT_0913");
+    return s && strcmp(s, "1") == 0;
+}
+
 static int enabled(void) {
     const char *s = getenv("P3D_C238_TRACE");
     return s && strcmp(s, "1") == 0;
@@ -34,6 +39,27 @@ int SDL_PollEvent(void *event) {
             fprintf(stderr, "C238 SDL event=%s scancode=%u sym=%d\n",
                     type == 0x300u ? "down" : "up", scancode, keysym);
             fflush(stderr);
+        }
+    }
+    if (adapt_0913() && result && event) {
+        uint32_t type = 0;
+        memcpy(&type, (const unsigned char *)event, sizeof(type));
+        if (type == 0x300u || type == 0x301u) {
+            int32_t sym = 0;
+            memcpy(&sym, (const unsigned char *)event + 20, sizeof(sym));
+            /* DeSmuME 0.9.13 CLI copies u32 defaults into a u16
+             * keyboard_cfg array, then resets parsed [KEYS] values.
+             * Thus DS B sits at SDL sym 0, DS Right at sym 229.
+             * Translate only the test's distinct d/b XTEST keys. */
+            int32_t mapped = sym == 100 ? 229 : (sym == 98 ? 0 : sym);
+            if (mapped != sym) {
+                memcpy((unsigned char *)event + 20, &mapped, sizeof(mapped));
+                if (enabled()) {
+                    fprintf(stderr, "C240 DeSmuME 0.9.13 SDL key remap %d -> %d\n",
+                            sym, mapped);
+                    fflush(stderr);
+                }
+            }
         }
     }
     return result;
