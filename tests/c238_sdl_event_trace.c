@@ -64,3 +64,15 @@ int g_key_file_get_integer(void *file, const char *group,
     }
     return result;
 }
+
+int g_key_file_has_group(void *file, const char *group) {
+    int (*original)(void *, const char *) = NULL;
+    *(void **)(&original) = dlsym(RTLD_NEXT, "g_key_file_has_group");
+    if (!original) abort();
+    int result = original(file, group);
+    if (enabled() && group) {
+        fprintf(stderr, "C238 GLib has_group=%s result=%d\n", group, result);
+        fflush(stderr);
+    }
+    return result;
+}
