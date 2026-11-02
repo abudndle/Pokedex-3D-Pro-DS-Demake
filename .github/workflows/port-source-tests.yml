@@ -31,6 +31,9 @@ jobs:
       - name: Verify private 730-model native geometry batch runner
         run: python3 -m unittest discover -s tests -p 'test_c183_private_geometry_batch.py' -v
 
+      - name: C207 verify private source XYZ to native P3VX conversion (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c207_private_c5_xyz.py' -v
+
       - name: Validate private asset loader contracts
         run: python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 
