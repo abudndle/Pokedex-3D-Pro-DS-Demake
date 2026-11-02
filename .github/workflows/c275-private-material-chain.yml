@@ -1,0 +1,29 @@
+name: C275 source draw-material reference evidence (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c275-material-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-source-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify C275 bounded private C5 draw-material-C75 chain without game assets
+        run: |
+          python3 -m py_compile tools/c275_private_draw_material_chain.py
+          python3 -m unittest discover -s tests -p 'test_c275_private_draw_material_chain.py' -v
+      - name: Confirm no original game material payloads are in the CI job
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C275_private_material_report.json
