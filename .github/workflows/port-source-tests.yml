@@ -40,6 +40,9 @@ jobs:
       - name: C212 enforce native P3IX triangle and mesh budgets (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c212_native_primitive_export.py' -v
 
+      - name: C213 validate actual C5 descriptor table boundaries (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c213_c5_descriptor_bounds.py' -v
+
       - name: Validate private asset loader contracts
         run: python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 
