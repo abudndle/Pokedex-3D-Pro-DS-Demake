@@ -1,0 +1,30 @@
+name: C281 private 24-bpp source to P3PX differential (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c281-pixel-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-original-rgb8-pixels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate C281 RGB8 Morton, alpha and P3PX equivalence (synthetic)
+        run: |
+          python3 -m py_compile tools/c281_private_rgb8_pixel_equivalence.py
+          python3 -m unittest discover -s tests -p 'test_c281_private_rgb8_pixel_equivalence.py' -v
+          python3 -m unittest discover -s tests -p 'test_c280_private_rgba8_pixel_equivalence.py' -v
+      - name: Protect private Nintendo texture bytes and reports
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C281_PRIVATE_RGB8_P3PX_DIFFERENTIAL.json
