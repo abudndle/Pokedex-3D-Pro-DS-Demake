@@ -98,6 +98,24 @@ def candidate_matches(source, width, height, p3px):
     if (len(p3px) != 10 + width * height * 2 or p3px[:4] != b"P3PX" or
             struct.unpack_from("<HHH", p3px, 4) != (2, width, height)):
         raise ValueError("C78 P3PX header/dimensions/length invalid")
+    # Optional vectorization keeps full 730-model private batches practical.
+    # The dependency-free stdlib path below remains a public CI regression.
+    try:
+        import numpy as np
+    except ImportError:
+        np = None
+    if np is not None:
+        yy, xx = np.indices((height, width), dtype=np.int32)
+        sy = height - 1 - yy
+        morton = np.zeros((height, width), dtype=np.int32)
+        for bit in range(3):
+            morton |= ((xx >> bit) & 1) << (2 * bit)
+            morton |= ((sy >> bit) & 1) << (2 * bit + 1)
+        indices = ((sy // 8) * (width // 8) + xx // 8) * 64 + morton
+        words = np.frombuffer(source, dtype="<u2")[indices]
+        expected = np.frombuffer(p3px, dtype="<u2", offset=10).reshape(height, width)
+        return tuple(sorted(name for name, decode in CANDIDATES.items()
+                            if np.array_equal(decode(words), expected)))
     remaining = dict(CANDIDATES)
     tiles_w = width // 8
     for y in range(height):
