@@ -51,9 +51,35 @@ int p3dChallengeBegin(P3DChallenge *q,int mode,uint32_t seed,int cumulative_answ
 }
 int p3dChallengeAnswer(P3DChallenge *q,int choice){
  int success;
- if(!q||q->stage!=P3D_CHALLENGE_QUESTION||choice<0||choice>=P3D_CHALLENGE_OPTIONS)return -1;
- success=(choice==q->correct);if(success)q->score++;q->question++;
- if(q->question==P3D_CHALLENGE_QUESTIONS)q->stage=P3D_CHALLENGE_RESULTS;
- else make_question(q);
+ if(!q||q->stage!=P3D_CHALLENGE_QUESTION||choice<0||
+    choice>=P3D_CHALLENGE_OPTIONS)return -1;
+ success=(choice==q->correct);
+ q->selected=choice;
+ if(success)q->score++;
+ /* C232: the answered question's Pokémon and four choices remain intact.
+  * A second submission in REVIEW is rejected rather than double-scored. */
+ q->stage=P3D_CHALLENGE_REVIEW;
  return success;
+}
+int p3dChallengeContinue(P3DChallenge *q){
+ if(!q||q->stage!=P3D_CHALLENGE_REVIEW||
+    q->question<0||q->question>=P3D_CHALLENGE_QUESTIONS)return 0;
+ q->question++;
+ if(q->question==P3D_CHALLENGE_QUESTIONS)
+    q->stage=P3D_CHALLENGE_RESULTS;
+ else{
+    make_question(q);
+    q->stage=P3D_CHALLENGE_QUESTION;
+ }
+ return 1;
+}
+int p3dChallengeTouchChoice(int x,int y){
+ /* Choice text starts on one-based console row 11 (y=80).
+  * Four choices each take 3 rows = 24px, ending before the footer. */
+ if(x<8||x>=248||y<80||y>=176)return -1;
+ return (y-80)/24;
+}
+int p3dChallengeTouchContinue(int x,int y){
+ /* Visible review action is on one-based row 19 (y=144). */
+ return x>=8&&x<248&&y>=144&&y<168;
 }
