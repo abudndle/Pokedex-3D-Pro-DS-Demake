@@ -58,8 +58,8 @@ int g_key_file_get_integer(void *file, const char *group,
     *(void **)(&original) = dlsym(RTLD_NEXT, "g_key_file_get_integer");
     if (!original) abort();
     int result = original(file, group, key, error);
-    if (enabled() && group && key && strcmp(group, "SDLKEYS") == 0) {
-        fprintf(stderr, "C238 GLib SDLKEYS %s=%d\n", key, result);
+    if (enabled() && group && key && (strcmp(group, "KEYS") == 0 || strcmp(group, "SDLKEYS") == 0)) {
+        fprintf(stderr, "C238 GLib %s %s=%d\n", group, key, result);
         fflush(stderr);
     }
     return result;
