@@ -44,7 +44,7 @@ def run():
             raise AssertionError('C273 native ROM was not built')
         manifest = (output / 'C272_PRIVATE_BUILD_SHA256.txt').read_text('ascii')
         digest = hashlib.sha256(rom.read_bytes()).hexdigest()
-        if manifest != f'{digest}  C272_PRIVATE_DIAGNOSTIC.nds\\n':
+        if manifest != f'{digest}  C272_PRIVATE_DIAGNOSTIC.nds\n':
             raise AssertionError('C273 private ROM SHA-256 record mismatch')
         if stat.S_IMODE(rom.stat().st_mode) != 0o600:
             raise AssertionError('C273 private ROM permissions are not restricted')
