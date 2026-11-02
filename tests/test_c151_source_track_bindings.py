@@ -55,6 +55,25 @@ class C151NativeTrackBindingTests(unittest.TestCase):
         self.check('model',sk,binding(sk,model=15),False)
         altered=bytearray(binding(sk));altered[10]=1
         self.check('reserved',sk,bytes(altered),False)
+    def test_reject_bad_magic_version_and_short_header(self):
+        sk=fixture(14);good=binding(sk)
+        self.check('bad-magic',sk,b'NOPE'+good[4:],False)
+        bad_version=bytearray(good);struct.pack_into('<H',bad_version,4,2)
+        self.check('bad-version',sk,bytes(bad_version),False)
+        self.check('short-header',sk,good[:19],False)
+
+    def test_reject_record_count_above_rig_capacity(self):
+        sk=fixture(14)
+        records=[(1,0,3,b'BoneRoot'),(0,0,6,b'Base'),(1,0,9,b'BoneRoot')]
+        self.check('record-count-over-rig',sk,binding(sk,records=records),False)
+
+    def test_reject_source_string_offset_mismatch_and_out_of_range_node(self):
+        sk=fixture(14);good=binding(sk)
+        bad_offset=bytearray(good);struct.pack_into('<H',bad_offset,20+2,1)
+        self.check('source-offset-mismatch',sk,bytes(bad_offset),False)
+        bad_node=bytearray(good);struct.pack_into('<H',bad_node,20,999)
+        self.check('node-out-of-range',sk,bytes(bad_node),False)
+
     def test_reject_name_index_offset_duplicates_and_order(self):
         sk=fixture(14)
         bad=[('name',[(1,0,3,b'boneroot')]),
