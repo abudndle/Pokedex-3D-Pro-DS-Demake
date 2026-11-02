@@ -1,0 +1,75 @@
+name: C268 independent melonDS FAT Album lifecycle
+on:
+  push:
+    paths:
+      - 'source/**'
+      - 'tests/c268_*'
+      - 'tests/test_c268_*'
+      - 'tests/run_c268_*'
+      - '.github/workflows/c268-melonds-album.yml'
+  pull_request:
+    paths:
+      - 'source/**'
+      - 'tests/c268_*'
+      - 'tests/test_c268_*'
+      - 'tests/run_c268_*'
+      - '.github/workflows/c268-melonds-album.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c268-album-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  fat-album-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject synthetic FAT Album roster corruption
+        run: python3 -m unittest discover -s tests -p 'test_c268_fat_album_gate.py' -v
+      - name: Reject synthetic Album frame/navigation regressions
+        run: python3 -m unittest discover -s tests -p 'test_c268_melonds_album_frame_gate.py' -v
+      - name: Compile asset-free BlocksDS ROM and validate native headers
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work \
+            skylyrac/blocksds:slim-latest \
+            make dev-rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
+          python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
+      - name: Download and verify official melonDS 1.1 AppImage
+        shell: bash
+        run: |
+          set -euo pipefail
+          temp="$(mktemp -d)"
+          echo "C268_MELONDS_ROOT=$temp" >> "$GITHUB_ENV"
+          curl -fL --retry 3 --connect-timeout 20 \
+            'https://github.com/melonDS-emu/melonDS/releases/download/1.1/melonDS-1.1-appimage-x86_64.zip' \
+            -o "$temp/melonds.zip"
+          printf '%s  %s\n' 'bf377420a2e95f2cd2cdda17d5372b51c2534f858b038db9ec6d129554875124' "$temp/melonds.zip" | sha256sum -c -
+          unzip -q "$temp/melonds.zip" -d "$temp"
+          app="$(find "$temp" -maxdepth 3 -type f -name '*.AppImage' -print -quit)"
+          test -n "$app"
+          chmod +x "$app"
+          (cd "$temp" && "$app" --appimage-extract >/dev/null)
+          test -x "$temp/squashfs-root/AppRun"
+          echo "C268_APP_RUN=$temp/squashfs-root/AppRun" >> "$GITHUB_ENV"
+      - name: Install virtual display and input dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11-apps x11-utils xdotool libegl1 libgl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-xinerama0
+      - name: Verify real melonDS FolderSync Album pages, deletion and reboot
+        shell: bash
+        run: |
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
+            bash tests/run_c268_melonds_album.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C268_APP_RUN"
+      - name: Preserve only asset-free synthetic Album XWD evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c268-melonds-asset-free-album-evidence
+          path: |
+            c268-melonds-*.xwd
+            c268-melonds-windows.txt
+          if-no-files-found: ignore
+          retention-days: 3
