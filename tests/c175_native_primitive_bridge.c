@@ -30,6 +30,9 @@ int main(void){
     index[10]=64;
     assert(!p3dVerifiedIndexInspect(index,sizeof(index),0,&info));
     index[10]=7;
+    /* Reject a 65-mesh declaration before accessing any missing rows. */
+    const uint8_t too_many[]={'P','3','I','X',1,0,0,0,65,0};
+    assert(!p3dVerifiedIndexInspect(too_many,sizeof(too_many),0,&info));
     assert(!p3dVerifiedPrimitiveBridge(index,sizeof(index)-1,0,&mesh,1,collect,&seen,&count));
     return 0;
 }
