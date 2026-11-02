@@ -34,6 +34,9 @@ jobs:
       - name: C207 verify private source XYZ to native P3VX conversion (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c207_private_c5_xyz.py' -v
 
+      - name: C211 verify original-source XYZ and topology pair gates (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c211_private_source_pair.py' -v
+
       - name: Validate private asset loader contracts
         run: python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 
