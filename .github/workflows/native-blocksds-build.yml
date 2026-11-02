@@ -56,6 +56,13 @@ jobs:
           cat > /tmp/check_emulator.sh <<'SCRIPT'
           #!/usr/bin/env bash
           set -euo pipefail
+          # C236: DeSmuME reads SDLKEYS from XDG_CONFIG_HOME/desmume/config.
+          # Use explicit SDL2 keycodes in a fresh isolated config, never
+          # runner/user defaults or the incompatible SDL1 arrow constants.
+          export XDG_CONFIG_HOME="$(mktemp -d)"
+          python3 tools/c236_desmume_keymap.py --xdg-config-home "$XDG_CONFIG_HOME"
+          echo "DeSmuME CLI version:"
+          /usr/games/desmume-cli --version || true
           /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
