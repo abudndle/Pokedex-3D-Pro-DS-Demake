@@ -69,6 +69,8 @@ def audit(root, probe, roster=None):
     if not root.is_dir():
         raise ValueError("private geometry directory missing")
     roster = EXPECTED if roster is None else set(roster)
+    if not roster:
+        raise ValueError('empty roster')
     if any(not isinstance(model, int) or model not in EXPECTED for model in roster):
         raise ValueError("invalid model roster")
     probe = Path(probe).resolve()
