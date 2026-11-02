@@ -4,6 +4,7 @@ All outputs are aggregate statistics; original bytes and per-model offsets stay 
 """
 import argparse
 import json
+import re
 import struct
 import zipfile
 from collections import Counter
@@ -25,14 +26,22 @@ def inspect(raw):
         rows.append((vo,io,vc,ic,ipacked>>16))
     return rows
 
+MODEL_MEMBER = re.compile(r"decoded_c5/p([0-9]{3})\.c5\Z")
+
 def audit(root):
     counts=Counter()
     seen=set()
     for part in (1,2,3):
         with zipfile.ZipFile(root/f"Pokedex3D_C56_Decoded_C5_Part_{part}_of_3.zip") as z:
-            for name in z.namelist():
-                if not name.startswith("decoded_c5/") or not name.endswith(".c5"):continue
-                mid=Path(name).stem
+            infos=z.infolist()
+            if len({entry.filename for entry in infos}) != len(infos):
+                raise ValueError("duplicate ZIP member name")
+            for entry in infos:
+                name=entry.filename
+                match=MODEL_MEMBER.fullmatch(name)
+                if match is None:
+                    raise ValueError("unexpected source C5 archive member")
+                mid=f"p{int(match.group(1)):03d}"
                 if mid in seen:raise ValueError("duplicate source model")
                 seen.add(mid)
                 rows=inspect(z.read(name))
