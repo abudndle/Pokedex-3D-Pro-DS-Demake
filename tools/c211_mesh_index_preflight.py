@@ -6,9 +6,16 @@ index bound check and never exposes private geometry in output.
 """
 import struct
 import zlib
+
+MAX_VERTEX_BYTES = 16 + 64 * 8 + 8192 * 6
+MAX_INDEX_BYTES = 10 + 64 * 6 + 1800 * 6
 from pathlib import Path
 
 def inspect_pair(vertex_path, index_path, model):
+    if Path(vertex_path).stat().st_size > MAX_VERTEX_BYTES:
+        raise ValueError("oversized vertex stream")
+    if Path(index_path).stat().st_size > MAX_INDEX_BYTES:
+        raise ValueError("oversized index stream")
     vx = Path(vertex_path).read_bytes()
     ix = Path(index_path).read_bytes()
     if len(vx) < 24 or vx[:4] != b"P3VX":
