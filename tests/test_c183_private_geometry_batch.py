@@ -86,6 +86,17 @@ class PrivateGeometryBatch(unittest.TestCase):
         self.assertFalse(report['original_c5_provenance_verified'])
         self.assertFalse(report['private_asset_emulator_verified'])
 
+    def test_reject_index_triangle_count_above_global_limit(self):
+        self.pair(14)
+        index = self.root / 'p014.p3ix'
+        index.write_bytes(struct.pack('<4sHHHHI', b'P3IX', 1, 14, 1, 7, 1801))
+        with unittest.mock.patch.object(mod.subprocess, 'run') as run:
+            report = mod.audit(self.root, self.probe, {14})
+        self.assertFalse(report['all_pairs_verified'])
+        self.assertEqual(report['native_pairs_verified'], 0)
+        self.assertEqual(report['models']['p014']['error'], 'ValueError')
+        run.assert_not_called()
+
     def test_multiple_valid_pairs_are_all_counted(self):
         self.pair(14)
         self.pair(15)
