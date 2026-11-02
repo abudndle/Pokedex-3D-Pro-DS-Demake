@@ -5,6 +5,7 @@ import stat
 import struct
 import tempfile
 import unittest
+import unittest.mock
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("c183", ROOT / "tools/c183_private_geometry_batch.py")
@@ -116,6 +117,13 @@ class PrivateGeometryBatch(unittest.TestCase):
         self.probe.chmod(0o600)
         with self.assertRaisesRegex(ValueError, 'not executable'):
             mod.audit(self.root, self.probe, {14})
+
+    def test_probe_must_be_readable(self):
+        self.pair(14)
+        self.probe.chmod(0o100)
+        with unittest.mock.patch.object(mod.os, 'access', side_effect=lambda path, mode: mode != mod.os.R_OK):
+            with self.assertRaisesRegex(ValueError, 'not readable'):
+                mod.audit(self.root, self.probe, {14})
 
     def test_reject_symlinked_root(self):
         alias = pathlib.Path(self.temp.name) / 'alias'

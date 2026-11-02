@@ -87,6 +87,8 @@ def audit(root, probe, roster=None):
         raise ValueError("native draw probe missing")
     if not os.access(probe, os.X_OK):
         raise ValueError("native draw probe not executable")
+    if not os.access(probe, os.R_OK):
+        raise ValueError("native draw probe not readable")
     unexpected = []
     for path in root.iterdir():
         match = MODEL_NAME.fullmatch(path.name)
