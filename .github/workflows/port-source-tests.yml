@@ -25,6 +25,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: C260 native P3SV/P3RV cross-process save and torn-slot recovery (host only)
+        run: sh tests/run_c260_save_process_resume.sh
+
       - name: C235 deterministic DeSmuME frame gate (synthetic XWD only)
         run: python3 -m unittest discover -s tests -p 'test_c235_emulator_frame_gate.py' -v
       - name: C236 isolated SDL2 DeSmuME keypad config (synthetic)
