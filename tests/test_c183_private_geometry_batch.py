@@ -65,6 +65,10 @@ class PrivateGeometryBatch(unittest.TestCase):
         report = mod.audit(self.root, self.probe, {14})
         self.assertEqual(report["models"]["p014"]["error"], "unsafe_pair")
 
+    def test_empty_roster_is_invalid(self):
+        with self.assertRaises(ValueError):
+            mod.audit(self.root, self.probe, set())
+
     def test_private_path_guard(self):
         with self.assertRaisesRegex(ValueError, "outside public repository"):
             mod.outside_repo(ROOT / "nitrofs")
