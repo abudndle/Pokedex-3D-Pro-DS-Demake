@@ -32,6 +32,7 @@ def fixture(root):
               'original_species_resource_mapping_verified': False,
               'asset_integrated_emulator_verified': False,
               'original_game_release_ready': False,
+              'original_renderer_vertex_material_skinning_verified': False,
               'species_slots': 1, 'unique_models': 1,
               'models': {'p200': {'vertices': 3, 'triangles': 1,
                        'native_gl_probe_passed': True,
@@ -64,13 +65,14 @@ class C272PrivateRomBuildTests(unittest.TestCase):
             self.assertFalse((root / 'result').exists())
 
     def test_reject_report_hash_and_forged_original_claim(self):
-        for mutation in ('hash', 'claim', 'probe'):
+        for mutation in ('hash', 'claim', 'renderer', 'probe'):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp); stage = fixture(root)
                 path = stage / 'C249_PRIVATE_DIAGNOSTIC_REPORT.json'
                 data = json.loads(path.read_text())
                 if mutation == 'hash': data['models']['p200']['p3ix_sha256'] = '0' * 64
                 if mutation == 'claim': data['original_game_release_ready'] = True
+                if mutation == 'renderer': data['original_renderer_vertex_material_skinning_verified'] = True
                 if mutation == 'probe': data['models']['p200']['native_gl_probe_passed'] = False
                 path.write_text(json.dumps(data))
                 with self.assertRaises(ValueError):
