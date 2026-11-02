@@ -87,6 +87,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c245_private_ordered_geometry_pair.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c247_private_global_xyz_candidate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c248_geometry_only_nitrofs_gate.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c249_private_geometry_nitrofs.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c150_private_asset_integrity.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c154_native_chunk_probe.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
