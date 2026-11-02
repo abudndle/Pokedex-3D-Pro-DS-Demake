@@ -94,6 +94,13 @@ jobs:
           xdotool keyup Right
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-right.xwd
+          # Diagnostic only: a second A on Dex toggles Favorite, proving
+          # whether the emulator loop accepts *any* later keypad event.
+          xdotool keydown x
+          sleep 0.4
+          xdotool keyup x
+          sleep 2
+          xwd -id "$window_id" -silent -out emulator-after-second-a.xwd
           xdotool keydown z
           sleep 0.5
           xwd -id "$window_id" -silent -out emulator-during-back.xwd
@@ -170,6 +177,7 @@ jobs:
             emulator-home.xwd
             emulator-dex.xwd
             emulator-after-right.xwd
+            emulator-after-second-a.xwd
             emulator-after-back.xwd
             emulator-during-back.xwd
             emulator-windows.txt
