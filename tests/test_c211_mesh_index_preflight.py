@@ -39,6 +39,22 @@ class MeshPreflightTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "degenerate"):
                 mod.inspect_pair(vp, ip, 14)
 
+    def test_oversized_vertex_file_rejected_before_read(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vp, ip = self.pair(tmp)
+            with vp.open("ab") as file:
+                file.truncate(mod.MAX_VERTEX_BYTES + 1)
+            with self.assertRaisesRegex(ValueError, "oversized vertex"):
+                mod.inspect_pair(vp, ip, 14)
+
+    def test_oversized_index_file_rejected_before_read(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vp, ip = self.pair(tmp)
+            with ip.open("ab") as file:
+                file.truncate(mod.MAX_INDEX_BYTES + 1)
+            with self.assertRaisesRegex(ValueError, "oversized index"):
+                mod.inspect_pair(vp, ip, 14)
+
     def test_corrupted_vertex_crc(self):
         with tempfile.TemporaryDirectory() as tmp:
             vp, ip = self.pair(tmp)
