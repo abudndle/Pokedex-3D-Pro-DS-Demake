@@ -29,6 +29,10 @@ class GeometryOnlyNitroFsTests(unittest.TestCase):
         self.assertIn('if(previewStreamHasModel())previewStreamDraw();', SOURCE)
         self.assertIn('source_geometry_ready=0;', SOURCE)
 
+    def test_geometry_only_ui_reports_native_triangle_count_not_empty_legacy_stream(self):
+        self.assertIn('source_geometry_ready ? (unsigned long)source_geometry_pair.triangles', SOURCE)
+        self.assertIn('Native geometry: untextured candidate', SOURCE)
+
     def test_native_loader_does_not_claim_verified_original_renderer(self):
         self.assertIn('CRC/bounds prove transport, NOT original 3DS renderer provenance.', SOURCE)
 
