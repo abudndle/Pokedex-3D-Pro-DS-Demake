@@ -94,6 +94,9 @@ jobs:
       - name: Verify C151 exact source track owner-to-native P3SK binding
         run: python3 -m unittest discover -s tests -p 'test_c151_source_track_bindings.py' -v
 
+      - name: C222 verify private 730-model C5-to-P3SK track audit (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c222_private_track_binding_audit.py' -v
+
       - name: Verify C151 private original owner packer synthetic contracts
         run: python3 -m unittest discover -s tests -p 'test_c151_private_packer.py' -v
 
