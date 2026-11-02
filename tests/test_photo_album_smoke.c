@@ -1,8 +1,15 @@
+#ifndef __NDS__
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "photo_album.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#ifndef __NDS__
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 int main(int argc,char **argv){
  P3DPhotoAlbum a={0};char names[8][32];size_t total=0;char path[400];FILE *f;
  if(argc!=2)return 2;
@@ -16,6 +23,15 @@ int main(int argc,char **argv){
  assert(p3dPhotoAlbumPage(&a,names,2,SIZE_MAX,&total)==0&&total==9);
  assert(p3dPhotoAlbumPage(&a,names,2,SIZE_MAX-1,&total)==0&&total==9);
  assert(p3dPhotoAlbumPage(&a,names,0,0,&total)==0&&total==9);
+#ifndef __NDS__
+ /* Host symlink/dir entries must not be counted or removed as saved photos.
+  * Real FAT does not expose POSIX symlinks, but can contain directories. */
+ snprintf(path,sizeof(path),"%s/AR_0010.png",argv[1]);assert(mkdir(path,0700)==0);
+ assert(!p3dPhotoAlbumDelete(&a,"AR_0010.png"));
+ snprintf(path,sizeof(path),"%s/AR_0011.png",argv[1]);assert(symlink("AR_0001.png",path)==0);
+ assert(!p3dPhotoAlbumDelete(&a,"AR_0011.png"));
+ assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==9);
+#endif
  assert(!p3dPhotoAlbumDelete(&a,"../bad.png"));
  assert(p3dPhotoAlbumDelete(&a,"AR_0002.png"));
  assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==8);
@@ -30,5 +46,5 @@ int main(int argc,char **argv){
  assert(!a.folder[0]);
  assert(p3dPhotoAlbumOpen(&a,argv[1]));
  assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==8);
- puts("C267 fail-closed SD Album path and bounded pagination: PASS");return 0;
+ puts("C269 reject non-file and symlinked SD Album entries: PASS");return 0;
 }
