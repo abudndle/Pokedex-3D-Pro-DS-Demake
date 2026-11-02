@@ -29,6 +29,13 @@ class C282Tests(unittest.TestCase):
                 source, p3px = fixture(decode)
                 self.assertIn(name, candidate_matches(source, 8, 8, p3px))
 
+    def test_stdlib_fallback_without_numpy(self):
+        from unittest.mock import patch
+        source, p3px = fixture(CANDIDATES["RGB565_R_HIGH"], 16, 8)
+        with patch.dict(sys.modules, {"numpy": None}):
+            self.assertEqual(candidate_matches(source, 16, 8, p3px),
+                             ("RGB565_R_HIGH",))
+
     def test_two_tile_morton_and_vertical_flip(self):
         source, p3px = fixture(CANDIDATES["RGB565_R_HIGH"], 16, 8)
         self.assertEqual(candidate_matches(source, 16, 8, p3px), ("RGB565_R_HIGH",))
