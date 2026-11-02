@@ -70,6 +70,7 @@ jobs:
           name: c253-melonds-asset-free-boot-evidence
           path: |
             c253-melonds-boot.xwd
+            c253-melonds-dex.xwd
             c253-melonds-windows.txt
           retention-days: 3
           if-no-files-found: ignore
