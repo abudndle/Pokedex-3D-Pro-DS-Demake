@@ -24,13 +24,14 @@ class TestC236Keymap(unittest.TestCase):
     def test_distinct_bindings(self):
         self.assertEqual(len(set(KEYS.values())), len(KEYS))
 
-    def test_sdl2_directional_scancodes(self):
+    def test_printable_directional_keycodes(self):
         self.assertEqual([KEYS[k] for k in ("Right", "Left", "Up", "Down")],
-                         [SDL_SCANCODE_MASK | i for i in (79, 80, 82, 81)])
+                         [ord(c) for c in "dfik"])
+        self.assertNotEqual(KEYS["Right"], SDL_SCANCODE_MASK | 79)
         self.assertNotEqual(KEYS["Right"], 275)  # SDL 1.2, not SDL2
 
     def test_a_b_are_upstream_cli_defaults(self):
-        self.assertEqual((KEYS["A"], KEYS["B"]), (120, 122))
+        self.assertEqual((KEYS["A"], KEYS["B"]), (120, 98))
 
     def test_writes_private_glib_keyfile(self):
         path = write_config(self.root)
