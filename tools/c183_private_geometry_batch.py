@@ -65,7 +65,8 @@ def index_triangle_count(path, model):
 
 
 def audit(root, probe, roster=None):
-    if Path(root).expanduser().is_symlink():
+    candidate = Path(root).expanduser().absolute()
+    if any(p.is_symlink() for p in (candidate, *candidate.parents)):
         raise ValueError("private geometry directory symlink rejected")
     root = outside_repo(root)
     if not root.is_dir():
