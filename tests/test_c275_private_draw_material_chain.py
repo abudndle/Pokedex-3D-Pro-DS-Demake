@@ -11,13 +11,16 @@ import zipfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "tests"))
-from c275_private_draw_material_chain import join, audit, write_private_report
+from c275_private_draw_material_chain import join, audit, write_private_report, c75_from_source
 from test_c88_original_material_references import sample
 
 
 def fixture(material=0, mode=0x0c02, faces=1):
     original, tex = sample()
     b = bytearray(original + bytes(200))
+    # Real C5 stores source texture-name offsets at +8 in each 28-byte row.
+    struct.pack_into("<I", b, 136 + 8, 70)
+    struct.pack_into("<I", b, 136 + 28 + 8, 77)
     # Original material/shader/name tables remain unchanged. Add an
     # independently indexed draw/mesh table at the end of this synthetic C5.
     struct.pack_into("<2H", b, 0x14, 1, 1)
@@ -80,7 +83,7 @@ class C275Tests(unittest.TestCase):
         tex[0]["original_name_absolute_offset"] = "471"
         with self.assertRaisesRegex(ValueError, "pointer"):
             join("p200", raw, tex)
-        with self.assertRaisesRegex(ValueError, "roster required"):
+        with self.assertRaisesRegex(ValueError, "C75 inventory disagrees"):
             join("p200", raw, [])
 
     def test_invalid_roster_and_bad_material_shader_rejected(self):
@@ -93,12 +96,22 @@ class C275Tests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "shader reference"):
             join("p200", bytes(b), tex)
 
+    def test_c75_is_derived_directly_from_original_source_table(self):
+        raw, tex = fixture()
+        self.assertEqual(c75_from_source(raw), tex)
+        self.assertEqual(join("p200", raw)["source_texture_count"], 2)
+        damaged = bytearray(raw)
+        struct.pack_into("<I", damaged, 136 + 8, 0x7fffffff)
+        with self.assertRaisesRegex(ValueError, "pointer outside"):
+            join("p200", bytes(damaged))
+
     def test_private_batch_and_full_roster_gate(self):
         raw, tex = fixture()
         with tempfile.TemporaryDirectory() as directory:
             folder = pathlib.Path(directory)
             c75 = archives(folder, raw, tex)
             result = audit(folder, c75)
+            self.assertEqual(audit(folder)["summary"]["source_draw_material_links"], 1)
             self.assertEqual(result["summary"]["original_models_checked"], 1)
             self.assertEqual(result["summary"]["source_draw_material_links"], 1)
             self.assertEqual(result["summary"]["source_draw_texture_reference_slots"], 2)
