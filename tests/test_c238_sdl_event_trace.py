@@ -51,8 +51,8 @@ extern int g_key_file_has_group(void *, const char *);
 int main(void) {
     unsigned char event[56] = {0};
     int load = g_key_file_load_from_file(0,"isolated",0,0);
-    int group = g_key_file_has_group(0,"SDLKEYS");
-    int key = g_key_file_get_integer(0,"SDLKEYS","B",0);
+    int group = g_key_file_has_group(0,"KEYS");
+    int key = g_key_file_get_integer(0,"KEYS","B",0);
     int ret = SDL_PollEvent(event);
     int32_t sym = 0;
     __builtin_memcpy(&sym, event+20, 4);
@@ -75,8 +75,8 @@ int main(void) {
                                   text=True, check=True)
             self.assertIn("load=1 group=1 key=98 ret=1 sym=100", proc.stdout)
             self.assertIn("C238 GLib config_loaded=1", proc.stderr)
-            self.assertIn("C238 GLib has_group=SDLKEYS result=1", proc.stderr)
-            self.assertIn("C238 GLib SDLKEYS B=98", proc.stderr)
+            self.assertIn("C238 GLib has_group=KEYS result=1", proc.stderr)
+            self.assertIn("C238 GLib KEYS B=98", proc.stderr)
             self.assertIn("C238 SDL event=down scancode=7 sym=100", proc.stderr)
             env.pop("P3D_C238_TRACE")
             proc = subprocess.run([str(main)], env=env, capture_output=True,
