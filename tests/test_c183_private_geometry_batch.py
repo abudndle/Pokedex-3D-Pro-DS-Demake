@@ -50,6 +50,14 @@ class PrivateGeometryBatch(unittest.TestCase):
         report = mod.audit(self.root, self.probe, {14})
         self.assertFalse(report["all_pairs_verified"])
 
+    def test_native_probe_launch_oserror_is_not_success(self):
+        self.pair(14)
+        with unittest.mock.patch.object(mod.subprocess, 'run', side_effect=OSError('synthetic launch failure')):
+            report = mod.audit(self.root, self.probe, {14})
+        self.assertFalse(report['all_pairs_verified'])
+        self.assertEqual(report['native_pairs_verified'], 0)
+        self.assertEqual(report['models']['p014']['error'], 'OSError')
+
     def test_native_probe_timeout_is_not_success(self):
         self.pair(14)
         with unittest.mock.patch.object(mod.subprocess, 'run', side_effect=mod.subprocess.TimeoutExpired(cmd=['probe'], timeout=15)):
