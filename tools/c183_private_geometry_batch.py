@@ -57,6 +57,9 @@ def index_triangle_count(path, model):
         size = count * 6
         if size > len(data) - pos:
             raise ValueError("truncated index triangles")
+        for offset in range(pos, pos + size, 2):
+            if struct.unpack_from('<H', data, offset)[0] >= 8192:
+                raise ValueError('index exceeds native vertex capacity')
         pos += size
         triangles += count
     if pos != len(data):
