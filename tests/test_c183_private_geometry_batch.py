@@ -71,6 +71,21 @@ class PrivateGeometryBatch(unittest.TestCase):
         self.assertIs(run.call_args.kwargs['stderr'], mod.subprocess.DEVNULL)
         self.assertFalse(run.call_args.kwargs['check'])
 
+    def test_partial_native_probe_failure_preserves_successful_pair(self):
+        self.pair(14)
+        self.pair(15)
+        outcomes = [unittest.mock.Mock(returncode=0), unittest.mock.Mock(returncode=3)]
+        with unittest.mock.patch.object(mod.subprocess, 'run', side_effect=outcomes) as run:
+            report = mod.audit(self.root, self.probe, {15, 14})
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(report['expected'], 2)
+        self.assertEqual(report['native_pairs_verified'], 1)
+        self.assertFalse(report['all_pairs_verified'])
+        self.assertTrue(report['models']['p014']['native_gl_path_verified'])
+        self.assertEqual(report['models']['p015']['error'], 'ValueError')
+        self.assertFalse(report['original_c5_provenance_verified'])
+        self.assertFalse(report['private_asset_emulator_verified'])
+
     def test_multiple_valid_pairs_are_all_counted(self):
         self.pair(14)
         self.pair(15)
