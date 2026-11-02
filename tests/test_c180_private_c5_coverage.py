@@ -27,6 +27,41 @@ class C180Coverage(unittest.TestCase):
         result=mod.inspect(self.fixture())
         self.assertEqual(result["primary"],1)
         self.assertFalse(result["vertex_semantics_verified"])
+    def test_original_0x26_marker_is_a_warning_not_corruption(self):
+        data = self.fixture()
+        struct.pack_into("<I", data, 0x78 + 16, 0x26)
+        result = mod.inspect(data)
+        self.assertEqual(result["structural_errors"], [])
+        self.assertEqual(result["primary_descriptor_0x26_flags"], 1)
+        self.assertFalse(result["vertex_semantics_verified"])
+        self.assertFalse(result["topology_verified"])
+
+    def test_unknown_or_misplaced_descriptor_flags_still_fail(self):
+        for value in (1, 0x25, 0x27, 0x2600, 0xffffffff):
+            with self.subTest(flag=value):
+                data = self.fixture()
+                struct.pack_into("<I", data, 0x78 + 16, value)
+                self.assertTrue(mod.inspect(data)["structural_errors"])
+        data = self.fixture()
+        struct.pack_into("<I", data, 0x78 + 4, 0x26)
+        self.assertTrue(mod.inspect(data)["structural_errors"])
+
+    def test_730_synthetic_models_accept_only_seven_expected_warnings(self):
+        members = []
+        for model in sorted(mod.EXPECTED):
+            data = self.fixture()
+            if model in (76, 77, 145, 377, 391, 663, 729):
+                struct.pack_into("<I", data, 0x78 + 16, 0x26)
+            members.append((f"decoded_c5/p{model:03d}.c5", data))
+        result = mod.audit([self.archive(members)])
+        self.assertEqual(result["present"], 730)
+        self.assertEqual(result["missing"], [])
+        self.assertEqual(result["structural_failures"], [])
+        self.assertTrue(result["all_structural_checks_passed"])
+        self.assertEqual(result["descriptor_0x26_warning_models"],
+                         [76, 77, 145, 377, 391, 663, 729])
+        self.assertFalse(result["topology_verified"])
+
     def test_reject_invalid_table_bounds(self):
         data=self.fixture()
         struct.pack_into("<I",data,0x40,0x80)
