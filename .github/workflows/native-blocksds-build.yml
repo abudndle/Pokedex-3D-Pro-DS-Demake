@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Compile asset-free native Nintendo DS ROM
-        run: make dev-rom
+        run: make dev-rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
       - name: Inspect generated ROM
         run: |
           test -s Pokedex3D_DS_BlocksDS.nds
@@ -98,7 +98,9 @@ jobs:
           # Distinguish a frozen game loop from an unmapped B key:
           # Right should browse from Pokémon #001 to #002 on this page.
           xdotool keydown d
-          sleep 0.4
+          sleep 0.25
+          xwd -id "$window_id" -silent -out emulator-during-right.xwd
+          sleep 0.25
           xdotool keyup d
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-right.xwd
@@ -194,6 +196,7 @@ jobs:
             emulator-home.xwd
             emulator-dex.xwd
             emulator-after-right.xwd
+            emulator-during-right.xwd
             emulator-after-second-a.xwd
             emulator-after-back.xwd
             emulator-during-back.xwd
