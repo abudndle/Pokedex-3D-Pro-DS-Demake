@@ -110,7 +110,7 @@ jobs:
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
           # C235 diagnostic: inspect alternate X11 keysyms on the still-open
           # Dex page, without treating any candidate as verified mapping.
-          for candidate in KP_Right d l z c v b; do
+          for candidate in KP_Right d l z c v b s; do
             xdotool keydown "$candidate"
             sleep 0.25
             xdotool keyup "$candidate"
