@@ -12,24 +12,35 @@ static int valid_name(const char *s){
 }
 int p3dPhotoAlbumOpen(P3DPhotoAlbum *a,const char *folder){
  char parent[P3D_PHOTO_PATH_MAX],*slash;size_t n;
- if(!a||!folder||(n=strlen(folder))==0||n>=sizeof(a->folder))return 0;
- memcpy(parent,folder,n+1);slash=strrchr(parent,'/');
+ if(!a)return 0;
+ /* Copy first, so a caller may safely reopen using its own folder field.
+  * A failed mount/path must never leave the previous SD folder deletable. */
+ if(!folder||(n=strlen(folder))==0||n>=sizeof(a->folder)){
+   a->folder[0]=0;return 0;
+ }
+ memcpy(parent,folder,n+1);
+ a->folder[0]=0;
+ slash=strrchr(parent,'/');
  if(!slash||slash==parent||!slash[1])return 0;
- *slash=0;if(!ensure_dir(parent)||!ensure_dir(folder))return 0;
- memcpy(a->folder,folder,n+1);return 1;
+ *slash=0;
+ if(!ensure_dir(parent))return 0;
+ *slash='/';
+ if(!ensure_dir(parent))return 0;
+ memcpy(a->folder,parent,n+1);return 1;
 }
 size_t p3dPhotoAlbumPage(const P3DPhotoAlbum *a,char names[][32],size_t limit,size_t offset,size_t *total){
  DIR *d;struct dirent *e;size_t count=0,filled=0;
  if(total)*total=0;
+ /* Bound the output to the actual seven visible DS album slots. */
+ if(limit>P3D_ALBUM_PAGE_MAX)limit=P3D_ALBUM_PAGE_MAX;
  if(!a||!a->folder[0]||(limit&&!names)||(d=opendir(a->folder))==NULL)return 0;
- /* Preserve only the newest (lexicographically greatest) page without storing all files. */
  while((e=readdir(d))!=NULL)if(valid_name(e->d_name))count++;
  if(total)*total=count;
- rewinddir(d);
- /* The album is capped at 9999 names. This scan makes selection deterministic,
-    without allocating or sorting a complete directory in DS RAM. */
+ if(!limit||offset>=count){closedir(d);return 0;}
+ /* Avoid offset+limit wraparound when an invalid save supplies SIZE_MAX. */
+ size_t end=limit>count-offset?count:offset+limit;
  char prev[32]="AR_9999.png";
- for(size_t index=0;index<offset+limit&&index<count;index++){
+ for(size_t index=0;index<end;index++){
   char best[32]="";
   rewinddir(d);
   while((e=readdir(d))!=NULL){
