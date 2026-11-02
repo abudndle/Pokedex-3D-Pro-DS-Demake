@@ -95,7 +95,8 @@ def verify_model(model_id, raw, indexed, p3tm_bytes=None):
         records.append({"index": index, **entry, "c73_sha_anchor": anchored,
                         "p3tm_metadata_corrob": corroborated,
                         "status": "C73_SOURCE_SHA_VERIFIED" if anchored else "HEADER_BASE_CANDIDATE_NOT_IN_C73"})
-    return {"model_id": model_id, "records": records}
+    return {"model_id": model_id, "source_c5_sha256": hashlib.sha256(raw).hexdigest(),
+            "records": records}
 
 
 def audit(private_root, c73_csv, require_full=False, catalog_zip=None):
