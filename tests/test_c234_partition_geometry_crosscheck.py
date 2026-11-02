@@ -38,19 +38,16 @@ class C234PartitionTests(unittest.TestCase):
         vertices, groups = parse_partitioned_obj(OBJ)
         swapped = [MESHES[1], MESHES[0]]
         self.assertTrue(verify_geometric_mesh(
-            XYZ, TRI_A + TRI_B, XYZ, TRI_A + TRI_B
+            XYZ, TRI_B + TRI_A, XYZ, TRI_A + TRI_B
         )["geometric_face_equivalence_verified"])
         with self.assertRaisesRegex(ValueError, "mesh partition 0"):
             verify_partitioned_meshes(swapped, vertices, groups)
 
     def test_seams_and_reversed_winding_within_partition(self):
-        vertices, groups = parse_partitioned_obj(OBJ)
         quad_obj = ("v 0 0 0\nv 1 0 0\nv 1 1 0\nv 0 1 0\n"
-                    "g quad\nf 1 2 3\nf 1 3 4\n"
-                    "g other\nf 1 3 4\n")
+                    "g quad\nf 1 2 3\nf 1 3 4\n")
         seam = [{"vertices": XYZ + [XYZ[0]],
-                 "triangles": [[0, 1, 2], [4, 2, 3]]},
-                {"vertices": XYZ, "triangles": [[3, 2, 0]]}]
+                 "triangles": [[2, 1, 0], [3, 2, 4]]}]
         quad_xyz, quad_groups = parse_partitioned_obj(quad_obj)
         report = verify_partitioned_meshes(seam, quad_xyz, quad_groups)
         self.assertEqual(report["source_seam_duplicate_vertices"], 1)
