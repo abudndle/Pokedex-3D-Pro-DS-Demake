@@ -27,6 +27,8 @@ jobs:
         run: sh tests/run_source_smoke.sh
       - name: C235 deterministic DeSmuME frame gate (synthetic XWD only)
         run: python3 -m unittest discover -s tests -p 'test_c235_emulator_frame_gate.py' -v
+      - name: C236 isolated SDL2 DeSmuME keypad config (synthetic)
+        run: python3 -m unittest discover -s tests -p 'test_c236_desmume_keymap.py' -v
 
       - name: Verify bounded private C5 ZIP audit and report isolation
         run: python3 -m unittest discover -s tests -p 'test_c180_private_c5_coverage.py' -v
