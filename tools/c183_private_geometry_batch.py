@@ -51,7 +51,7 @@ def index_triangle_count(path, model):
             raise ValueError("truncated index mesh")
         mesh, count = struct.unpack_from("<HI", data, pos)
         pos += 6
-        if mesh <= previous or not count or count > 1800 - triangles:
+        if mesh <= previous or mesh >= 64 or not count or count > 1800 - triangles:
             raise ValueError("invalid index mesh or triangle count")
         previous = mesh
         size = count * 6
