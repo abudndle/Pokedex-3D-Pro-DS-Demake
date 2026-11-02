@@ -4,6 +4,19 @@
 #include "source_track_bindings.h"
 static P3DOriginalSkeleton rig;
 static P3DSourceTrackBindings binding;
+static void poison_binding(void){
+    binding.model_id=0xffffu;binding.count=0xffffu;binding.ready=1;
+    for(unsigned i=0;i<P3D_SKELETON_MAX_NODES;i++){
+        binding.node[i]=0xffffu;
+        binding.source_first_track[i]=0xffffffffu;
+    }
+}
+static int binding_is_clear(void){
+    if(binding.model_id||binding.count||binding.ready)return 0;
+    for(unsigned i=0;i<P3D_SKELETON_MAX_NODES;i++)
+        if(binding.node[i]||binding.source_first_track[i])return 0;
+    return 1;
+}
 int main(int argc,char **argv){
     if(argc!=5){fprintf(stderr,"usage: %s P3SK P3TB MODEL EXPECT_OK\n",argv[0]);return 2;}
     unsigned model=(unsigned)strtoul(argv[3],NULL,10);
@@ -20,14 +33,15 @@ int main(int argc,char **argv){
         char missing[1024];
         int n=snprintf(missing,sizeof(missing),"%s.missing",argv[2]);
         if(n<0||(unsigned)n>=sizeof(missing))return 6;
+        poison_binding();
         if(p3dSourceTrackBindingsLoad(&binding,&rig,missing,model))return 7;
-        if(binding.ready||binding.count||binding.model_id||
-           binding.node[0]||binding.source_first_track[0])return 8;
-        /* Reload, then a failed model switch must also clear all state. */
+        if(!binding_is_clear())return 8;
+        /* Reload, poison the full capacity, then fail a model switch. */
         if(!p3dSourceTrackBindingsLoad(&binding,&rig,argv[2],model))return 9;
+        poison_binding();
         if(p3dSourceTrackBindingsLoad(&binding,&rig,argv[2],model+1))return 10;
-        if(binding.ready||binding.count||binding.model_id||
-           binding.node[0]||binding.source_first_track[0])return 11;
+        if(!binding_is_clear())return 11;
+        if(p3dSourceTrackBindingsLoad(NULL,&rig,argv[2],model))return 12;
     }
     puts("C151 original source track-owner binding: PASS");
     return 0;
