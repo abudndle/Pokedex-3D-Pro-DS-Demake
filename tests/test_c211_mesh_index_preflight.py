@@ -82,7 +82,7 @@ class MeshPreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             vp, ip = self.pair(tmp)
             raw = bytearray(ip.read_bytes())
-            struct.pack_into("<H", raw, 16, 1)
+            struct.pack_into("<H", raw, 10, 1)
             ip.write_bytes(raw)
             with self.assertRaisesRegex(ValueError, "invalid index mesh"):
                 mod.inspect_pair(vp, ip, 14)
