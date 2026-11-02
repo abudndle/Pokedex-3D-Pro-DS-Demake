@@ -105,6 +105,12 @@ class PrivateGeometryBatch(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'probe symlink'):
             mod.audit(self.root, alias, {14})
 
+    def test_reject_symlinked_probe_parent(self):
+        alias = pathlib.Path(self.temp.name) / 'probe-parent-alias'
+        alias.symlink_to(pathlib.Path(self.temp.name), target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'probe symlink'):
+            mod.audit(self.root, alias / 'probe', {14})
+
     def test_probe_must_be_executable(self):
         self.pair(14)
         self.probe.chmod(0o600)
