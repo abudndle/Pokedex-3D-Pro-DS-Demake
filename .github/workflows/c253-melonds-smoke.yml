@@ -56,7 +56,7 @@ jobs:
       - name: Install independent emulator virtual display dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb x11-apps x11-utils xdotool
+          sudo apt-get install -y xvfb x11-apps x11-utils xdotool libegl1 libgl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-xinerama0
       - name: Attempt genuine melonDS 1.1 ROM boot and capture
         shell: bash
         run: |
