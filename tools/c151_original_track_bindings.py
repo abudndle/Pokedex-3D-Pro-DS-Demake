@@ -162,12 +162,12 @@ def main():
     parser.add_argument('--private-bindings-zip',type=Path,required=True)
     parser.add_argument('--report',type=Path,required=True)
     args=parser.parse_args()
-    if args.report.exists():
-        parser.error('refuse to overwrite original private report')
     result=audit(args.parts,args.decoder_bundle,args.c147_summary,
                  args.private_skeleton_zip,args.private_bindings_zip)
-    args.report.parent.mkdir(parents=True,exist_ok=True)
-    args.report.write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
+    try:
+        write_private_report(args.report,result)
+    except (OSError,ValueError) as exc:
+        parser.error(str(exc))
     print(json.dumps(result,indent=2))
 
 if __name__=='__main__':main()
