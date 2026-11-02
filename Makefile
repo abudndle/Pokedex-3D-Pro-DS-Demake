@@ -74,6 +74,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c148_c5_skeleton_hierarchy.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c149_original_skeleton_loader.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c150_skeleton_node_binding.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c222_private_track_binding_audit.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c151_source_track_bindings.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c151_private_packer.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c150_private_asset_integrity.py' -v
