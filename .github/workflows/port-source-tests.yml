@@ -182,6 +182,12 @@ jobs:
       - name: Validate bounded model material ranges
         run: sh tests/run_model_materials.sh
 
+      - name: C231 verify filtered original-text Search selection safety
+        run: sh tests/run_c82_dex_search.sh
+
+      - name: C231 verify all rendered Search touchscreen hitboxes
+        run: sh tests/run_c83_search_touch.sh
+
       - name: C230 Pokédex animation pause/resume/restart and render gating
         run: sh tests/run_c230_playback_controls.sh
 
