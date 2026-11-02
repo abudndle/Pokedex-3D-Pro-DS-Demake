@@ -55,6 +55,21 @@ class AlbumFatGate(unittest.TestCase):
         self.folder.symlink_to(self.root, target_is_directory=True)
         with self.assertRaises(ValueError): check(self.root, self.all)
 
+    def test_symlinked_parent(self):
+        import shutil
+        parent = self.folder.parent
+        shutil.move(str(parent), str(self.root / 'real_parent'))
+        parent.symlink_to(self.root / 'real_parent', target_is_directory=True)
+        with self.assertRaises(ValueError): check(self.root, self.all)
+
+    def test_symlinked_export_root(self):
+        import shutil
+        real = self.root.parent / (self.root.name + '_real')
+        shutil.move(str(self.root), str(real))
+        self.root.symlink_to(real, target_is_directory=True)
+        self.addCleanup(lambda: (self.root.unlink(missing_ok=True), shutil.move(str(real), str(self.root))))
+        with self.assertRaises(ValueError): check(self.root, self.all)
+
     def test_irrelevant_files_ignored(self):
         (self.folder / 'README.txt').write_text('synthetic')
         self.assertEqual(check(self.root, self.all)['photos'], 9)
