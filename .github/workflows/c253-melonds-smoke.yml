@@ -1,0 +1,76 @@
+name: C253 independent melonDS 1.1 asset-free ROM smoke
+on:
+  push:
+    paths:
+      - 'source/**'
+      - 'tests/c253_*'
+      - 'tests/test_c253_*'
+      - 'tests/run_c253_*'
+      - 'Makefile.native'
+      - '.github/workflows/c253-melonds-smoke.yml'
+  pull_request:
+    paths:
+      - 'source/**'
+      - 'tests/c253_*'
+      - 'tests/test_c253_*'
+      - 'tests/run_c253_*'
+      - 'Makefile.native'
+      - '.github/workflows/c253-melonds-smoke.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: c253-melonds-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  melonds-ds-boot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject malformed or blank synthetic XWD frames
+        run: python3 -m unittest discover -s tests -p 'test_c253_melonds_frame_gate.py' -v
+      - name: Compile actual asset-free BlocksDS ROM without original game assets
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work \
+            skylyrac/blocksds:slim-latest \
+            make dev-rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
+          python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
+      - name: Download and SHA-pin official melonDS 1.1 AppImage
+        shell: bash
+        run: |
+          set -euo pipefail
+          temp="$(mktemp -d)"
+          echo "C253_MELONDS_ROOT=$temp" >> "$GITHUB_ENV"
+          curl -fL --retry 3 --connect-timeout 20 \
+            'https://github.com/melonDS-emu/melonDS/releases/download/1.1/melonDS-1.1-appimage-x86_64.zip' \
+            -o "$temp/melonds.zip"
+          printf '%s  %s\n' 'bf377420a2e95f2cd2cdda17d5372b51c2534f858b038db9ec6d129554875124' "$temp/melonds.zip" | sha256sum -c -
+          unzip -q "$temp/melonds.zip" -d "$temp"
+          app="$(find "$temp" -maxdepth 3 -type f -name '*.AppImage' -print -quit)"
+          test -n "$app"
+          chmod +x "$app"
+          (cd "$temp" && "$app" --appimage-extract >/dev/null)
+          test -x "$temp/squashfs-root/AppRun"
+          echo "C253_APP_RUN=$temp/squashfs-root/AppRun" >> "$GITHUB_ENV"
+      - name: Install independent emulator virtual display dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11-apps x11-utils xdotool libegl1 libgl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-xinerama0
+      - name: Attempt genuine melonDS 1.1 ROM boot and capture
+        shell: bash
+        run: |
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 70s \
+            bash tests/run_c253_melonds_smoke.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C253_APP_RUN"
+      - name: Keep only asset-free melonDS evidence, never the ROM
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c253-melonds-asset-free-boot-evidence
+          path: |
+            c253-melonds-boot.xwd
+            c253-melonds-dex.xwd
+            c253-melonds-windows.txt
+          retention-days: 3
+          if-no-files-found: ignore
