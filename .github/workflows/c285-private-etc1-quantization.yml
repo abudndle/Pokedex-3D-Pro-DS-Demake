@@ -1,0 +1,31 @@
+name: C285 private ETC1 5-bit expansion candidates (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c285-etc1-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-quantization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate ETC1 5-bit expansion, orientations and fail-closed inputs
+        run: |
+          python3 -m py_compile tools/c285_private_etc1_quantization.py
+          python3 -m unittest discover -s tests -p 'test_c285_private_etc1_quantization.py' -v
+          python3 -m unittest discover -s tests -p 'test_c284_private_etc1_orientation.py' -v
+          python3 -m unittest discover -s tests -p 'test_c283_private_low_bpp_candidates.py' -v
+      - name: Keep Nintendo original assets and reports outside public CI
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C285_PRIVATE_ETC1_5BIT_EXPANSION_CANDIDATES.json
