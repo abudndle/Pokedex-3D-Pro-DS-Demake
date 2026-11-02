@@ -8,12 +8,13 @@ from c171_verified_primitive_gate import SCHEMA
 
 
 def fixture(triangle_count=2):
-    source = bytearray(224)
+    source = bytearray(max(276, 264 + triangle_count * 3 * 2))
     source[:2] = bytes((0xc5, 0x78))
     struct.pack_into('<H', source, 0x10, 1)
-    struct.pack_into('<2I', source, 0x3c, 120, 140)
-    struct.pack_into('<5I', source, 120, 0, 0, 4, 0, 0)
-    struct.pack_into('<3I', source, 140, 200, 0, triangle_count * 3)
+    struct.pack_into('<HH', source, 0x14, 1, 1)
+    struct.pack_into('<3I', source, 0x3c, 120, 140, 152)
+    struct.pack_into('<5I', source, 120, 152, 0, 4 | (28 << 16), 0, 0)
+    struct.pack_into('<3I', source, 140, 264, 0, triangle_count * 3 | (2 << 16))
     manifest = {'schema': SCHEMA, 'source': 'original-c5',
                 'method': 'verified-original-primitive-order',
                 'verified_by': 'source-decoder-crosscheck', 'model': 'p000',
