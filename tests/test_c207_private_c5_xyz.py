@@ -2,6 +2,7 @@
 import importlib.util
 from pathlib import Path
 import struct
+import subprocess
 import tempfile
 import unittest
 import zlib
@@ -45,6 +46,23 @@ class SourceXyzTest(unittest.TestCase):
         self.assertEqual(struct.unpack_from('<I', p3vx, 12)[0], zlib.crc32(p3vx[16:]) & 0xffffffff)
         self.assertEqual(struct.unpack_from('<9h', p3vx, 24),
                          (1024, 0, -2048, 4096, 8192, 12288, -4096, 2048, 4096))
+
+    def test_native_c_decoder_accepts_output_and_rejects_bad_crc(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory)/'c207-probe'
+            source = Path(directory)/'p014.p3vx'
+            subprocess.run(['cc', '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+                            '-Isource', 'source/verified_vertex_stream.c',
+                            'tests/c207_native_vertex_probe.c', '-o', str(executable)],
+                           cwd=ROOT, check=True, capture_output=True, timeout=60)
+            source.write_bytes(mod.convert(fixture(self.v), obj(self.v), 14)[1])
+            self.assertEqual(subprocess.run([str(executable), str(source)],
+                                            check=False, timeout=15).returncode, 0)
+            damaged = bytearray(source.read_bytes())
+            damaged[-1] ^= 1
+            source.write_bytes(damaged)
+            self.assertNotEqual(subprocess.run([str(executable), str(source)],
+                                               check=False, timeout=15).returncode, 0)
 
     def test_mismatch_rejected(self):
         different = [(0.3, 0, -0.5)] + self.v[1:]
