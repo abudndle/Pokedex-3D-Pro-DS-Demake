@@ -38,7 +38,8 @@ class TestC236Keymap(unittest.TestCase):
         cfg = configparser.ConfigParser()
         cfg.optionxform = str
         self.assertEqual(cfg.read(path), [str(path)])
-        self.assertEqual({k: int(v) for k, v in cfg["SDLKEYS"].items()}, KEYS)
+        self.assertEqual({k: int(v) for k, v in cfg["KEYS"].items()}, KEYS)
+        self.assertNotIn("SDLKEYS", cfg.sections())
         self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
         self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode), 0o700)
 
