@@ -1,5 +1,6 @@
 """C278 synthetic-only P3TM, storage density and source provenance tests."""
 import pathlib
+import hashlib
 import struct
 import sys
 import tempfile
@@ -125,6 +126,17 @@ class C278IntegrationTests(unittest.TestCase):
         self.assertEqual(result["records"][1]["byte_density"], "NO_P3TM_METADATA")
         self.assertIsNone(result["records"][1]["opaque_source_format"])
         self.assertFalse(result["records"][1]["c73_source_sha_anchor"])
+
+    def test_independent_source_anchor_refutes_eof_tail_without_rejection(self):
+        from c278_private_texture_format_evidence import verify_model
+        raw, rows = self.source_fixture()
+        actual = (0, 16, hashlib.sha256(raw[:16]).hexdigest())
+        source_rows = [actual, rows[1]]
+        result = verify_model("p200", raw, self.original_catalog(source_rows), {0: actual})
+        self.assertTrue(result["records"][0]["c73_source_sha_anchor"])
+        self.assertFalse(result["records"][0]["c277_tail_matches_c73"])
+        self.assertFalse(result["records"][0]["p3tm_offset_matches_tail_candidate"])
+        self.assertFalse(result["records"][0]["p3tm_sha_matches_tail_candidate"])
 
     def test_anchor_rejects_wrong_p3tm_sha(self):
         from c278_private_texture_format_evidence import verify_model
