@@ -1,0 +1,29 @@
+name: C276 original source texture coverage (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c276-source-texture-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-texture-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify C276 original C5/C73 texture source SHA gate (synthetic only)
+        run: |
+          python3 -m py_compile tools/c276_private_source_texture_coverage.py
+          python3 -m unittest discover -s tests -p 'test_c276_private_source_texture_coverage.py' -v
+      - name: No private original texture bytes or reports in CI
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C276_PRIVATE_C5_C73_SOURCE_SHA_REPORT.json
