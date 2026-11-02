@@ -10,7 +10,7 @@ import unittest
 import zlib
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-from c272_private_rom_build import prepare
+from c272_private_rom_build import prepare, build
 
 
 def fixture(root):
@@ -108,6 +108,14 @@ class C272PrivateRomBuildTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 prepare(stage, output)
             self.assertEqual((output / 'marker').read_text(), 'keep')
+
+    def test_reject_shell_metacharacters_before_native_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); stage = fixture(root)
+            nitro = prepare(stage, root / 'result')
+            with self.assertRaisesRegex(ValueError, 'unsafe private NitroFS path'):
+                build(Path(str(nitro) + ';touch /tmp/should-not-run'), root / 'result')
+            self.assertFalse((root / 'result/work').exists())
 
 
 if __name__ == '__main__':
