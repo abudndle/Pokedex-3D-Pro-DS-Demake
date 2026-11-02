@@ -56,7 +56,7 @@ jobs:
           cat > /tmp/check_emulator.sh <<'SCRIPT'
           #!/usr/bin/env bash
           set -euo pipefail
-          # C236: DeSmuME reads SDLKEYS from XDG_CONFIG_HOME/desmume/config.
+          # C236: DeSmuME 0.9.13 reads [KEYS] from XDG_CONFIG_HOME/desmume/config.
           # Use explicit SDL2 keycodes in a fresh isolated config, never
           # runner/user defaults or the incompatible SDL1 arrow constants.
           export XDG_CONFIG_HOME="$(mktemp -d)"
@@ -64,7 +64,7 @@ jobs:
           echo "Installed DeSmuME package:"
           dpkg-query -W desmume
           # C238 draft-only diagnostic: trace the *actual* SDL2 event keysyms
-          # and GLib [SDLKEYS] lookup results without modifying game input.
+          # and GLib [KEYS] lookup results without modifying game input.
           cc -std=c11 -Wall -Wextra -Werror -fPIC -shared \
             tests/c238_sdl_event_trace.c -ldl -o /tmp/c238_sdl_event_trace.so
           strace -f -e trace=openat -o /tmp/desmume-open.log \
@@ -94,7 +94,7 @@ jobs:
           # C235: the native HOME's first highlighted entry is Pokédex.
           # Never send Down (which selects Move Dex) or a mouse click
           # (which can independently trigger a touchscreen menu action).
-          # C236 isolated SDLKEYS maps x=A, d=Right and b=B.
+          # C239 isolated [KEYS] maps x=A, d=Right and b=B.
           # No source/asset game code or user-visible DS keymap changes.
           xdotool keydown x
           sleep 0.5
