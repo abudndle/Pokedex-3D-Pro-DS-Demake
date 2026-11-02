@@ -68,6 +68,8 @@ def audit(root, probe, roster=None):
     root = outside_repo(root)
     if not root.is_dir():
         raise ValueError("private geometry directory missing")
+    if root.is_symlink():
+        raise ValueError("private geometry directory symlink rejected")
     roster = EXPECTED if roster is None else set(roster)
     if not roster:
         raise ValueError('empty roster')
