@@ -62,8 +62,8 @@ class PrivateGeometryBatch(unittest.TestCase):
         target.write_bytes(index.read_bytes())
         index.unlink()
         index.symlink_to(target)
-        report = mod.audit(self.root, self.probe, {14})
-        self.assertEqual(report["models"]["p014"]["error"], "unsafe_pair")
+        with self.assertRaisesRegex(ValueError, "unexpected"):
+            mod.audit(self.root, self.probe, {14})
 
     def test_empty_roster_is_invalid(self):
         with self.assertRaises(ValueError):
@@ -86,6 +86,11 @@ class PrivateGeometryBatch(unittest.TestCase):
         alias.symlink_to(self.root.parent, target_is_directory=True)
         with self.assertRaisesRegex(ValueError, 'symlink'):
             mod.audit(alias / 'pairs', self.probe, {14})
+
+    def test_reject_directory_disguised_as_pair(self):
+        (self.root / 'p014.p3vx').mkdir()
+        with self.assertRaisesRegex(ValueError, 'unexpected'):
+            mod.audit(self.root, self.probe, {14})
 
     def test_private_path_guard(self):
         with self.assertRaisesRegex(ValueError, "outside public repository"):
