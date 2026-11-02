@@ -10,6 +10,18 @@ export QT_QPA_PLATFORM=xcb
 export LIBGL_ALWAYS_SOFTWARE=1
 export SDL_VIDEODRIVER=x11
 export XDG_CONFIG_HOME="$(mktemp -d)"
+# C254: melonDS 1.1 uses Qt key codes, not SDL keycodes. Its fresh
+# [Instance0.Keyboard] table defaults to zero (unbound) for each button.
+# Source: melonDS 1.1 Config.cpp / EmuInstanceInput.cpp / main.cpp.
+# Only write this isolated CI config for the SHA-pinned official AppImage.
+mkdir -m 700 "$XDG_CONFIG_HOME/melonDS"
+cat > "$XDG_CONFIG_HOME/melonDS/melonDS.toml" <<'TOML'
+[Instance0.Keyboard]
+A = 88
+B = 90
+Right = 16777236
+TOML
+chmod 600 "$XDG_CONFIG_HOME/melonDS/melonDS.toml"
 temp="$(mktemp -d)"
 trap 'if [ -n "${pid:-}" ]; then kill "$pid" 2>/dev/null || true; fi; rm -rf "$temp" "$XDG_CONFIG_HOME"' EXIT
 "$app_run" "$rom" >"$temp/melonds.log" 2>&1 &
