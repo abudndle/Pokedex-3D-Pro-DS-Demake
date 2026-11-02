@@ -78,6 +78,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c151_source_track_bindings.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c151_private_packer.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c223_private_animation_report.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c227_private_topology_batch.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c150_private_asset_integrity.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c154_native_chunk_probe.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v
