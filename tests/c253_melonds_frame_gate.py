@@ -48,7 +48,39 @@ def inspect(path):
             "original_assets_verified": False}
 
 
+def compare_touch(home, dex):
+    a = inspect(home)
+    b = inspect(dex)
+    if (a["width"], a["height"]) != (b["width"], b["height"]):
+        raise ValueError("melonDS capture geometry changed")
+    def pixels(path):
+        data = Path(path).read_bytes()
+        h = struct.unpack_from(">25I", data)
+        offset = h[0] + h[19] * 12
+        return memoryview(data)[offset:offset + h[12] * h[5]], h[12], h[11] // 8
+    frame_a, row, stride = pixels(home)
+    frame_b, _, _ = pixels(dex)
+    width, height = a["width"], a["height"]
+    def delta(y0, y1):
+        return sum(
+            frame_a[y * row + x * stride:y * row + x * stride + 3] !=
+            frame_b[y * row + x * stride:y * row + x * stride + 3]
+            for y in range(y0, min(y1, height), 2)
+            for x in range(64, min(200, width), 2)
+        )
+    upper = delta(35, 175)
+    lower = delta(max(height // 2 + 40, 250), height - 12)
+    if upper < 30 or lower < 30:
+        raise ValueError(f"melonDS touch did not change both DS screens: {upper}/{lower}")
+    return {"upper_changed_samples": upper, "lower_changed_samples": lower,
+            "real_touch_frame_delta_verified": True,
+            "original_asset_rendering_verified": False,
+            "dsi_camera_verified": False}
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit("usage: c253_melonds_frame_gate.py CAPTURE.xwd")
+    if len(sys.argv) not in (2, 3):
+        raise SystemExit("usage: c253_melonds_frame_gate.py HOME.xwd [DEX.xwd]")
     print("C253 preliminary melonDS visual evidence:", inspect(sys.argv[1]))
+    if len(sys.argv) == 3:
+        print("C253 real touch dual-screen delta:", compare_touch(*sys.argv[1:]))
