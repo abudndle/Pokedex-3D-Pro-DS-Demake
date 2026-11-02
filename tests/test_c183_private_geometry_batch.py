@@ -116,6 +116,27 @@ class PrivateGeometryBatch(unittest.TestCase):
         self.assertFalse(report['all_pairs_verified'])
         run.assert_not_called()
 
+    def test_mesh_local_out_of_bounds_rejected_before_probe(self):
+        self.pair(14)
+        index = self.root / 'p014.p3ix'
+        index.write_bytes(struct.pack('<4sHHHHI3H', b'P3IX', 1, 14, 1, 7, 1, 0, 1, 3))
+        with unittest.mock.patch.object(mod.subprocess, 'run') as run:
+            report = mod.audit(self.root, self.probe, {14})
+        self.assertEqual(report['models']['p014']['error'], 'ValueError')
+        self.assertEqual(report['native_pairs_verified'], 0)
+        run.assert_not_called()
+
+    def test_corrupt_vertex_crc_rejected_before_probe(self):
+        self.pair(14)
+        vertex = self.root / 'p014.p3vx'
+        data = bytearray(vertex.read_bytes())
+        data[-1] ^= 1
+        vertex.write_bytes(data)
+        with unittest.mock.patch.object(mod.subprocess, 'run') as run:
+            report = mod.audit(self.root, self.probe, {14})
+        self.assertEqual(report['models']['p014']['error'], 'ValueError')
+        run.assert_not_called()
+
     def test_reject_index_triangle_count_above_global_limit(self):
         self.pair(14)
         index = self.root / 'p014.p3ix'
