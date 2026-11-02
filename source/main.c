@@ -24,6 +24,7 @@
 #include "form_model_map.h"
 #include "form_names.h"
 #include "model_animation.h"
+#include "animation_playback.h"
 #include "model_animation_library.h"
 #include "model_material_texture.h"
 #include "source_material_map.h"
@@ -99,7 +100,7 @@ static int source_face_map_ready=0;
 static P3DTexturePixels preview_pixels;
 static int texture_payload_ready=0;
 static P3DPreviewTextureSet preview_gl_textures;
-static unsigned animation_tick=0;
+static P3DAnimationPlayback animation_playback;
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
 static P3DFormNames form_names;
@@ -261,7 +262,7 @@ static void reload_preview(void){
     source_face_map_ready=0;
     texture_payload_ready=0;
     preview_pixels.ready=0;
-    animation_tick=0;
+    p3dPlaybackReset(&animation_playback);
     if(preview_found){
         /* C149: optional private original node table, read-only. The source
          * hierarchy is not sufficient to deform source geometry without
@@ -429,7 +430,7 @@ static void render_model(void){
     glRotateYi(model_yaw);
     if(preview_animation.ready && !source_geometry_ready){
         P3DAnimationFrame pose;
-        if(p3dAnimationPoseAt(&preview_animation,animation_tick,&pose)){
+        if(p3dAnimationPoseAt(&preview_animation,animation_playback.tick,&pose)){
             glRotateXi(pose.pitch);
             glRotateYi(pose.yaw);
             glRotateZi(pose.roll);
@@ -645,7 +646,9 @@ static void render(void) {
             }
             else printf("Source mesh unavailable\n");
             if(preview_found){
-                if(preview_animation.ready){
+                if(preview_animation.ready && source_geometry_ready)
+                    printf("Source geometry: animation not verified\n");
+                else if(preview_animation.ready){
                     printf("Animation: %u frames, %u ticks (%s)\n",preview_animation.count,preview_animation.total_ticks,preview_animation.version==2?"smooth":"held");
                     printf("Verified clip: %u / %u\n",preview_animation_library.selected+1,preview_animation_library.count);
                     if(preview_animation_library.count>1)
@@ -832,6 +835,9 @@ static void render(void) {
                     printf("\x1b[23;1H%.28s",entry.description);
                 }
             }
+            if(preview_animation.ready && !source_geometry_ready)
+                printf("\x1b[12;1H[%-6s]      [Restart]",
+                       animation_playback.paused?"Resume":"Pause");
             printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
             if(selected_form){
@@ -1166,8 +1172,8 @@ int main(void) {
                 }
                 if(preview_found){
                     render_model();
-                    if(preview_animation.ready)
-                        animation_tick=(animation_tick+1)%preview_animation.total_ticks;
+                    p3dPlaybackAdvance(&animation_playback,&preview_animation,
+                                      !source_geometry_ready);
                 }
             }else if(title_timeline.ready){
                 int frame=p3dTitleTimelineAdvance(&title_timeline);
@@ -1594,7 +1600,7 @@ int main(void) {
                     if(p3dAnimationLibraryStep(&preview_animation_library,
                                                &preview_animation,
                                                "nitro:/animations",direction)){
-                        animation_tick=0;
+                        p3dPlaybackReset(&animation_playback);
                         redraw=1;
                     }
                 }
@@ -1624,6 +1630,16 @@ int main(void) {
             if(!showing_original_art && (down&KEY_TOUCH) && state.page!=P3D_PAGE_SEARCH){
                 touchPosition point;
                 touchRead(&point);
+                /* C230: controls are visible ONLY on the fallback text Dex UI.
+                 * Block combined keypad/touch input and source geometry without
+                 * independently verified skeletal animation. */
+                if(state.page==P3D_PAGE_DEX &&
+                   !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|
+                           KEY_UP|KEY_DOWN|KEY_SELECT|KEY_START)) &&
+                   p3dPlaybackTouch(&animation_playback,&preview_animation,
+                                    !source_geometry_ready,!showing_original_art,
+                                    point.px,point.py))
+                    redraw=1;
                 if(point.py>=150 && point.py<192){
                     int direction=point.px<64?-1:(point.px>=192?1:0);
                     if(state.page==P3D_PAGE_DEX && direction){
@@ -1720,7 +1736,8 @@ int main(void) {
         }
         if(display_preview){
             render_model();
-            if(preview_animation.ready)animation_tick=(animation_tick+1)%preview_animation.total_ticks;
+            p3dPlaybackAdvance(&animation_playback,&preview_animation,
+                               !source_geometry_ready);
         }
     }
 }
