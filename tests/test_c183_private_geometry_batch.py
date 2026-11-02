@@ -65,6 +65,14 @@ class PrivateGeometryBatch(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unexpected"):
             mod.audit(self.root, self.probe, {14})
 
+    def test_duplicate_roster_is_invalid(self):
+        with self.assertRaisesRegex(ValueError, 'duplicate'):
+            mod.audit(self.root, self.probe, [14, 14])
+
+    def test_boolean_roster_is_invalid(self):
+        with self.assertRaisesRegex(ValueError, 'invalid model roster'):
+            mod.audit(self.root, self.probe, [True])
+
     def test_empty_roster_is_invalid(self):
         with self.assertRaises(ValueError):
             mod.audit(self.root, self.probe, set())

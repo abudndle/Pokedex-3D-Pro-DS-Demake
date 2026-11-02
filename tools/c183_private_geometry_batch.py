@@ -71,11 +71,14 @@ def audit(root, probe, roster=None):
     root = outside_repo(root)
     if not root.is_dir():
         raise ValueError("private geometry directory missing")
-    roster = EXPECTED if roster is None else set(roster)
-    if not roster:
+    requested = list(EXPECTED if roster is None else roster)
+    if not requested:
         raise ValueError('empty roster')
-    if any(not isinstance(model, int) or model not in EXPECTED for model in roster):
+    if any(type(model) is not int or model not in EXPECTED for model in requested):
         raise ValueError("invalid model roster")
+    roster = set(requested)
+    if len(roster) != len(requested):
+        raise ValueError("duplicate model roster entries")
     probe = Path(probe).resolve()
     if not probe.is_file():
         raise ValueError("native draw probe missing")
