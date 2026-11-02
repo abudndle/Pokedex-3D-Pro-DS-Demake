@@ -6,9 +6,11 @@ on:
       - 'tests/c253_*'
       - 'tests/c254_*'
       - 'tests/c255_*'
+      - 'tests/c256_*'
       - 'tests/test_c253_*'
       - 'tests/test_c254_*'
       - 'tests/test_c255_*'
+      - 'tests/test_c256_*'
       - 'tests/run_c253_*'
       - 'Makefile.native'
       - '.github/workflows/c253-melonds-smoke.yml'
@@ -18,9 +20,11 @@ on:
       - 'tests/c253_*'
       - 'tests/c254_*'
       - 'tests/c255_*'
+      - 'tests/c256_*'
       - 'tests/test_c253_*'
       - 'tests/test_c254_*'
       - 'tests/test_c255_*'
+      - 'tests/test_c256_*'
       - 'tests/run_c253_*'
       - 'Makefile.native'
       - '.github/workflows/c253-melonds-smoke.yml'
@@ -42,6 +46,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_c254_melonds_nav_gate.py' -v
       - name: C255 disabled AR and Move Dex synthetic regressions
         run: python3 -m unittest discover -s tests -p 'test_c255_melonds_ds_ar_gate.py' -v
+      - name: C256 Challenge/Records/Album synthetic regressions
+        run: python3 -m unittest discover -s tests -p 'test_c256_melonds_menu_gate.py' -v
       - name: Compile actual asset-free BlocksDS ROM without original game assets
         run: |
           docker run --rm -v "$PWD:/work" -w /work \
@@ -88,6 +94,7 @@ jobs:
             c255-melonds-ar-disabled.xwd
             c255-melonds-move-dex.xwd
             c255-melonds-move-back.xwd
+            c256-melonds-*.xwd
             c253-melonds-windows.txt
           retention-days: 3
           if-no-files-found: ignore
