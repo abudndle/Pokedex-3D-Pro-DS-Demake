@@ -13,6 +13,7 @@ import json
 import os
 import re
 import stat
+import struct
 import tempfile
 import zipfile
 from pathlib import Path
@@ -30,14 +31,47 @@ MAX_C75_CSV = 16 * 1024 * 1024
 SCHEMA = "C275_PRIVATE_C5_DRAW_MATERIAL_REFERENCE_V1"
 
 
-def join(model_id, source_c5, c75_rows):
-    """Independently parse both original C5 tables, then join by material ID."""
+def c75_from_source(raw):
+    """Recover original C5 texture-name pointers directly from its 28-byte table."""
+    if len(raw) < 120 or raw[:2] != b"\xc5x":
+        raise ValueError("invalid original C5 texture header")
+    count = struct.unpack_from("<H", raw, 0x0e)[0]
+    texture_at = struct.unpack_from("<I", raw, 0x30)[0]
+    material_at = struct.unpack_from("<I", raw, 0x34)[0]
+    strings_at = struct.unpack_from("<I", raw, 0x64)[0]
+    if not (count <= 256 and 120 <= texture_at <= material_at <= strings_at < len(raw)
+            and texture_at + count * 28 == material_at):
+        raise ValueError("original C5 texture descriptor table invalid")
+    rows = []
+    for index in range(count):
+        relative = struct.unpack_from("<I", raw, texture_at + index * 28 + 8)[0]
+        position = strings_at + relative
+        if not strings_at <= position < len(raw):
+            raise ValueError("original C5 texture name pointer outside source")
+        end = raw.find(b"\0", position, min(len(raw), position + 128))
+        if end <= position or any(x < 32 or x > 126 for x in raw[position:end]):
+            raise ValueError("invalid original C5 texture name string")
+        rows.append({"index": str(index),
+                     "original_texture_name": raw[position:end].decode("ascii"),
+                     "original_name_absolute_offset": str(position)})
+    return rows
+
+
+def join(model_id, source_c5, c75_rows=None):
+    """Independently parse original C5 draw and material tables and join by ID."""
     if model_id not in ROSTER or not MODEL.fullmatch(model_id):
         raise ValueError("invalid original model roster ID")
     if not isinstance(source_c5, bytes) or len(source_c5) > MAX_MODEL:
         raise ValueError("original C5 source size invalid")
-    materials, metadata = parse_materials(source_c5, c75_rows)
-    if metadata["ntex"] != len(c75_rows):
+    original_c75 = c75_from_source(source_c5)
+    if c75_rows is not None and [
+            (int(r["index"]), r["original_texture_name"],
+             int(r["original_name_absolute_offset"])) for r in c75_rows] != [
+            (int(r["index"]), r["original_texture_name"],
+             int(r["original_name_absolute_offset"])) for r in original_c75]:
+        raise ValueError("C75 inventory disagrees with original C5 texture name pointers")
+    materials, metadata = parse_materials(source_c5, original_c75)
+    if metadata["ntex"] != len(original_c75):
         raise ValueError("C75 source texture roster required for every reference")
     draw_rows, mesh_count = parse_draws(source_c5, model_id)
     if not materials or len(materials) != metadata["nmaterial"]:
@@ -113,9 +147,9 @@ def read_c75(path):
     return result
 
 
-def audit(private_root, c75_csv, require_full=False):
+def audit(private_root, c75_csv=None, require_full=False):
     """Read bounded private C56 ZIP parts, return private evidence and summary."""
-    textures = read_c75(c75_csv)
+    textures = read_c75(c75_csv) if c75_csv is not None else {}
     root = Path(private_root)
     models = {}
     consumed = 0
@@ -145,7 +179,7 @@ def audit(private_root, c75_csv, require_full=False):
                 raw = archive.read(info)
                 if len(raw) != info.file_size:
                     raise ValueError("truncated original C5 archive member")
-                models[mid] = join(mid, raw, textures.get(mid, []))
+                models[mid] = join(mid, raw, textures[mid] if c75_csv is not None and mid in textures else None)
     if not models or set(textures) - set(models):
         raise ValueError("C75 references without original C5 source")
     if require_full and set(models) != ROSTER:
@@ -193,7 +227,8 @@ def write_private_report(output, report):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--private-root", type=Path, required=True)
-    parser.add_argument("--texture-reference-csv", type=Path, required=True)
+    parser.add_argument("--texture-reference-csv", type=Path,
+                        help="optional independent C75 inventory crosscheck")
     parser.add_argument("--output-private-json", type=Path, required=True)
     parser.add_argument("--require-full", action="store_true")
     args = parser.parse_args()
