@@ -22,11 +22,12 @@ docker run --rm \
     python3 tools/c272_private_rom_build.py \
       --stage /private/staged --output /private/output
   '
+# The private builder creates 0700 directories and 0600 files owned by
+# container root. Transfer ownership BEFORE even trying to stat the ROM.
+# Only this disposable runner user may read the temporary diagnostic output.
+sudo chown -R "$(id -u):$(id -g)" "$root/output"
 rom="$root/output/C272_PRIVATE_DIAGNOSTIC.nds"
 test -s "$rom"
-# The private builder creates 0600 files owned by container root.
-# Read-only emulator access is granted only to this disposable runner user.
-sudo chown -R "$(id -u):$(id -g)" "$root/output"
 test "$(stat -c %a "$rom")" = 600
 python3 tests/verify_nds_rom.py "$rom"
 python3 tools/verify_nds_rom.py "$rom"
