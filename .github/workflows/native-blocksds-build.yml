@@ -4,6 +4,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: native-blocksds-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   native-rom:
     runs-on: ubuntu-latest
@@ -12,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Compile asset-free native Nintendo DS ROM
-        run: make dev-rom
+        run: make dev-rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
       - name: Inspect generated ROM
         run: |
           test -s Pokedex3D_DS_BlocksDS.nds
@@ -39,6 +43,7 @@ jobs:
     needs: native-rom
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: native-ds-smoke-rom
@@ -46,7 +51,7 @@ jobs:
       - name: Install Nintendo DS emulator and virtual display
         run: |
           sudo apt-get update
-          sudo apt-get install -y desmume xvfb x11-apps x11-utils xdotool
+          sudo apt-get install -y desmume xvfb x11-apps x11-utils xdotool strace
       - name: Attempt ROM startup in DeSmuME CLI
         shell: bash
         run: |
@@ -55,7 +60,27 @@ jobs:
           cat > /tmp/check_emulator.sh <<'SCRIPT'
           #!/usr/bin/env bash
           set -euo pipefail
-          /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
+          # C236: DeSmuME 0.9.13 reads [KEYS] from XDG_CONFIG_HOME/desmume/config.
+          # Use explicit SDL2 keycodes in a fresh isolated config, never
+          # runner/user defaults or the incompatible SDL1 arrow constants.
+          export XDG_CONFIG_HOME="$(mktemp -d)"
+          python3 tools/c236_desmume_keymap.py --xdg-config-home "$XDG_CONFIG_HOME"
+          echo "Installed DeSmuME package:"
+          dpkg-query -W desmume
+          # The installed 0.9.13 CLI has a verified u32/u16 default-key
+          # memcpy mismatch and resets parsed [KEYS] to those bad defaults.
+          # The test-only LD_PRELOAD remaps SDL key events, not DS memory.
+          case "$(dpkg-query -W -f='${Version}' desmume)" in
+            0.9.13-*) ;;
+            *) echo "Unsupported DeSmuME keymap ABI; fail closed" >&2; exit 1 ;;
+          esac
+          # C238 draft-only diagnostic: trace the *actual* SDL2 event keysyms
+          # and GLib [KEYS] lookup results without modifying game input.
+          cc -std=c11 -Wall -Wextra -Werror -fPIC -shared \
+            tests/c238_sdl_event_trace.c -ldl -o /tmp/c238_sdl_event_trace.so
+          strace -f -e trace=openat -o /tmp/desmume-open.log \
+            env LD_PRELOAD=/tmp/c238_sdl_event_trace.so P3D_C238_TRACE=1 P3D_C240_ADAPT_0913=1 \
+            /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
           # Give NitroFS/FAT startup and the DS CPU more time to draw frames.
@@ -73,39 +98,68 @@ jobs:
           test -s emulator-early.xwd
           # Wait until the home menu is present, then compare before/after input.
           sleep 12
-          xwd -id "$window_id" -silent -out emulator-before-down.xwd
+          xwd -id "$window_id" -silent -out emulator-home.xwd
           # SDL may ignore XSendEvent targeted at a window. Focus the
           # emulator and use XTEST keyboard injection instead.
           xdotool windowfocus --sync "$window_id"
-          xdotool mousemove --window "$window_id" 128 190
-          xdotool click 1
-          # Send several common DeSmuME directional bindings while
-          # collecting evidence. Keyboard layout and emulator bindings
-          # differ between frontends, so no gameplay claim is implied.
-          xdotool keydown Down
-          sleep 1
-          xdotool keyup Down
-          # DeSmuME's current CLI source (src/frontend/posix/cli/main.cpp)
-          # maps x=A and z=B. The older Linux manpage is outdated.
+          # C235: the native HOME's first highlighted entry is Pokédex.
+          # Never send Down (which selects Move Dex) or a mouse click
+          # (which can independently trigger a touchscreen menu action).
+          # C239 isolated [KEYS] maps x=A, d=Right and b=B.
+          # No source/asset game code or user-visible DS keymap changes.
           xdotool keydown x
-          sleep 1
+          sleep 0.5
           xdotool keyup x
           sleep 2
-          xwd -id "$window_id" -silent -out emulator-after-down.xwd
+          xwd -id "$window_id" -silent -out emulator-dex.xwd
           # Distinguish a frozen game loop from an unmapped B key:
           # Right should browse from Pokémon #001 to #002 on this page.
-          xdotool keydown Right
-          sleep 0.4
-          xdotool keyup Right
+          xdotool keydown d
+          sleep 0.25
+          xwd -id "$window_id" -silent -out emulator-during-right.xwd
+          sleep 0.25
+          xdotool keyup d
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-right.xwd
-          xdotool keydown z
+          # Diagnostic only: a second A on Dex toggles Favorite, proving
+          # whether the emulator loop accepts *any* later keypad event.
+          xdotool keydown x
+          sleep 0.4
+          xdotool keyup x
+          sleep 2
+          xwd -id "$window_id" -silent -out emulator-after-second-a.xwd
+          xdotool keydown b
           sleep 0.5
           xwd -id "$window_id" -silent -out emulator-during-back.xwd
           sleep 0.5
-          xdotool keyup z
+          xdotool keyup b
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
+          # C235 diagnostic: inspect alternate X11 keysyms on the still-open
+          # Dex page, without treating any candidate as verified mapping.
+          for candidate in KP_Right d l z c v b s; do
+            xdotool keydown "$candidate"
+            sleep 0.25
+            xdotool keyup "$candidate"
+            sleep 0.5
+            xwd -id "$window_id" -silent -out "emulator-probe-$candidate.xwd"
+          done
+          # C237: capture the actual ARM9 keymask for every printable
+          # candidate while it is held. This is temporary draft-only CI
+          # evidence; do not infer mappings from key names or merge on it.
+          for candidate in q w e r t y u i o p a s d f g h j k l z x c v b n m; do
+            xdotool keydown "$candidate"
+            sleep 0.3
+            xwd -id "$window_id" -silent -out "emulator-keyscan-$candidate.xwd"
+            xdotool keyup "$candidate"
+            sleep 0.1
+          done
+          # Archive only numeric diagnostic lines, never private config paths.
+          grep '^C238 ' /tmp/desmume.log > emulator-input-trace.log || true
+          echo "C238 actual SDL/GLib input trace:"
+          cat emulator-input-trace.log
+          echo "DeSmuME XDG config open evidence:"
+          grep -E '/desmume/config|\\.desmume\\.ini' /tmp/desmume-open.log | tail -8 || true
           sleep 2
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
@@ -123,7 +177,7 @@ jobs:
           tail -30 /tmp/desmume.log || true
           SCRIPT
           chmod +x /tmp/check_emulator.sh
-          xvfb-run -a -s '-screen 0 1024x768x24' timeout 50s /tmp/check_emulator.sh
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 100s /tmp/check_emulator.sh
       - name: Reject mostly blank emulator display
         run: |
           python3 - <<'PY'
@@ -162,45 +216,8 @@ jobs:
           assert len(per_screen[1])>=2, 'Lower DS menu is blank'
           assert len(unique)>=3, 'Both DS screens appear blank'
           PY
-      - name: Compare menu frames around simulated input
-        run: |
-          python3 - <<'PY'
-          import struct
-          from pathlib import Path
-          def read_pixels(path):
-              b=Path(path).read_bytes()
-              h=struct.unpack_from('>25I',b)
-              offset=h[0]+h[19]*12
-              stride=h[11]//8
-              return set(),b[offset:offset+h[12]*h[5]],h[4],h[5],h[12],stride
-          _,a,w,h,row,stride=read_pixels('emulator-before-down.xwd')
-          _,b,w2,h2,row2,stride2=read_pixels('emulator-after-down.xwd')
-          assert (w,h,row,stride)==(w2,h2,row2,stride2)
-          different=sum(a[y*row+x*stride:y*row+x*stride+3] !=
-                        b[y*row+x*stride:y*row+x*stride+3]
-                        for y in range(0,h,2) for x in range(0,w,2))
-          print(f'Menu input changed {different} sampled pixels')
-          _,right,wright,hright,rowright,strideright=read_pixels('emulator-after-right.xwd')
-          assert (w,h,row,stride)==(wright,hright,rowright,strideright)
-          moved=sum(b[y*row+x*stride:y*row+x*stride+3] !=
-                    right[y*row+x*stride:y*row+x*stride+3]
-                    for y in range(0,h,2) for x in range(0,w,2))
-          print(f'Pokédex Right input changed {moved} sampled pixels')
-          # Only tiny heartbeat text changes were observed (5 pixels);
-          # that is not sufficient evidence of Pokémon browsing.
-          if moved<100:
-              print('WARNING: Right produced no substantive Pokémon-page change')
-          assert different>100, (
-              'Simulated Down/A sequence did not visibly open a menu page')
-          _,c,w3,h3,row3,stride3=read_pixels('emulator-after-back.xwd')
-          assert (w,h,row,stride)==(w3,h3,row3,stride3)
-          restored=sum(a[y*row+x*stride:y*row+x*stride+3] !=
-                       c[y*row+x*stride:y*row+x*stride+3]
-                       for y in range(0,h,2) for x in range(0,w,2))
-          print(f'After B, pixels different from home menu: {restored}')
-          if restored>=different//2:
-              print('WARNING: z is SELECT on this CLI build, not B. Inspect held-key captures.')
-          PY
+      - name: Verify A opens Dex, Right advances, and B returns home
+        run: python3 tests/c235_emulator_frame_gate.py emulator-home.xwd emulator-dex.xwd emulator-after-right.xwd emulator-after-back.xwd
       - name: Upload emulator visual evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -209,10 +226,15 @@ jobs:
           path: |
             emulator-window.xwd
             emulator-early.xwd
-            emulator-before-down.xwd
-            emulator-after-down.xwd
+            emulator-home.xwd
+            emulator-dex.xwd
             emulator-after-right.xwd
+            emulator-during-right.xwd
+            emulator-after-second-a.xwd
             emulator-after-back.xwd
             emulator-during-back.xwd
+            emulator-probe-*.xwd
+            emulator-keyscan-*.xwd
             emulator-windows.txt
+            emulator-input-trace.log
           if-no-files-found: warn

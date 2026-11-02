@@ -1165,6 +1165,17 @@ int main(void) {
         scanKeys();
         unsigned down=keysDown();
         unsigned held=keysHeld();
+#ifdef P3D_EMULATOR_DIAGNOSTICS
+        /* C237: asset-free CI only, never enabled in original-asset ROMs.
+         * Capture actual ARM9 libnds key state while X11 keys are held.
+         * This is a diagnostic, not proof of a correct button mapping. */
+        static unsigned c237_frame=0;
+        if((++c237_frame % 5u)==0u || down){
+            consoleSelect(&top_console);
+            printf("\x1b[23;1Hdbg f%05lu d%04X h%04X  ",
+                   (unsigned long)(c237_frame%100000u),down,held);
+        }
+#endif
         int redraw=0;
         if(title_active){
             /* Idle A opens the independently chosen title Pokémon entry.
