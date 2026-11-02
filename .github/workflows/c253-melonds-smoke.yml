@@ -8,11 +8,13 @@ on:
       - 'tests/c255_*'
       - 'tests/c256_*'
       - 'tests/c257_*'
+      - 'tests/c258_*'
       - 'tests/test_c253_*'
       - 'tests/test_c254_*'
       - 'tests/test_c255_*'
       - 'tests/test_c256_*'
       - 'tests/test_c257_*'
+      - 'tests/test_c258_*'
       - 'tests/run_c253_*'
       - 'Makefile.native'
       - '.github/workflows/c253-melonds-smoke.yml'
@@ -24,11 +26,13 @@ on:
       - 'tests/c255_*'
       - 'tests/c256_*'
       - 'tests/c257_*'
+      - 'tests/c258_*'
       - 'tests/test_c253_*'
       - 'tests/test_c254_*'
       - 'tests/test_c255_*'
       - 'tests/test_c256_*'
       - 'tests/test_c257_*'
+      - 'tests/test_c258_*'
       - 'tests/run_c253_*'
       - 'Makefile.native'
       - '.github/workflows/c253-melonds-smoke.yml'
@@ -54,6 +58,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_c256_melonds_menu_gate.py' -v
       - name: C257 Settings/A toggle/B synthetic regressions
         run: python3 -m unittest discover -s tests -p 'test_c257_melonds_settings_gate.py' -v
+      - name: C258 Records Regions/Recent/Quizzes/B synthetic regressions
+        run: python3 -m unittest discover -s tests -p 'test_c258_melonds_records_tabs_gate.py' -v
       - name: Compile actual asset-free BlocksDS ROM without original game assets
         run: |
           docker run --rm -v "$PWD:/work" -w /work \
@@ -102,6 +108,7 @@ jobs:
             c255-melonds-move-back.xwd
             c256-melonds-*.xwd
             c257-melonds-*.xwd
+            c258-melonds-*.xwd
             c253-melonds-windows.txt
           retention-days: 3
           if-no-files-found: ignore
