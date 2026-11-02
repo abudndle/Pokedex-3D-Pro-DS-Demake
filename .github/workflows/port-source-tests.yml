@@ -66,6 +66,9 @@ jobs:
       - name: C234 verify ordered mesh partitions and prevent whole-model false positives (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c234_partition_geometry_crosscheck.py' -v
 
+      - name: C244 exact private C5-to-OBJ index bytes and variable alignment (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c244_c5_obj_index_provenance.py' -v
+
       - name: C229 verify strict aligned C5 topology candidates (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c229_aligned_topology_batch.py' -v
 
