@@ -76,6 +76,7 @@ def validate_stage(stage):
             or report.get('original_species_resource_mapping_verified') is not False
             or report.get('asset_integrated_emulator_verified') is not False
             or report.get('original_game_release_ready') is not False
+            or report.get('original_renderer_vertex_material_skinning_verified') is not False
             or type(report.get('models')) is not dict):
         raise ValueError('invalid diagnostic provenance report')
     mapping = read_private(stage / 'models/species_map.p3sm', MAP_BYTES)
