@@ -1,0 +1,29 @@
+name: C278 original texture byte-density evidence (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c278-texture-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-texture-format-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate C278 format/size and P3TM provenance gates (synthetic only)
+        run: |
+          python3 -m py_compile tools/c278_private_texture_format_evidence.py
+          python3 -m unittest discover -s tests -p 'test_c278_private_texture_format_evidence.py' -v
+      - name: Protect private original texture catalogs and reports
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C278_PRIVATE_TEXTURE_FORMAT_EVIDENCE.json
