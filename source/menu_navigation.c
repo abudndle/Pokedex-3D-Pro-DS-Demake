@@ -16,3 +16,11 @@ int p3dMenuScroll(int cursor,int count,int direction){
  if(next>=count)return count-1;
  return next;
 }
+
+int p3dDexNavigate(int current,int direction){
+ if(current<0)current=0;
+ if(current>648)current=648;
+ if(direction<0 && current>0)return current-1;
+ if(direction>0 && current<648)return current+1;
+ return current;
+}
