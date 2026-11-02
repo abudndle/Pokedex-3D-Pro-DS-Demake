@@ -9,6 +9,8 @@ import hashlib
 import json
 import re
 import struct
+import tempfile
+import os
 import zipfile
 import zlib
 from pathlib import Path
@@ -123,6 +125,33 @@ def audit(parts,decoder_bundle,c147_summary,skeleton_zip,output_zip):
             'original_clip_semantics_verified':False,
             'original_skinning_verified':False,
             'private_package_only':True}
+
+def write_private_report(path,result):
+    """Atomically write SHA-bearing audit output outside the public repository."""
+    repo_root=Path(__file__).resolve().parents[1]
+    requested=path.expanduser().absolute()
+    parent=requested.parent.resolve()
+    target=parent/requested.name
+    if parent==repo_root or repo_root in parent.parents:
+        raise ValueError('private animation report must be outside public repository')
+    if target.is_symlink():
+        raise ValueError('refusing symlink private report destination')
+    parent.mkdir(parents=True,exist_ok=True)
+    temporary=None
+    try:
+        fd,name=tempfile.mkstemp(prefix='.c151-report-',suffix='.tmp',dir=parent)
+        temporary=Path(name)
+        with os.fdopen(fd,'w',encoding='utf-8') as stream:
+            os.fchmod(stream.fileno(),0o600)
+            json.dump(result,stream,indent=2)
+            stream.write('\\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary,target)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
