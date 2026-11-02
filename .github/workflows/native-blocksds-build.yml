@@ -218,6 +218,15 @@ jobs:
           PY
       - name: Verify A opens Dex, Right advances, and B returns home
         run: python3 tests/c235_emulator_frame_gate.py emulator-home.xwd emulator-dex.xwd emulator-after-right.xwd emulator-after-back.xwd
+      - name: Generate readable PNG captures and exact asset-free ROM/source SHA manifest
+        run: |
+          python3 tests/c242_emulator_evidence.py \
+            --rom emulator-rom/Pokedex3D_DS_BlocksDS.nds \
+            --commit "$(git rev-parse HEAD)" \
+            --output emulator-evidence \
+            emulator-home.xwd emulator-dex.xwd \
+            emulator-after-right.xwd emulator-after-back.xwd
+          test -s emulator-evidence/manifest.json
       - name: Upload emulator visual evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -237,4 +246,6 @@ jobs:
             emulator-keyscan-*.xwd
             emulator-windows.txt
             emulator-input-trace.log
+            emulator-evidence/*.png
+            emulator-evidence/manifest.json
           if-no-files-found: warn
