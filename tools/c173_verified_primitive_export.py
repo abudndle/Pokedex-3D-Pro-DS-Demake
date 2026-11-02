@@ -52,6 +52,12 @@ def main():
     if manifest_path.stat().st_size > 2 * 1024 * 1024:
         raise ValueError('oversized private manifest')
     manifest = json.loads(read_bounded(manifest_path))
+    model_name = manifest.get('model') if isinstance(manifest, dict) else None
+    if (not isinstance(model_name, str) or len(model_name) != 4 or
+            model_name[0] != 'p' or not model_name[1:].isdigit() or
+            not 0 <= int(model_name[1:]) <= 733 or
+            721 <= int(model_name[1:]) <= 724):
+        raise ValueError('invalid private C5 model identity')
     with zipfile.ZipFile(archive) as z:
         entry = 'decoded_c5/' + manifest['model'] + '.c5'
         info = z.getinfo(entry)
