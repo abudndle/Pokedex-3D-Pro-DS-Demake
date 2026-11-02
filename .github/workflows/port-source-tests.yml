@@ -226,7 +226,7 @@ jobs:
           cc -std=c11 -Wall -Wextra -Werror -Isource tests/test_save_recovery.c source/save_store.c -o /tmp/p3d-save-recovery
           /tmp/p3d-save-recovery
 
-      - name: Verify regional challenge quiz rules
+      - name: C232 validate Challenge answer review, single scoring and aligned touches
         run: sh tests/run_challenge_smoke.sh
 
       - name: Verify original Move Dex catalog reader
