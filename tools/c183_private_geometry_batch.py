@@ -85,6 +85,8 @@ def audit(root, probe, roster=None):
     probe = probe_path.resolve()
     if not probe.is_file():
         raise ValueError("native draw probe missing")
+    if probe.stat().st_size == 0:
+        raise ValueError("native draw probe empty")
     if not os.access(probe, os.X_OK):
         raise ValueError("native draw probe not executable")
     if not os.access(probe, os.R_OK):

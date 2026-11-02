@@ -118,6 +118,12 @@ class PrivateGeometryBatch(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'not executable'):
             mod.audit(self.root, self.probe, {14})
 
+    def test_reject_empty_native_probe(self):
+        self.pair(14)
+        self.probe.write_bytes(b'')
+        with self.assertRaisesRegex(ValueError, 'probe empty'):
+            mod.audit(self.root, self.probe, {14})
+
     def test_probe_must_be_readable(self):
         self.pair(14)
         self.probe.chmod(0o100)
