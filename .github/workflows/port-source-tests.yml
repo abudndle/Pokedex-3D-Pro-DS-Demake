@@ -84,6 +84,9 @@ jobs:
       - name: C247 unique original C5 global XYZ stride and provisional native candidate (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c247_private_global_xyz_candidate.py' -v
 
+      - name: C271 unique contiguous original C5 XYZ order and native candidate (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c271_private_contiguous_xyz.py' -v
+
       - name: Compile C179 asset-free native GL geometry draw probe for private offline QA
         run: |
           cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST -Isource \
