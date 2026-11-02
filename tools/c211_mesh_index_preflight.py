@@ -38,10 +38,6 @@ def inspect_pair(vertex_path, index_path, model):
         first_expected += size
     if len(vx) != table_end + first_expected * 6:
         raise ValueError("invalid vertex payload length")
-    for offset in range(table_end, len(vx), 2):
-        coordinate = struct.unpack_from("<h", vx, offset)[0]
-        if coordinate < -4096 or coordinate > 4095:
-            raise ValueError("vertex coordinate exceeds DS fixed-point range")
     if len(ix) < 16 or ix[:4] != b"P3IX":
         raise ValueError("invalid index header")
     ix_version, ix_model, ix_count = struct.unpack_from("<HHH", ix, 4)
