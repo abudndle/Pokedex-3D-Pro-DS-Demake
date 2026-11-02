@@ -2,6 +2,11 @@
 # C260: asset-free DS-mode DLDI save/restore acceptance in official melonDS 1.1.
 # This test NEVER uses Nintendo BIOS, private source assets or a retail ROM.
 set -euo pipefail
+full_round="${C264_FULL_ROUND:-0}"
+if [[ "$full_round" != 0 && "$full_round" != 1 ]]; then
+  echo 'C264_FULL_ROUND must be 0 or 1' >&2
+  exit 2
+fi
 rom="${1:?expected asset-free BlocksDS ROM}"
 app_run="${2:?expected SHA-pinned melonDS AppRun}"
 test -s "$rom" && test -x "$app_run"
@@ -122,15 +127,35 @@ python3 tests/c262_melonds_challenge_phase_gate.py \
   c261-melonds-challenge-question.xwd \
   c261-melonds-challenge-review.xwd \
   c261-melonds-challenge-continued.xwd
+if [[ "$full_round" == 1 ]]; then
+  # The first three A presses selected mode, answered #1, and continued
+  # into question #2. Nine remaining questions need answer+continue each.
+  for _ in $(seq 1 18); do
+    xdotool keydown x
+    sleep 0.3
+    xdotool keyup x
+    sleep 0.7
+  done
+  capture c264-melonds-challenge-results.xwd
+fi
 sleep 3
 close_cleanly
-python3 tests/c261_fat_challenge_gate.py "$sd_root/export"
+if [[ "$full_round" == 1 ]]; then
+  python3 tests/c264_fat_completed_round_gate.py "$sd_root/export"
+else
+  python3 tests/c261_fat_challenge_gate.py "$sd_root/export"
+fi
 # Third real emulator launch must restore Challenge from the FAT checkpoint.
 launch
 capture c261-melonds-challenge-resumed.xwd
 python3 tests/c253_melonds_frame_gate.py c260-melonds-fat-home.xwd c261-melonds-challenge-resumed.xwd
 close_cleanly
-python3 tests/c261_fat_challenge_gate.py "$sd_root/export"
-# C263: real P3RC Records visit must survive the third emulator boot.
-python3 tests/c263_fat_records_gate.py "$sd_root/export"
-echo 'C261 real melonDS FAT Challenge progress, favorite retention and cross-boot resume: PASS (asset-free DS mode only)'
+if [[ "$full_round" == 1 ]]; then
+  python3 tests/c264_fat_completed_round_gate.py "$sd_root/export"
+  echo 'C264 real melonDS complete ten-question Challenge, P3RC round and third-boot FAT persistence: PASS (asset-free DS mode only)'
+else
+  python3 tests/c261_fat_challenge_gate.py "$sd_root/export"
+  # C263: real P3RC Records visit must survive the third emulator boot.
+  python3 tests/c263_fat_records_gate.py "$sd_root/export"
+  echo 'C261 real melonDS FAT Challenge progress, favorite retention and cross-boot resume: PASS (asset-free DS mode only)'
+fi
