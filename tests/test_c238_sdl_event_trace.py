@@ -34,6 +34,9 @@ int SDL_PollEvent(void *event) {
 int g_key_file_load_from_file(void *a, const char *b, int c, void *d) {
     (void)a; (void)b; (void)c; (void)d; return 1;
 }
+int g_key_file_has_group(void *a, const char *b) {
+    (void)a; (void)b; return 1;
+}
 int g_key_file_get_integer(void *a, const char *b, const char *c, void *d) {
     (void)a; (void)b; (void)c; (void)d; return 98;
 }
@@ -44,14 +47,16 @@ int g_key_file_get_integer(void *a, const char *b, const char *c, void *d) {
 extern int SDL_PollEvent(void *);
 extern int g_key_file_load_from_file(void *, const char *, int, void *);
 extern int g_key_file_get_integer(void *, const char *, const char *, void *);
+extern int g_key_file_has_group(void *, const char *);
 int main(void) {
     unsigned char event[56] = {0};
     int load = g_key_file_load_from_file(0,"isolated",0,0);
+    int group = g_key_file_has_group(0,"SDLKEYS");
     int key = g_key_file_get_integer(0,"SDLKEYS","B",0);
     int ret = SDL_PollEvent(event);
     int32_t sym = 0;
     __builtin_memcpy(&sym, event+20, 4);
-    printf("load=%d key=%d ret=%d sym=%d\\n",load,key,ret,sym);
+    printf("load=%d group=%d key=%d ret=%d sym=%d\\n",load,group,key,ret,sym);
     return 0;
 }
 """)
@@ -68,8 +73,9 @@ int main(void) {
             env = {**os.environ, "LD_PRELOAD": str(hook), "P3D_C238_TRACE": "1"}
             proc = subprocess.run([str(main)], env=env, capture_output=True,
                                   text=True, check=True)
-            self.assertIn("load=1 key=98 ret=1 sym=100", proc.stdout)
+            self.assertIn("load=1 group=1 key=98 ret=1 sym=100", proc.stdout)
             self.assertIn("C238 GLib config_loaded=1", proc.stderr)
+            self.assertIn("C238 GLib has_group=SDLKEYS result=1", proc.stderr)
             self.assertIn("C238 GLib SDLKEYS B=98", proc.stderr)
             self.assertIn("C238 SDL event=down scancode=7 sym=100", proc.stderr)
             env.pop("P3D_C238_TRACE")
