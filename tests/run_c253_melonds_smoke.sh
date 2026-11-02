@@ -79,4 +79,29 @@ python3 tests/c254_melonds_nav_gate.py \
   c253-melonds-boot.xwd c253-melonds-dex.xwd \
   c254-melonds-right.xwd c254-melonds-back.xwd
 echo "C254 melonDS 1.1 real Right/B navigation: PASS (DS-mode asset-free only)"
+# C255: in DS mode, AR Viewer must remain disabled, even when touched.
+# The 6th HOME row is at DS y=168 / Qt window y=379; do not infer DSi.
+xdotool mousemove --window "$window" 55 382
+xdotool mousedown 1
+sleep 0.4
+xdotool mouseup 1
+sleep 2
+xwd -id "$window" -silent -out c255-melonds-ar-disabled.xwd
+# After selecting disabled AR, HOME scrolls up one 16px row; Move Dex
+# is now the first visible row at Qt y=302 (not the old y=318).
+xdotool mousemove --window "$window" 55 302
+xdotool mousedown 1
+sleep 0.4
+xdotool mouseup 1
+sleep 2
+xwd -id "$window" -silent -out c255-melonds-move-dex.xwd
+xdotool keydown z
+sleep 0.4
+xdotool keyup z
+sleep 2
+xwd -id "$window" -silent -out c255-melonds-move-back.xwd
+python3 tests/c255_melonds_ds_ar_gate.py \
+  c253-melonds-boot.xwd c255-melonds-ar-disabled.xwd \
+  c255-melonds-move-dex.xwd c255-melonds-move-back.xwd
+echo "C255 real melonDS DS-mode disabled AR and Move Dex/B: PASS (not DSi camera)"
 echo "C253 melonDS 1.1 DS boot + real touchscreen navigation: PASS (not DSi or original assets)"
