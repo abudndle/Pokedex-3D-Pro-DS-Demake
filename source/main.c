@@ -1611,8 +1611,14 @@ int main(void) {
                 }
                 if(down&KEY_A){if(p3dFavoriteToggle(&state,dex_index))progress_dirty=1;redraw=1;}
                 if((down&KEY_Y)){selected_form=p3dFormNext(&alternate_models,dex_index,selected_form);reload_preview();redraw=1;}
-                if((down&KEY_LEFT)&&dex_index>0){dex_index--;selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
-                if((down&KEY_RIGHT)&&dex_index<648){dex_index++;selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
+                if((down&KEY_LEFT) && !(down&KEY_RIGHT)){
+                    int next=p3dDexNavigate(dex_index,-1);
+                    if(next!=dex_index){dex_index=next;selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
+                }
+                if((down&KEY_RIGHT) && !(down&KEY_LEFT)){
+                    int next=p3dDexNavigate(dex_index,1);
+                    if(next!=dex_index){dex_index=next;selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
+                }
             }
             /* In text navigation mode, the bottom corners also browse entries.
              * Original-art mode retains its artwork without guessed hitboxes. */
