@@ -1,9 +1,12 @@
 import sys
+import io
+import zipfile
+import tempfile
 import struct
 import unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"tools"))
-from c170_geometry_layout_evidence import inspect
+from c170_geometry_layout_evidence import inspect, audit
 
 def fixture(io=200):
     raw=bytearray(224)
@@ -18,6 +21,21 @@ def fixture(io=200):
     struct.pack_into("<8H",raw,152,0,0,0,0,2,0,0,0x0c02)
     return bytes(raw)
 class C170Tests(unittest.TestCase):
+    def test_reject_unexpected_member(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with zipfile.ZipFile(Path(tmp)/"Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip", "w") as z:
+                z.writestr("README.txt", b"unexpected")
+            with self.assertRaisesRegex(ValueError, "unexpected source C5"):
+                audit(Path(tmp))
+
+    def test_reject_duplicate_member(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with zipfile.ZipFile(Path(tmp)/"Pokedex3D_C56_Decoded_C5_Part_1_of_3.zip", "w") as z:
+                z.writestr("decoded_c5/p000.c5", fixture())
+                z.writestr("decoded_c5/p000.c5", fixture())
+            with self.assertRaisesRegex(ValueError, "duplicate ZIP member"):
+                audit(Path(tmp))
+
     def test_descriptor_relationship(self):
         self.assertEqual(inspect(fixture()),[(196,200,4,6,2)])
     def test_invalid_payload_offset(self):
