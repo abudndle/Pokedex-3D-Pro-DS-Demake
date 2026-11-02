@@ -87,8 +87,10 @@ def reconcile(c275, c287, evidence, require_full=False):
                     joined_draw.get("native_p3px_binding_verified") is not False):
                 raise ValueError("C287 draw identity or unverified sampler status mismatch")
             slots = joined_draw.get("texture_reference_slots")
-            if not isinstance(slots, list) or len(slots) != 2:
-                raise ValueError("invalid C287 texture slots")
+            names = draw.get("source_texture_reference_names")
+            if (not isinstance(slots, list) or len(slots) != 2 or
+                    not isinstance(names, list) or len(names) != 2):
+                raise ValueError("invalid C287 texture slots or C275 source names")
             for n, (slot, ref) in enumerate(zip(slots, raw_row["source_texture_references"])):
                 if (not isinstance(slot, dict) or slot.get("slot") != n or
                         slot.get("gpu_sampler_verified") is not False or
@@ -99,6 +101,10 @@ def reconcile(c275, c287, evidence, require_full=False):
                     if slot.get("status") != "SOURCE_REFERENCE_ABSENT":
                         raise ValueError("missing source texture not marked absent")
                 else:
+                    if (type(names[n]) is not str or not 1 <= len(names[n]) <= 127 or
+                            not names[n].isascii() or not names[n].isprintable() or
+                            slot.get("source_texture_name") != names[n]):
+                        raise ValueError("source texture name mismatch")
                     counts["source_texture_reference_slots_checked"] += 1
             counts["draws_checked"] += 1
         counts["materials_checked"] += len(rows)
@@ -129,7 +135,9 @@ def load_evidence(path):
             if not match or match.group(1) not in ROSTER:
                 raise ValueError("unexpected private C111 ZIP member")
             mid = match.group(1)
-            if mid in result or item.is_dir() or item.file_size > MAX_MEMBER_BYTES:
+            mode = item.external_attr >> 16
+            if ((item.create_system == 3 and mode and not stat.S_ISREG(mode)) or
+                    mid in result or item.is_dir() or item.file_size > MAX_MEMBER_BYTES):
                 raise ValueError("duplicate or oversized C111 evidence member")
             total += item.file_size
             if total > MAX_ZIP_BYTES:
