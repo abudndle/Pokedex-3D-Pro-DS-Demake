@@ -10,6 +10,21 @@ export QT_QPA_PLATFORM=xcb
 export LIBGL_ALWAYS_SOFTWARE=1
 export SDL_VIDEODRIVER=x11
 export XDG_CONFIG_HOME="$(mktemp -d)"
+# C254: melonDS 1.1 uses Qt key codes, not SDL keycodes. Its fresh
+# [Instance0.Keyboard] table defaults to zero (unbound) for each button.
+# Source: melonDS 1.1 Config.cpp / EmuInstanceInput.cpp / main.cpp.
+# Only write this isolated CI config for the SHA-pinned official AppImage.
+mkdir -m 700 "$XDG_CONFIG_HOME/melonDS"
+cat > "$XDG_CONFIG_HOME/melonDS/melonDS.toml" <<'TOML'
+# melonDS 1.1 TOML serializer requires an explicit parent table; an
+# implicit [Instance0] can abort on Save() after launch.
+[Instance0]
+[Instance0.Keyboard]
+A = 88
+B = 90
+Right = 16777236
+TOML
+chmod 600 "$XDG_CONFIG_HOME/melonDS/melonDS.toml"
 temp="$(mktemp -d)"
 trap 'if [ -n "${pid:-}" ]; then kill "$pid" 2>/dev/null || true; fi; rm -rf "$temp" "$XDG_CONFIG_HOME"' EXIT
 "$app_run" "$rom" >"$temp/melonds.log" 2>&1 &
@@ -46,4 +61,22 @@ xdotool mouseup 1
 sleep 3
 xwd -id "$window" -silent -out c253-melonds-dex.xwd
 python3 tests/c253_melonds_frame_gate.py c253-melonds-boot.xwd c253-melonds-dex.xwd
+# C254: independently exercise the actual melonDS 1.1 keyboard path.
+# Never substitute a synthetic frame or inferred DS keypad state for proof.
+# If the emulator has no default keyboard binding, fail closed and diagnose.
+xdotool windowfocus --sync "$window"
+xdotool keydown Right
+sleep 0.5
+xdotool keyup Right
+sleep 2
+xwd -id "$window" -silent -out c254-melonds-right.xwd
+xdotool keydown z
+sleep 0.5
+xdotool keyup z
+sleep 2
+xwd -id "$window" -silent -out c254-melonds-back.xwd
+python3 tests/c254_melonds_nav_gate.py \
+  c253-melonds-boot.xwd c253-melonds-dex.xwd \
+  c254-melonds-right.xwd c254-melonds-back.xwd
+echo "C254 melonDS 1.1 real Right/B navigation: PASS (DS-mode asset-free only)"
 echo "C253 melonDS 1.1 DS boot + real touchscreen navigation: PASS (not DSi or original assets)"
