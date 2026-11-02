@@ -68,8 +68,8 @@ class C233SeamGeometryTests(unittest.TestCase):
             obj = root / "reference.obj"
             report = root / "report.json"
             source.write_text(json.dumps({"vertices": XYZ, "triangles": FACES}))
-            obj.write_text("".join(f"v {x} {y} {z}\\n" for x, y, z in XYZ) +
-                           "f 1 2 3\\nf 1 3 4\\n")
+            obj.write_text("".join(f"v {x} {y} {z}\n" for x, y, z in XYZ) +
+                           "f 1 2 3\nf 1 3 4\n")
             result = run_private(source, obj, report)
             self.assertEqual(os.stat(report).st_mode & 0o777, 0o600)
             payload = json.loads(report.read_text())
