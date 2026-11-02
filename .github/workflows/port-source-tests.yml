@@ -52,6 +52,9 @@ jobs:
       - name: C233 verify seam-aware private geometric triangle equivalence (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c233_seam_geometry_crosscheck.py' -v
 
+      - name: C234 verify ordered mesh partitions and prevent whole-model false positives (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c234_partition_geometry_crosscheck.py' -v
+
       - name: C229 verify strict aligned C5 topology candidates (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c229_aligned_topology_batch.py' -v
 
