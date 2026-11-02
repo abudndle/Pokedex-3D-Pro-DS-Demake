@@ -26,7 +26,7 @@ class PrivateGeometryBatch(unittest.TestCase):
 
     def pair(self, model, corrupt=False):
         name = f"p{model:03d}"
-        payload = struct.pack("<HHI", 7, 3, 0) + b"\\0" * 18
+        payload = struct.pack("<HHI", 7, 3, 0) + bytes(18)
         vx = b"P3VX" + struct.pack("<HHHHI", 1, model, 1, 0, zlib.crc32(payload)) + payload
         (self.root / f"{name}.p3vx").write_bytes(vx)
         data = struct.pack("<4sHHHHI3H", b"P3IX", 1, model, 1, 7, 1, 0, 1, 2)
