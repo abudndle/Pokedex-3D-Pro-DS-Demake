@@ -36,6 +36,14 @@ class C251GeometryFrameTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "B did not"):
             compare_synthetic(*self.paths)
 
+    def test_stale_preview_behind_home_rejected(self):
+        paint_region(self.paths[2], (100, 100, 120, 120), 200)
+        # A stale model can be small enough for the original B navigation
+        # tolerance; the C252 upper-center gate must reject it explicitly.
+        paint_region(self.paths[3], (115, 85, 130, 100), 200)
+        with self.assertRaisesRegex(ValueError, "stale 3D preview"):
+            compare_synthetic(*self.paths)
+
 
 if __name__ == "__main__":
     unittest.main()
