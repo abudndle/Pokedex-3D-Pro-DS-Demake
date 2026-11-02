@@ -1,0 +1,29 @@
+name: C280 private 32-bpp source to P3PX differential (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c280-pixel-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-original-texture-pixels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate C280 Morton, ARGB channels, alpha and P3PX equivalence (synthetic)
+        run: |
+          python3 -m py_compile tools/c280_private_rgba8_pixel_equivalence.py
+          python3 -m unittest discover -s tests -p 'test_c280_private_rgba8_pixel_equivalence.py' -v
+      - name: Protect original Nintendo texture data and private reports
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C280_PRIVATE_RGBA8_P3PX_DIFFERENTIAL.json
