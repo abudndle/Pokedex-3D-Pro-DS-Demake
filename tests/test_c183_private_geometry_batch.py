@@ -69,6 +69,12 @@ class PrivateGeometryBatch(unittest.TestCase):
         with self.assertRaises(ValueError):
             mod.audit(self.root, self.probe, set())
 
+    def test_probe_must_be_executable(self):
+        self.pair(14)
+        self.probe.chmod(0o600)
+        with self.assertRaisesRegex(ValueError, 'not executable'):
+            mod.audit(self.root, self.probe, {14})
+
     def test_private_path_guard(self):
         with self.assertRaisesRegex(ValueError, "outside public repository"):
             mod.outside_repo(ROOT / "nitrofs")
