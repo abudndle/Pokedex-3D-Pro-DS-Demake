@@ -93,6 +93,9 @@ jobs:
           if-no-files-found: error
           retention-days: 2
 
+      - name: C248 native geometry-only NitroFS loader source contract (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c248_geometry_only_nitrofs_gate.py' -v
+
       - name: C229 verify strict aligned C5 topology candidates (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c229_aligned_topology_batch.py' -v
 

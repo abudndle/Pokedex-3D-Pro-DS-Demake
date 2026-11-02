@@ -250,12 +250,14 @@ static void reload_preview(void){
     char clip_path[80];
     previewStreamPreferChunks(prefer_source_chunks);
     int legacy_preview_found=preview_ready&&resource>=0&&previewStreamLoad(resource);
-    /* C178: prefer exact private P3VX/P3IX only after both bounded files
-     * validate together. Missing or corrupt source pairs use legacy DS3M/P3CS.
-     * The sidecars must come from separately verified original C5 decoding. */
+    /* C248: native P3VX/P3IX can be staged without a legacy DS3M/P3CS
+     * preview directory. Attempt only with mounted NitroFS and a resolved
+     * model resource; the paired native reader still validates both files.
+     * CRC/bounds prove transport, NOT original 3DS renderer provenance.
+     * Missing/corrupt pairs fall back to a loaded legacy preview if present. */
     p3dVerifiedGeometryPairClear(&source_geometry_pair);
     source_geometry_ready=0;
-    if(preview_ready&&resource>=0){
+    if(nitro_ready&&resource>=0){
         char vertex_path[80],index_path[80];
         snprintf(vertex_path,sizeof(vertex_path),
                  "nitro:/geometry/p%03d.p3vx",resource);
@@ -656,7 +658,10 @@ static void render(void) {
             }
             printf("\nY: cycle verified forms\n");
             if(preview_found){
-                printf("Source mesh: %d tris\n",previewStreamTriangleCount());
+                printf("Source mesh: %lu tris\n",
+                       source_geometry_ready ? (unsigned long)source_geometry_pair.triangles
+                                             : (unsigned long)previewStreamTriangleCount());
+                if(source_geometry_ready)printf("Native geometry: untextured candidate\n");
                 printf("Material refs: %s\n",material_references_ready?"verified":"unavailable");
                 printf("Texture data: %s\n",texture_payload_ready?"verified":"unavailable");
                 printf("Native textures: %u\n",preview_gl_textures.count);
