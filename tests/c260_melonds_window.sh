@@ -9,7 +9,7 @@ p3d_melonds_capture_live_window() {
     rm -f "$tmp"
     for ((n=0; n<attempts; n++)); do
         if xwininfo -root -tree > "$tree" 2>/dev/null; then
-            candidate="$(awk 'tolower($0) ~ /"melonds/ {print $1; exit}' "$tree")"
+            candidate="$(awk 'tolower($0) ~ /"[^"]*melonds[^"]*"/ {print $1; exit}' "$tree")"
             if [[ -n "$candidate" ]] &&
                xwininfo -id "$candidate" >/dev/null 2>&1 &&
                xwd -id "$candidate" -silent -out "$tmp" >/dev/null 2>&1 &&
