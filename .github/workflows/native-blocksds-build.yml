@@ -135,6 +135,30 @@ jobs:
           xdotool keyup b
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
+          # C243: deliberate lower-touchscreen hitbox for HOME entry #2
+          # (Move Dex): DS touch y=88+16+8=112, window y=192+112=304.
+          # This is a touchscreen test, NOT a claim that CLI Down works.
+          xdotool mousemove --window "$window_id" 110 304
+          xdotool click 1
+          sleep 2
+          xwd -id "$window_id" -silent -out emulator-move-dex.xwd
+          xdotool keydown b
+          sleep 0.4
+          xdotool keyup b
+          sleep 2
+          xwd -id "$window_id" -silent -out emulator-move-back.xwd
+          # AR Viewer is HOME index 5. On DS it must stay visible but
+          # disabled: touch selects it; A must NOT open a camera page.
+          # Touch y=88+5*16+8=176, window y=368.
+          xdotool mousemove --window "$window_id" 110 368
+          xdotool click 1
+          sleep 2
+          xwd -id "$window_id" -silent -out emulator-ar-selected.xwd
+          xdotool keydown x
+          sleep 0.4
+          xdotool keyup x
+          sleep 2
+          xwd -id "$window_id" -silent -out emulator-ar-after-a.xwd
           # C235 diagnostic: inspect alternate X11 keysyms on the still-open
           # Dex page, without treating any candidate as verified mapping.
           for candidate in KP_Right d l z c v b s; do
@@ -218,6 +242,12 @@ jobs:
           PY
       - name: Verify A opens Dex, Right advances, and B returns home
         run: python3 tests/c235_emulator_frame_gate.py emulator-home.xwd emulator-dex.xwd emulator-after-right.xwd emulator-after-back.xwd
+      - name: Verify touchscreen Move Dex and disabled DS AR Viewer
+        run: |
+          python3 tests/c243_emulator_menu_gate.py \
+            emulator-after-back.xwd emulator-move-dex.xwd \
+            emulator-move-back.xwd emulator-ar-selected.xwd \
+            emulator-ar-after-a.xwd
       - name: Generate readable PNG captures and exact asset-free ROM/source SHA manifest
         run: |
           python3 tests/c242_emulator_evidence.py \
@@ -225,7 +255,9 @@ jobs:
             --commit "$(git rev-parse HEAD)" \
             --output emulator-evidence \
             emulator-home.xwd emulator-dex.xwd \
-            emulator-after-right.xwd emulator-after-back.xwd
+            emulator-after-right.xwd emulator-after-back.xwd \
+            emulator-move-dex.xwd emulator-move-back.xwd \
+            emulator-ar-selected.xwd emulator-ar-after-a.xwd
           test -s emulator-evidence/manifest.json
       - name: Upload emulator visual evidence
         if: always()
@@ -241,6 +273,10 @@ jobs:
             emulator-during-right.xwd
             emulator-after-second-a.xwd
             emulator-after-back.xwd
+            emulator-move-dex.xwd
+            emulator-move-back.xwd
+            emulator-ar-selected.xwd
+            emulator-ar-after-a.xwd
             emulator-during-back.xwd
             emulator-probe-*.xwd
             emulator-keyscan-*.xwd
