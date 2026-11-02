@@ -56,6 +56,8 @@ def inspect(data):
 
 def audit(archives):
     archives = list(archives)
+    if not archives:
+        raise ValueError("no original C5 archives supplied")
     if len(archives) > MAX_ARCHIVES:
         raise ValueError("too many C5 archives")
     records = {}
@@ -65,10 +67,12 @@ def audit(archives):
             infos = archive.infolist()
             if len(infos) > MAX_ZIP_ENTRIES:
                 raise ValueError("C5 ZIP entry budget exceeded")
+            if len({info.filename for info in infos}) != len(infos):
+                raise ValueError("duplicate ZIP member name")
             for info in infos:
                 name = info.filename
-                if not (name.startswith("decoded_c5/") and name.endswith(".c5")):
-                    continue
+                if not name.startswith("decoded_c5/") or not name.endswith(".c5"):
+                    raise ValueError("unexpected C5 ZIP member")
                 match = MODEL_PATH.fullmatch(name)
                 if match is None:
                     raise ValueError("noncanonical C5 member name")
