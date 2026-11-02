@@ -86,6 +86,18 @@ class PrivateGeometryBatch(unittest.TestCase):
         self.assertFalse(report['original_c5_provenance_verified'])
         self.assertFalse(report['private_asset_emulator_verified'])
 
+    def test_reject_degenerate_triangle_before_native_probe(self):
+        for vertices in ((1, 1, 2), (1, 2, 2), (1, 2, 1)):
+            with self.subTest(vertices=vertices):
+                self.pair(14)
+                (self.root / 'p014.p3ix').write_bytes(
+                    struct.pack('<4sHHHHI3H', b'P3IX', 1, 14, 1, 7, 1, *vertices))
+                with unittest.mock.patch.object(mod.subprocess, 'run') as run:
+                    report = mod.audit(self.root, self.probe, {14})
+                self.assertEqual(report['models']['p014']['error'], 'ValueError')
+                self.assertEqual(report['native_pairs_verified'], 0)
+                run.assert_not_called()
+
     def test_index_vertex_capacity_boundary(self):
         self.pair(14)
         index = self.root / 'p014.p3ix'
