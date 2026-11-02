@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from c253_melonds_frame_gate import inspect
+from c253_melonds_frame_gate import inspect, compare_touch
 
 
 def make_window(path, width=512, height=768, colored=True):
@@ -48,6 +48,30 @@ class C253MelonDSFrameTests(unittest.TestCase):
             path.write_bytes(b"XWD")
             with self.assertRaisesRegex(ValueError, "size"):
                 inspect(path)
+
+    def test_real_touch_requires_both_screen_deltas(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home, dex = Path(tmp) / "home.xwd", Path(tmp) / "dex.xwd"
+            make_window(home)
+            make_window(dex)
+            pixels = bytearray(dex.read_bytes())
+            for y0 in (110, 480):
+                for y in range(y0, y0 + 40):
+                    for x in range(110, 150):
+                        pixels[100 + (y * 512 + x) * 4] = 50
+            dex.write_bytes(pixels)
+            result = compare_touch(home, dex)
+            self.assertTrue(result["real_touch_frame_delta_verified"])
+            self.assertFalse(result["original_asset_rendering_verified"])
+
+            # Removing the lower change must reject a fake touch.
+            pixels = bytearray(dex.read_bytes())
+            baseline = home.read_bytes()
+            offset = 100 + 384 * 512 * 4
+            pixels[offset:] = baseline[offset:]
+            dex.write_bytes(pixels)
+            with self.assertRaisesRegex(ValueError, "both DS screens"):
+                compare_touch(home, dex)
 
 
 if __name__ == "__main__":
