@@ -127,4 +127,33 @@ python3 tests/c256_melonds_menu_gate.py \
   c256-melonds-records.xwd c256-melonds-records-back.xwd \
   c256-melonds-album.xwd c256-melonds-album-back.xwd
 echo "C256 real melonDS Challenge/Records/Album touchscreen/B: PASS (asset-free only)"
+# C257: Settings is the seventh HOME entry. Select disabled AR (sixth)
+# first to scroll the six-row text menu, then tap the last visible row.
+# Compare against this scrolled HOME, not the original unscrolled capture.
+xdotool mousemove --window "$window" 55 382
+xdotool mousedown 1
+sleep 0.4
+xdotool mouseup 1
+sleep 2
+xwd -id "$window" -silent -out c257-melonds-home-scrolled.xwd
+xdotool mousemove --window "$window" 55 382
+xdotool mousedown 1
+sleep 0.4
+xdotool mouseup 1
+sleep 2
+xwd -id "$window" -silent -out c257-melonds-settings.xwd
+xdotool keydown x
+sleep 0.4
+xdotool keyup x
+sleep 2
+xwd -id "$window" -silent -out c257-melonds-settings-toggled.xwd
+xdotool keydown z
+sleep 0.4
+xdotool keyup z
+sleep 2
+xwd -id "$window" -silent -out c257-melonds-settings-back.xwd
+python3 tests/c257_melonds_settings_gate.py \
+  c257-melonds-home-scrolled.xwd c257-melonds-settings.xwd \
+  c257-melonds-settings-toggled.xwd c257-melonds-settings-back.xwd
+echo "C257 real melonDS Settings/A rotation/B: PASS (asset-free, no save proof)"
 echo "C253 melonDS 1.1 DS boot + real touchscreen navigation: PASS (not DSi or original assets)"
