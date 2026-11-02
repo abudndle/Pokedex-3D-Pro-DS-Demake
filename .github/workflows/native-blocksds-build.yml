@@ -108,6 +108,15 @@ jobs:
           xdotool keyup z
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
+          # C235 diagnostic: inspect alternate X11 keysyms on the still-open
+          # Dex page, without treating any candidate as verified mapping.
+          for candidate in KP_Right d l z c v b; do
+            xdotool keydown "$candidate"
+            sleep 0.25
+            xdotool keyup "$candidate"
+            sleep 0.5
+            xwd -id "$window_id" -silent -out "emulator-probe-$candidate.xwd"
+          done
           sleep 2
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
@@ -125,7 +134,7 @@ jobs:
           tail -30 /tmp/desmume.log || true
           SCRIPT
           chmod +x /tmp/check_emulator.sh
-          xvfb-run -a -s '-screen 0 1024x768x24' timeout 50s /tmp/check_emulator.sh
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 75s /tmp/check_emulator.sh
       - name: Reject mostly blank emulator display
         run: |
           python3 - <<'PY'
@@ -180,5 +189,6 @@ jobs:
             emulator-after-second-a.xwd
             emulator-after-back.xwd
             emulator-during-back.xwd
+            emulator-probe-*.xwd
             emulator-windows.txt
           if-no-files-found: warn
