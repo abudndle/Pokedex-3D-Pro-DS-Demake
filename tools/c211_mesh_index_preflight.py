@@ -44,6 +44,7 @@ def inspect_pair(vertex_path, index_path, model):
     if ix_version != 1 or ix_model != model or not 1 <= ix_count <= 64:
         raise ValueError("invalid index identity")
     pos, triangles, previous = 10, 0, -1
+    index_meshes = []
     for _ in range(ix_count):
         if pos + 6 > len(ix):
             raise ValueError("truncated index mesh")
@@ -52,6 +53,7 @@ def inspect_pair(vertex_path, index_path, model):
         if mesh <= previous or mesh not in vertices or not count or count > 1800 - triangles:
             raise ValueError("invalid index mesh")
         previous = mesh
+        index_meshes.append(mesh)
         size = count * 6
         if size > len(ix) - pos:
             raise ValueError("truncated index payload")
@@ -63,6 +65,8 @@ def inspect_pair(vertex_path, index_path, model):
                 raise ValueError("degenerate triangle")
         pos += size
         triangles += count
+    if index_meshes != list(vertices):
+        raise ValueError("index and vertex mesh rosters differ")
     if pos != len(ix):
         raise ValueError("trailing index bytes")
     return triangles
