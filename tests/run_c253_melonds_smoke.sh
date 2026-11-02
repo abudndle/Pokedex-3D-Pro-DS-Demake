@@ -2,6 +2,8 @@
 # C253: independent official melonDS 1.1 DS-mode boot probe.
 # This uses only an asset-free development ROM and public emulator binaries.
 set -euo pipefail
+# Qt can destroy the first melonDS window while loading the ROM.
+source tests/c260_melonds_window.sh
 rom="${1:?expected development ROM}"
 app_run="${2:?expected verified melonDS AppRun}"
 test -s "$rom"
@@ -32,7 +34,7 @@ pid=$!
 window=""
 for attempt in $(seq 1 40); do
   xwininfo -root -tree >c253-melonds-windows.txt
-  window="$(awk 'tolower($0) ~ /"melonds/ {print $1; exit}' c253-melonds-windows.txt)"
+  window="$(awk 'tolower($0) ~ /"[^"]*melonds[^"]*"/ {print $1; exit}' c253-melonds-windows.txt)"
   if [ -n "$window" ]; then break; fi
   if ! kill -0 "$pid" 2>/dev/null; then break; fi
   sleep 0.5
@@ -48,8 +50,14 @@ if ! kill -0 "$pid" 2>/dev/null; then
   tail -50 "$temp/melonds.log" || true
   exit 1
 fi
-xwd -id "$window" -silent -out c253-melonds-boot.xwd
-test -s c253-melonds-boot.xwd
+# The first observed XID may have been a transient Qt splash. Do not
+# capture it after a blind sleep: resolve and validate a *live* XID again.
+if ! window="$(p3d_melonds_capture_live_window c253-melonds-boot.xwd 16)"; then
+  echo "melonDS did not expose a capturable live window after startup" >&2
+  tail -50 "$temp/melonds.log" || true
+  cat c253-melonds-windows.txt >&2 || true
+  exit 1
+fi
 python3 tests/c253_melonds_frame_gate.py c253-melonds-boot.xwd
 # Real touch input: first HOME menu entry is Pokédex, inside the lower DS
 # display. Hold stylus long enough to be sampled by the emulated touch scan.
