@@ -658,7 +658,7 @@ static void render(void) {
             }
             printf("\nY: cycle verified forms\n");
             if(preview_found){
-                printf("Source mesh: %d tris\n",previewStreamTriangleCount());
+                printf("Source mesh: %lu tris\n",\n                       source_geometry_ready ? (unsigned long)source_geometry_pair.triangles\n                                             : (unsigned long)previewStreamTriangleCount());\n                if(source_geometry_ready)printf("Native geometry: untextured candidate\\n");
                 printf("Material refs: %s\n",material_references_ready?"verified":"unavailable");
                 printf("Texture data: %s\n",texture_payload_ready?"verified":"unavailable");
                 printf("Native textures: %u\n",preview_gl_textures.count);
