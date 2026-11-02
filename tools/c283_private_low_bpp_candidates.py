@@ -148,7 +148,7 @@ def compressed_candidate_matches(source, width, height, p3px, bits):
     return ("ETC1_LE_3DS_TILE" if bits == 4 else "ETC1A4_LE_3DS_TILE",)
 
 
-def audit(private_root, c84_zip, require_full=False):
+def audit(private_root, c84_zip, require_full=False, extra_candidate=None):
     from c275_private_draw_material_chain import MEMBER, ROSTER, MAX_ENTRIES, MAX_MODEL, MAX_TOTAL
     from c279_private_header_texture_base import source_descriptor_metadata
     from c278_private_texture_format_evidence import parse_catalog, MAX_CATALOG
@@ -242,7 +242,8 @@ def audit(private_root, c84_zip, require_full=False):
                         source = raw[start:start + size]
                         matches = candidate_matches(source, width, height, data, bits)
                         if not matches:
-                            matches = compressed_candidate_matches(source, width, height, data, bits)
+                            matcher = extra_candidate or compressed_candidate_matches
+                            matches = matcher(source, width, height, data, bits)
                         if len(matches) == 1:
                             status = "unique_candidate_consistent_with_C84"
                             layouts[matches[0]] += 1
