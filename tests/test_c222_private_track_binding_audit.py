@@ -42,7 +42,8 @@ class C222PrivateTrackBindingAuditTests(unittest.TestCase):
         damaged=bytearray(sk);damaged[-1]^=1
         with self.assertRaisesRegex(ValueError,"CRC"):
             _build_model(raw,14,bytes(damaged),1)
-        wrong=bytearray(raw);struct.pack_into("<I",wrong,0x80+4,2)
+        wrong=bytearray(raw)
+        for i in range(3): struct.pack_into("<I",wrong,0x80+i*16+4,2)
         with self.assertRaisesRegex(ValueError,"exact source node"):
             _build_model(bytes(wrong),14,sk,1)
 
