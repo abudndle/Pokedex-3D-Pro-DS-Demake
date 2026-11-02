@@ -102,7 +102,7 @@ class PairGateTests(unittest.TestCase):
         self.assertTrue(result['source_triangle_manifest_verified'])
         self.assertFalse(result['complete_original_model_verified'])
         modified = bytearray(ix)
-        modified[-1], modified[-3] = modified[-3], modified[-1]
+        modified[-2] ^= 1
         with self.assertRaisesRegex(ValueError, 'verified original primitive map'):
             mod.validate_source_pair(bytes(source), reference, manifest, vx, bytes(modified), 0)
 
