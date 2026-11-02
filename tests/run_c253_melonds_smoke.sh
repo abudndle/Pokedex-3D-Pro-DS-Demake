@@ -46,4 +46,22 @@ xdotool mouseup 1
 sleep 3
 xwd -id "$window" -silent -out c253-melonds-dex.xwd
 python3 tests/c253_melonds_frame_gate.py c253-melonds-boot.xwd c253-melonds-dex.xwd
+# C254: independently exercise the actual melonDS 1.1 keyboard path.
+# Never substitute a synthetic frame or inferred DS keypad state for proof.
+# If the emulator has no default keyboard binding, fail closed and diagnose.
+xdotool windowfocus --sync "$window"
+xdotool keydown Right
+sleep 0.5
+xdotool keyup Right
+sleep 2
+xwd -id "$window" -silent -out c254-melonds-right.xwd
+xdotool keydown z
+sleep 0.5
+xdotool keyup z
+sleep 2
+xwd -id "$window" -silent -out c254-melonds-back.xwd
+python3 tests/c254_melonds_nav_gate.py \
+  c253-melonds-boot.xwd c253-melonds-dex.xwd \
+  c254-melonds-right.xwd c254-melonds-back.xwd
+echo "C254 melonDS 1.1 real Right/B navigation: PASS (DS-mode asset-free only)"
 echo "C253 melonDS 1.1 DS boot + real touchscreen navigation: PASS (not DSi or original assets)"
