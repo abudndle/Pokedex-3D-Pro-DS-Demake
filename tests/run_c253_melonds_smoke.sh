@@ -16,6 +16,9 @@ export XDG_CONFIG_HOME="$(mktemp -d)"
 # Only write this isolated CI config for the SHA-pinned official AppImage.
 mkdir -m 700 "$XDG_CONFIG_HOME/melonDS"
 cat > "$XDG_CONFIG_HOME/melonDS/melonDS.toml" <<'TOML'
+# melonDS 1.1 TOML serializer requires an explicit parent table; an
+# implicit [Instance0] can abort on Save() after launch.
+[Instance0]
 [Instance0.Keyboard]
 A = 88
 B = 90
