@@ -78,6 +78,21 @@ jobs:
       - name: C247 unique original C5 global XYZ stride and provisional native candidate (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c247_private_global_xyz_candidate.py' -v
 
+      - name: Compile C179 asset-free native GL geometry draw probe for private offline QA
+        run: |
+          cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST -Isource \
+            source/verified_vertex_stream.c source/verified_primitive_stream.c \
+            source/verified_primitive_bridge.c source/verified_geometry_pair.c \
+            source/verified_primitive_draw.c tests/c179_private_geometry_draw_probe.c \
+            -o c179-native-geometry-draw-probe
+      - name: Retain C179 host GL probe executable only (NO Nintendo assets)
+        uses: actions/upload-artifact@v4
+        with:
+          name: c179-native-geometry-draw-probe-linux-x64
+          path: c179-native-geometry-draw-probe
+          if-no-files-found: error
+          retention-days: 2
+
       - name: C229 verify strict aligned C5 topology candidates (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c229_aligned_topology_batch.py' -v
 
