@@ -54,12 +54,17 @@ capture() {
 }
 close_cleanly() {
   xdotool windowclose "$window"
-  for _ in $(seq 1 30); do
-    if ! kill -0 "$pid" 2>/dev/null; then break; fi
+  # A completed child can remain a zombie until Bash wait() reaps it.
+  # kill -0 succeeds for zombies, so inspect process state before failing.
+  local state
+  for _ in $(seq 1 40); do
+    state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+    if [[ -z "$state" || "$state" == Z* ]]; then break; fi
     sleep 0.25
   done
-  if kill -0 "$pid" 2>/dev/null; then
-    echo 'melonDS did not exit cleanly; cannot assert FAT flush' >&2
+  state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+  if [[ -n "$state" && "$state" != Z* ]]; then
+    echo "melonDS did not exit cleanly (process state: $state)" >&2
     return 1
   fi
   wait "$pid" || { echo 'melonDS exited with an error' >&2; return 1; }
