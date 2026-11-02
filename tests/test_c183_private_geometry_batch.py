@@ -87,6 +87,11 @@ class PrivateGeometryBatch(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'symlink'):
             mod.audit(alias / 'pairs', self.probe, {14})
 
+    def test_reject_directory_disguised_as_pair(self):
+        (self.root / 'p014.p3vx').mkdir()
+        with self.assertRaisesRegex(ValueError, 'unexpected'):
+            mod.audit(self.root, self.probe, {14})
+
     def test_private_path_guard(self):
         with self.assertRaisesRegex(ValueError, "outside public repository"):
             mod.outside_repo(ROOT / "nitrofs")
