@@ -98,14 +98,15 @@ def verify(c5, obj_text):
         if at % 4 == 0:
             position = at
             nonzero_padding = 0
-            for group in groups:
+            for mesh_index, group in enumerate(groups):
                 end = position + len(group)
                 if end > len(c5) or c5[position:end] != group:
                     break
                 aligned = (end + 3) & ~3
                 if aligned > len(c5):
                     break
-                nonzero_padding += bool(any(c5[end:aligned]))
+                if mesh_index + 1 < len(groups):
+                    nonzero_padding += bool(any(c5[end:aligned]))
                 position = aligned
             else:
                 found.append((at, nonzero_padding))
