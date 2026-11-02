@@ -5,6 +5,7 @@ Byte density is NOT a decoded pixel format, swizzle, GPU sampler assignment,
 or proof of source pixel fidelity. No private data enters CI.
 """
 import argparse
+import hashlib
 import collections
 import json
 import re
@@ -93,16 +94,22 @@ def verify_model(model_id, raw, catalog_raw, c73_rows):
         if row["source_name"] != source_names[idx]["original_texture_name"]:
             raise ValueError("C5/P3TM original texture name mismatch")
         anchored = idx in c73_rows
-        if anchored and (c73_rows[idx] != (start, size, digest)
-                         or row["source_offset"] != start or row["source_sha256"] != digest):
-            raise ValueError("C73/P3TM source offset/SHA anchor mismatch")
-        # P3TM may derive from the same C5/C73 extraction; unanchored
-        # rows cannot establish independent provenance.
+        if anchored:
+            verified_offset, verified_size, verified_sha = c73_rows[idx]
+            if (verified_size != size or verified_offset < 0
+                    or verified_offset + size > len(raw)
+                    or hashlib.sha256(raw[verified_offset:verified_offset + size]).hexdigest() != verified_sha
+                    or row["source_offset"] != verified_offset or row["source_sha256"] != verified_sha):
+                raise ValueError("C73/P3TM original source offset/SHA anchor mismatch")
+        # C277 EOF-derived tail is a separate hypothesis. It MUST NOT
+        # override independently SHA-anchored C73 source offsets.
+        tail_matches = anchored and c73_rows[idx] == (start, size, digest)
         records.append({"index": idx, "opaque_source_format": row["opaque_format"],
                         "width": row["width"], "height": row["height"],
                         "source_bytes": size,
                         "byte_density": byte_density(size, row["width"], row["height"]),
                         "c73_source_sha_anchor": anchored,
+                        "c277_tail_matches_c73": tail_matches,
                         "p3tm_offset_matches_tail_candidate": row["source_offset"] == start,
                         "p3tm_sha_matches_tail_candidate": row["source_sha256"] == digest,
                         "pixel_format_decoded": False, "gpu_sampler_verified": False})
@@ -175,6 +182,9 @@ def audit(private_root, catalog_zip, c73_csv, require_full=False):
     summary = {"schema": SCHEMA, "models": len(models),
                "source_texture_descriptors": sum(counts.values()),
                "c73_sha_anchored_rows": anchored,
+               "c277_tail_disagreements_with_c73": sum(
+                   x["c73_source_sha_anchor"] and not x.get("c277_tail_matches_c73", False)
+                   for m in models for x in m["records"]),
                "source_rows_missing_p3tm_metadata": counts["NO_P3TM_METADATA"],
                "storage_density_classes": dict(sorted(counts.items())),
                "verified_pixel_formats": 0, "verified_gpu_sampler_roles": 0,
