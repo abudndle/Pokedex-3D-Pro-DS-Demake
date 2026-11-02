@@ -33,6 +33,26 @@ int main(void){
  assert(p3dDexNavigate(-10,1)==1);
  assert(p3dDexNavigate(900,-1)==647);
  assert(p3dDexNavigate(100,0)==100);
+ /* C220: active and resumable selections must change as one operation. */
+ int active=0,saved=0;
+ assert(p3dDexNavigateSync(&active,&saved,1)==1);
+ assert(active==1 && saved==1);
+ assert(p3dDexNavigateSync(&active,&saved,1)==1);
+ assert(active==2 && saved==2);
+ assert(p3dDexNavigateSync(&active,&saved,-1)==1);
+ assert(active==1 && saved==1);
+ assert(p3dDexNavigateSync(&active,&saved,-1)==1);
+ assert(active==0 && saved==0);
+ assert(p3dDexNavigateSync(&active,&saved,-1)==0);
+ assert(active==0 && saved==0);
+ active=648;saved=0;
+ assert(p3dDexNavigateSync(&active,&saved,1)==1);
+ assert(active==648 && saved==648);
+ active=-9;saved=900;
+ assert(p3dDexNavigateSync(&active,&saved,0)==1);
+ assert(active==0 && saved==0);
+ assert(p3dDexNavigateSync(NULL,&saved,1)==-1);
+ assert(p3dDexNavigateSync(&active,NULL,1)==-1);
  puts("Graphical and Pokedex navigation: PASS");
  return 0;
 }
