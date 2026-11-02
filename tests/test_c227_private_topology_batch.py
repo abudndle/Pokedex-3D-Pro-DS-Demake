@@ -88,7 +88,7 @@ class C227TopologyTests(unittest.TestCase):
             self.assertFalse(result["independent_topology_provenance_verified"])
             self.assertEqual(len(list((output / "topology").glob("*.json"))), 730)
             self.assertEqual(json.loads((output / "summary.json").read_text())["c5_models_audited"], 730)
-            self.assertTrue((output / "summary.json").read_bytes().endswith(b"\\n"))
+            self.assertTrue((output / "summary.json").read_bytes().endswith(b"\n"))
             self.assertEqual(os.stat(output / "summary.json").st_mode & 0o777, 0o600)
             self.assertEqual(os.stat(output).st_mode & 0o777, 0o700)
             with self.assertRaisesRegex(ValueError, "must not already exist"):
