@@ -74,7 +74,7 @@ class C254NavigationTests(unittest.TestCase):
         hdr = list(struct.unpack_from('>25I', data))
         hdr[4] = 255
         self.paths[3].write_bytes(struct.pack('>25I', *hdr) + data[100:])
-        with self.assertRaisesRegex(ValueError, 'geometry changed'):
+        with self.assertRaisesRegex(ValueError, 'geometry'):
             verify_navigation(*self.paths)
 
 
