@@ -46,5 +46,20 @@ int main(int argc,char **argv){
  assert(!a.folder[0]);
  assert(p3dPhotoAlbumOpen(&a,argv[1]));
  assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==8);
- puts("C269 reject non-file and symlinked SD Album entries: PASS");return 0;
+ /* C270: deep FAT Album pages must not require repeated directory scans.
+  * Test >1000 sparse IDs, descending order, page boundaries and overflow. */
+ for(int i=1000;i<2024;i++){
+  snprintf(path,sizeof(path),"%s/AR_%04d.png",argv[1],i);
+  f=fopen(path,"wb");assert(f);fclose(f);
+ }
+ assert(p3dPhotoAlbumPage(&a,names,7,0,&total)==7&&total==1032);
+ assert(strcmp(names[0],"AR_2023.png")==0&&strcmp(names[6],"AR_2017.png")==0);
+ assert(p3dPhotoAlbumPage(&a,names,7,1023,&total)==7&&total==1032);
+ assert(strcmp(names[0],"AR_1000.png")==0&&strcmp(names[1],"AR_0009.png")==0);
+ assert(strcmp(names[6],"AR_0004.png")==0);
+ assert(p3dPhotoAlbumPage(&a,names,7,1031,&total)==1&&total==1032);
+ assert(strcmp(names[0],"AR_0001.png")==0);
+ assert(p3dPhotoAlbumPage(&a,names,7,1032,&total)==0&&total==1032);
+ assert(p3dPhotoAlbumPage(&a,names,7,SIZE_MAX,&total)==0&&total==1032);
+ puts("C270 bounded single-pass SD Album pagination: PASS");return 0;
 }
