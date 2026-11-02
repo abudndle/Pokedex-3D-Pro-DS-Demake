@@ -35,6 +35,24 @@ class MeshPreflightTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "mesh-local"):
                 mod.inspect_pair(vp, ip, 14)
 
+    def test_vertex_stream_model_identity_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vp, ip = self.pair(tmp)
+            raw = bytearray(vp.read_bytes())
+            struct.pack_into("<H", raw, 6, 15)
+            vp.write_bytes(raw)
+            with self.assertRaisesRegex(ValueError, "vertex identity"):
+                mod.inspect_pair(vp, ip, 14)
+
+    def test_index_stream_model_identity_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vp, ip = self.pair(tmp)
+            raw = bytearray(ip.read_bytes())
+            struct.pack_into("<H", raw, 6, 15)
+            ip.write_bytes(raw)
+            with self.assertRaisesRegex(ValueError, "index identity"):
+                mod.inspect_pair(vp, ip, 14)
+
     def test_duplicate_vertex_mesh_ids_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             vp, ip = self.pair(tmp)
