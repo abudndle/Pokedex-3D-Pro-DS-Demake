@@ -10,6 +10,7 @@ esac
 temp="$(mktemp -d)"
 trap 'if [ -n "${pid:-}" ]; then kill "$pid" 2>/dev/null || true; fi; rm -rf "$temp"' EXIT
 export XDG_CONFIG_HOME="$temp/config"
+mkdir -m 700 "$XDG_CONFIG_HOME"
 python3 tools/c236_desmume_keymap.py --xdg-config-home "$XDG_CONFIG_HOME"
 cc -std=c11 -Wall -Wextra -Werror -fPIC -shared \
   tests/c238_sdl_event_trace.c -ldl -o "$temp/input-adapter.so"
