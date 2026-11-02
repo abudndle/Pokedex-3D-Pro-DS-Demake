@@ -78,6 +78,18 @@ class C180Coverage(unittest.TestCase):
         buffer.seek(0)
         return buffer
 
+    def test_empty_archive_list_rejected(self):
+        with self.assertRaisesRegex(ValueError, "no original C5"):
+            mod.audit([])
+
+    def test_unexpected_member_rejected(self):
+        with self.assertRaisesRegex(ValueError, "unexpected C5 ZIP member"):
+            mod.audit([self.archive([("README.txt", b"unrelated")])])
+
+    def test_duplicate_member_name_rejected(self):
+        with self.assertRaisesRegex(ValueError, "duplicate ZIP member"):
+            mod.audit([self.archive([("README.txt", b"a"), ("README.txt", b"b")])])
+
     def test_single_model_is_incomplete_not_verified(self):
         report = mod.audit([self.archive([("decoded_c5/p000.c5", self.fixture())])])
         self.assertEqual(report["present"], 1)
@@ -117,8 +129,8 @@ class C180Coverage(unittest.TestCase):
                 mod.audit([archive])
 
     def test_archive_entry_budget(self):
-        archive = self.archive([("ignored.txt", b"x"),
-                                ("decoded_c5/p000.c5", self.fixture())])
+        archive = self.archive([("decoded_c5/p000.c5", self.fixture()),
+                                ("decoded_c5/p001.c5", self.fixture())])
         with mock.patch.object(mod, "MAX_ZIP_ENTRIES", 1):
             with self.assertRaisesRegex(ValueError, "ZIP entry budget"):
                 mod.audit([archive])
