@@ -34,7 +34,7 @@ pid=$!
 window=""
 for attempt in $(seq 1 40); do
   xwininfo -root -tree >c253-melonds-windows.txt
-  window="$(awk 'tolower($0) ~ /"melonds/ {print $1; exit}' c253-melonds-windows.txt)"
+  window="$(awk 'tolower($0) ~ /"[^"]*melonds[^"]*"/ {print $1; exit}' c253-melonds-windows.txt)"
   if [ -n "$window" ]; then break; fi
   if ! kill -0 "$pid" 2>/dev/null; then break; fi
   sleep 0.5
