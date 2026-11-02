@@ -53,7 +53,10 @@ capture() {
   fi
 }
 close_cleanly() {
-  xdotool windowclose "$window"
+  # melonDS 1.1 Window.cpp installs SIGINT -> Qt onQuit() via socketpair.
+  # This flushes FATStorage on normal teardown; X11 WM_DELETE can leave
+  # the emulation process running with no visible window.
+  kill -INT "$pid"
   # A completed child can remain a zombie until Bash wait() reaps it.
   # kill -0 succeeds for zombies, so inspect process state before failing.
   local state
