@@ -2,7 +2,7 @@
 
 The C172 primitive-coverage gate previously used the u16 field at C5 offset `0x10` as its mesh descriptor count. Private authorized C56 source inspection showed that this is **not** the primary or secondary descriptor count. Those counts are at `0x14` and `0x16`, and the table boundaries are the three u32 values at `0x3c`. For example, one private source model had 3 primary and 3 secondary descriptors while the unrelated `0x10` field was 4. No original bytes, private hashes or per-model payloads are included here.
 
-In a private structural pass over 250 C56 Part 1 models, all 250 had primary and secondary table extents consistent with their actual descriptor counts; no proprietary data was uploaded.
+In a private structural pass over all **730 authorized C56 models**, all **730/730** had structurally valid primary and secondary table extents and bounded descriptor payloads (**3,759 primary and 3,759 secondary descriptors**). The unrelated header field at `0x10` disagreed with the actual primary descriptor count in **560/730** models. These are structural checks only, not original triangle-topology proof. No proprietary data, private per-model hashes or payloads were uploaded.
 
 The C213 gate now validates the original C5 magic, both descriptor table lengths, each claimed mesh's presence in **both** tables, bounded vertex and primitive payloads, source vertex counts and index-count consistency. It rejects a mesh that was previously accepted only because the unrelated `0x10` field was larger than the actual descriptor count.
 
