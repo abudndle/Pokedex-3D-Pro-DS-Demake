@@ -42,6 +42,7 @@ check-host:
 		echo "Running $$test"; sh "tests/$$test"; \
 	done
 	@python3 -m unittest discover -s tests -p 'test_c180_private_c5_coverage.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c183_private_geometry_batch.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c179_private_geometry_draw_probe.py' -v
 	@python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 	@python3 -m unittest discover -s tests -p 'test_inspect_ds3m.py' -v
