@@ -87,8 +87,9 @@ sleep 0.4
 xdotool mouseup 1
 sleep 2
 xwd -id "$window" -silent -out c255-melonds-ar-disabled.xwd
-# A real touchscreen tap on HOME's second row must enter Move Dex.
-xdotool mousemove --window "$window" 55 318
+# After selecting disabled AR, HOME scrolls up one 16px row; Move Dex
+# is now the first visible row at Qt y=302 (not the old y=318).
+xdotool mousemove --window "$window" 55 302
 xdotool mousedown 1
 sleep 0.4
 xdotool mouseup 1
