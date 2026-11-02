@@ -79,7 +79,10 @@ def audit(root, probe, roster=None):
     roster = set(requested)
     if len(roster) != len(requested):
         raise ValueError("duplicate model roster entries")
-    probe = Path(probe).resolve()
+    probe_path = Path(probe).expanduser().absolute()
+    if any(part.is_symlink() for part in (probe_path, *probe_path.parents)):
+        raise ValueError('native draw probe symlink rejected')
+    probe = probe_path.resolve()
     if not probe.is_file():
         raise ValueError("native draw probe missing")
     if not os.access(probe, os.X_OK):

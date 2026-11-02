@@ -85,6 +85,26 @@ class PrivateGeometryBatch(unittest.TestCase):
         with self.assertRaises(ValueError):
             mod.audit(self.root, self.probe, set())
 
+    def test_reject_probe_symlink(self):
+        alias = self.root.parent / 'alias-probe'
+        alias.symlink_to(self.probe)
+        with self.assertRaisesRegex(ValueError, 'probe symlink'):
+            mod.audit(self.root, alias, {14})
+
+    def test_reject_probe_symlinked_parent(self):
+        self.pair(14)
+        alias = pathlib.Path(self.temp.name) / 'alias-bin'
+        alias.symlink_to(self.probe.parent, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'probe symlink'):
+            mod.audit(self.root, alias / 'probe', {14})
+
+    def test_reject_probe_broken_symlink(self):
+        self.pair(14)
+        alias = pathlib.Path(self.temp.name) / 'broken-probe'
+        alias.symlink_to(self.root / 'missing-executable')
+        with self.assertRaisesRegex(ValueError, 'probe symlink'):
+            mod.audit(self.root, alias, {14})
+
     def test_probe_must_be_executable(self):
         self.pair(14)
         self.probe.chmod(0o600)
