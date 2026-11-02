@@ -24,3 +24,12 @@ int p3dDexNavigate(int current,int direction){
  if(direction>0 && current<648)return current+1;
  return current;
 }
+
+int p3dDexNavigateSync(int *active,int *saved,int direction){
+ if(!active||!saved)return -1;
+ int next=p3dDexNavigate(*active,direction);
+ int changed=(next!=*active)||(*saved!=next);
+ *active=next;
+ *saved=next;
+ return changed;
+}
