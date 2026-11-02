@@ -92,6 +92,7 @@ sleep 4
 capture c260-melonds-fat-favorite.xwd
 close_cleanly
 python3 tests/c260_fat_slot_gate.py "$sd_root/export"
+python3 tests/c263_fat_records_gate.py "$sd_root/export"
 # Relaunch with the same FAT image and folder, proving cross-boot restoration.
 launch
 capture c260-melonds-fat-resumed.xwd
@@ -130,4 +131,6 @@ capture c261-melonds-challenge-resumed.xwd
 python3 tests/c253_melonds_frame_gate.py c260-melonds-fat-home.xwd c261-melonds-challenge-resumed.xwd
 close_cleanly
 python3 tests/c261_fat_challenge_gate.py "$sd_root/export"
+# C263: real P3RC Records visit must survive the third emulator boot.
+python3 tests/c263_fat_records_gate.py "$sd_root/export"
 echo 'C261 real melonDS FAT Challenge progress, favorite retention and cross-boot resume: PASS (asset-free DS mode only)'
