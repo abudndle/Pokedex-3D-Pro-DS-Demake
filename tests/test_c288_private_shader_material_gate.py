@@ -30,14 +30,16 @@ def fixture():
                         "draws": [{"draw_index": 0, "mesh_index": 0, "material_index": 0,
                                    "shader_index": 3, "shader_declaration": material["shader_declaration"],
                                    "source_material_name": "synthetic",
-                                   "source_texture_reference_indices": [2, 65535]}]}]}
+                                   "source_texture_reference_indices": [2, 65535],
+                                   "source_texture_reference_names": ["syntheticColor", None]}]}]}
     c287 = {"summary": {"schema": "C287_PRIVATE_DRAW_TO_SOURCE_TEXTURE_CHAIN_V1"},
             "models": [{"model_id": "p000", "source_c5_sha256": sha,
                         "draws": [{"draw_index": 0, "mesh_index": 0, "material_index": 0,
                                    "source_draw_material_reference_verified": True,
                                    "gpu_sampler_verified": False, "native_p3px_binding_verified": False,
                                    "texture_reference_slots": [
-                                       {"slot": 0, "source_texture_index": 2, "gpu_sampler_verified": False,
+                                       {"slot": 0, "source_texture_index": 2, "source_texture_name": "syntheticColor",
+                                        "gpu_sampler_verified": False,
                                         "native_p3px_binding_verified": False},
                                        {"slot": 1, "source_texture_index": None, "status": "SOURCE_REFERENCE_ABSENT",
                                         "gpu_sampler_verified": False, "native_p3px_binding_verified": False}]}]}]}
@@ -80,6 +82,18 @@ class GateTests(unittest.TestCase):
         a, b, c = fixture()
         b["models"][0]["draws"][0]["texture_reference_slots"][0]["source_texture_index"] = 1
         with self.assertRaisesRegex(ValueError, "slot mismatch"):
+            reconcile(a, b, c)
+
+    def test_mismatched_source_texture_name(self):
+        a, b, c = fixture()
+        b["models"][0]["draws"][0]["texture_reference_slots"][0]["source_texture_name"] = "wrong"
+        with self.assertRaisesRegex(ValueError, "source texture name"):
+            reconcile(a, b, c)
+
+    def test_missing_source_texture_name_rejected(self):
+        a, b, c = fixture()
+        del a["models"][0]["draws"][0]["source_texture_reference_names"]
+        with self.assertRaisesRegex(ValueError, "source names"):
             reconcile(a, b, c)
 
     def test_forged_gpu_sampler_claim(self):
