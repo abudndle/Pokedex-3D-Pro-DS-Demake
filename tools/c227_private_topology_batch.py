@@ -6,6 +6,10 @@ materials, textures, skin weights, or animations. Per-model face lists are
 derived from private Nintendo source data and MUST remain outside this repo.
 """
 import argparse
+import os
+import shutil
+import stat
+import tempfile
 from collections import Counter
 import json
 import re
@@ -19,6 +23,9 @@ START_TRIANGLES = struct.pack("<6H", 0, 1, 2, 0, 2, 3)
 MODEL_MEMBER = re.compile(r"decoded_c5/p([0-9]{3})\.c5\Z")
 EXPECTED_MODELS = {f"p{i:03d}" for i in range(734) if i not in (721, 722, 723, 724)}
 REPO_ROOT = Path(__file__).resolve().parents[1]
+MAX_MEMBER_BYTES = 64 * 1024 * 1024
+MAX_TOTAL_BYTES = 1024 * 1024 * 1024
+MAX_ZIP_ENTRIES = 2048
 
 
 def inspect_faces(values, vertex_count):
@@ -109,64 +116,111 @@ def _outside_repo(path, label):
     return resolved
 
 
-def audit_archives(archive_dir, output_dir):
-    archive_dir = _outside_repo(archive_dir, "private archive directory")
-    output_dir = _outside_repo(output_dir, "private output directory")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    topology_dir = output_dir / "topology"
-    topology_dir.mkdir(parents=True, exist_ok=True)
+def _private_json(path, payload):
+    """Write a 0600 file atomically; never follow an existing destination link."""
+    if path.is_symlink():
+        raise ValueError("private output symlink refused")
+    fd, temporary = tempfile.mkstemp(prefix=".c227-", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            os.fchmod(stream.fileno(), 0o600)
+            json.dump(payload, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
 
+
+def _archive_roster(archive_dir):
+    """Validate all ZIP metadata before decompressing or writing any model."""
+    members = []
     seen = set()
-    totals = Counter()
-    failures = Counter()
+    total_bytes = 0
     for part in (1, 2, 3):
-        archive_path = archive_dir / f"Pokedex3D_C56_Decoded_C5_Part_{part}_of_3.zip"
-        with zipfile.ZipFile(archive_path) as archive:
-            if len({entry.filename for entry in archive.infolist()}) != len(archive.infolist()):
+        path = archive_dir / f"Pokedex3D_C56_Decoded_C5_Part_{part}_of_3.zip"
+        with zipfile.ZipFile(path) as archive:
+            infos = archive.infolist()
+            if len(infos) > MAX_ZIP_ENTRIES:
+                raise ValueError("ZIP entry count budget exceeded")
+            if len({info.filename for info in infos}) != len(infos):
                 raise ValueError("duplicate ZIP member name")
-            corrupt = archive.testzip()
-            if corrupt is not None:
-                raise ValueError(f"ZIP CRC failure: {archive_path.name}")
-            for entry in archive.infolist():
-                match = MODEL_MEMBER.fullmatch(entry.filename)
+            for info in infos:
+                match = MODEL_MEMBER.fullmatch(info.filename)
                 if match is None:
                     raise ValueError("unexpected private C5 archive member")
                 model = f"p{int(match.group(1)):03d}"
                 if model in seen:
                     raise ValueError("duplicate source model")
                 seen.add(model)
-                try:
-                    result = find_topology(archive.read(entry), model)
-                except Exception as exc:
-                    failures[str(exc).split(":")[0][:100]] += 1
-                    continue
-                (topology_dir / f"{model}.json").write_text(
-                    json.dumps(result, indent=2, sort_keys=True) + "\n",
-                    encoding="utf-8")
-                totals["models_with_topology"] += 1
-                totals["meshes"] += result["mesh_count"]
-                totals["vertices"] += result["vertex_count"]
-                totals["triangles"] += result["triangle_count"]
-
+                mode = info.external_attr >> 16
+                if (info.is_dir() or stat.S_ISLNK(mode) or info.flag_bits & 1
+                        or info.file_size > MAX_MEMBER_BYTES):
+                    raise ValueError("unsafe or oversized C5 archive member")
+                if info.file_size < 0 or total_bytes + info.file_size > MAX_TOTAL_BYTES:
+                    raise ValueError("aggregate C5 byte budget exceeded")
+                total_bytes += info.file_size
+                members.append((path, info.filename, info.file_size, model))
     if seen != EXPECTED_MODELS:
         raise ValueError("private C5 roster is incomplete or unexpected")
-    summary = {
-        "schema": "p3d-c227-private-c5-topology-summary-v1",
-        "c5_models_audited": len(seen),
-        "models_with_strict_topology": totals["models_with_topology"],
-        "models_without_strict_topology": len(seen) - totals["models_with_topology"],
-        "verified_mesh_groups": totals["meshes"],
-        "verified_vertices_referenced": totals["vertices"],
-        "verified_triangles": totals["triangles"],
-        "failure_categories": dict(sorted(failures.items())),
-        "per_model_topology_files": "topology/pNNN.json (private; do not publish)",
-        "complete_models_verified": False,
-        "native_ds_rendering_verified": False,
-    }
-    (output_dir / "summary.json").write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return summary
+    return members
 
+
+def audit_archives(archive_dir, output_dir):
+    archive_dir = _outside_repo(archive_dir, "private archive directory")
+    output_dir = _outside_repo(output_dir, "private output directory")
+    # Never reuse an old report: partial results must not look like a full audit.
+    if output_dir.exists() or output_dir.is_symlink():
+        raise ValueError("private output directory must not already exist")
+    members = _archive_roster(archive_dir)
+    parent = output_dir.parent
+    parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    staging = Path(tempfile.mkdtemp(prefix=".c227-private-", dir=parent))
+    os.chmod(staging, 0o700)
+    try:
+        topology_dir = staging / "topology"
+        topology_dir.mkdir(mode=0o700)
+        totals = Counter()
+        failures = Counter()
+        for archive_path, name, expected_size, model in members:
+            with zipfile.ZipFile(archive_path) as archive:
+                with archive.open(name) as stream:
+                    data = stream.read(MAX_MEMBER_BYTES + 1)
+            if len(data) != expected_size or len(data) > MAX_MEMBER_BYTES:
+                raise ValueError("C5 decompressed member size mismatch")
+            try:
+                result = find_topology(data, model)
+            except ValueError as exc:
+                failures[str(exc).split(":")[0][:100]] += 1
+                continue
+            _private_json(topology_dir / f"{model}.json", result)
+            totals["models_with_topology"] += 1
+            totals["meshes"] += result["mesh_count"]
+            totals["vertices"] += result["vertex_count"]
+            totals["triangles"] += result["triangle_count"]
+        summary = {
+            "schema": "p3d-c227-private-c5-topology-summary-v1",
+            "c5_models_audited": len(members),
+            "models_with_strict_topology": totals["models_with_topology"],
+            "models_without_strict_topology": len(members) - totals["models_with_topology"],
+            "verified_mesh_groups": totals["meshes"],
+            "verified_vertices_referenced": totals["vertices"],
+            "verified_triangles": totals["triangles"],
+            "failure_categories": dict(sorted(failures.items())),
+            "per_model_topology_files": "topology/pNNN.json (private; do not publish)",
+            "independent_topology_provenance_verified": False,
+            "complete_models_verified": False,
+            "native_ds_rendering_verified": False,
+        }
+        _private_json(staging / "summary.json", summary)
+        if output_dir.exists() or output_dir.is_symlink():
+            raise ValueError("private output destination appeared during audit")
+        os.rename(staging, output_dir)
+        return summary
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
