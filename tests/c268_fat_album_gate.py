@@ -9,7 +9,8 @@ PHOTO = re.compile(r"AR_[0-9]{4}\.png\Z")
 
 def check(root: Path, expected: tuple[str, ...]) -> dict:
     folder = root / "Pokedex 3D Pro" / "Photos"
-    if folder.is_symlink() or not folder.is_dir():
+    parent = root / "Pokedex 3D Pro"
+    if root.is_symlink() or parent.is_symlink() or folder.is_symlink() or not folder.is_dir():
         raise ValueError("native FAT Album folder missing or symlinked")
     found = []
     for entry in folder.iterdir():
