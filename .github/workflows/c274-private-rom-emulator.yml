@@ -1,0 +1,41 @@
+name: C274 C272-built synthetic private ROM real DeSmuME gate
+on:
+  push:
+    paths:
+      - 'source/**'
+      - 'Makefile.native'
+      - 'tools/c272_private_rom_build.py'
+      - 'tools/c249_private_geometry_nitrofs.py'
+      - 'tests/run_c274_private_rom_emulator_gate.sh'
+      - '.github/workflows/c274-private-rom-emulator.yml'
+  pull_request:
+    paths:
+      - 'source/**'
+      - 'Makefile.native'
+      - 'tools/c272_private_rom_build.py'
+      - 'tools/c249_private_geometry_nitrofs.py'
+      - 'tests/run_c274_private_rom_emulator_gate.sh'
+      - '.github/workflows/c274-private-rom-emulator.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c274-private-synthetic-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-synthetic-rom-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install real DeSmuME and X11 input/capture dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y desmume xvfb x11-apps x11-utils xdotool
+      - name: C274 C249 stage through C272 native ROM and real DeSmuME
+        shell: bash
+        run: bash tests/run_c274_private_rom_emulator_gate.sh
+      # No ROM, private SHA report, model data or captures are uploaded.
