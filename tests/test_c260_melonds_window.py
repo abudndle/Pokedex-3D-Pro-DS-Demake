@@ -24,7 +24,7 @@ windows=(p/'windows').read_text().splitlines()
 if sys.argv[1:]==['-root','-tree']:
  n=int((p/'counter').read_text()); (p/'counter').write_text(str(n+1))
  w=windows[min(n,len(windows)-1)]
- print('  '+w+' "melonDS 1.1"') if w!='none' else None
+ print('  '+w+' "[60/60] melonDS 1.1"') if w!='none' else None
  sys.exit(0)
 if sys.argv[1]=='-id':
  sys.exit(0 if sys.argv[2] in windows and sys.argv[2]!='none' else 1)
