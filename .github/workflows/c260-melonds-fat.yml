@@ -4,14 +4,18 @@ on:
     paths:
       - 'source/**'
       - 'tests/c260_*'
+      - 'tests/c261_*'
       - 'tests/test_c260_*'
+      - 'tests/test_c261_*'
       - 'tests/run_c260_*'
       - '.github/workflows/c260-melonds-fat.yml'
   pull_request:
     paths:
       - 'source/**'
       - 'tests/c260_*'
+      - 'tests/c261_*'
       - 'tests/test_c260_*'
+      - 'tests/test_c261_*'
       - 'tests/run_c260_*'
       - '.github/workflows/c260-melonds-fat.yml'
   workflow_dispatch:
@@ -28,6 +32,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fail closed on synthetic FAT slot corruption and ambiguity
         run: python3 -m unittest discover -s tests -p 'test_c260_fat_slot_gate.py' -v
+      - name: C261 fail-closed Challenge progress and page checkpoint regressions
+        run: python3 -m unittest discover -s tests -p 'test_c261_fat_challenge_gate.py' -v
       - name: Compile asset-free native BlocksDS ROM and verify ARM sections
         run: |
           docker run --rm -v "$PWD:/work" -w /work \
@@ -58,7 +64,7 @@ jobs:
       - name: Verify real DLDI FAT writes and Pokédex resume across two emulator launches
         shell: bash
         run: |
-          xvfb-run -a -s '-screen 0 1024x768x24' timeout 170s \
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 220s \
             bash tests/run_c260_melonds_fat.sh \
             "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C260_APP_RUN"
       - name: Preserve only synthetic development-ROM dual-screen captures
@@ -68,6 +74,7 @@ jobs:
           name: c260-melonds-asset-free-fat-screen-evidence
           path: |
             c260-melonds-fat-*.xwd
+            c261-melonds-*.xwd
             c260-melonds-windows.txt
           if-no-files-found: ignore
           retention-days: 3
