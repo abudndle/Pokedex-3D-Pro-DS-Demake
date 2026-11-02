@@ -2,6 +2,8 @@
 import importlib.util
 from pathlib import Path
 import struct
+import subprocess
+import tempfile
 import sys
 import unittest
 import zlib
@@ -101,6 +103,18 @@ class PairGateTests(unittest.TestCase):
         self.assertEqual((result['vertices'], result['triangles']), (4, 2))
         self.assertTrue(result['source_triangle_manifest_consistent'])
         self.assertFalse(result['complete_original_model_verified'])
+        # Exercise the real native C geometry loader and GL call sequence.
+        from c183_private_geometry_batch import build_probe
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            probe = folder/'native-probe'
+            vertex_file = folder/'p000.p3vx'
+            index_file = folder/'p000.p3ix'
+            vertex_file.write_bytes(vx)
+            index_file.write_bytes(ix)
+            build_probe(probe)
+            subprocess.run([str(probe), str(vertex_file), str(index_file), '0', '2'],
+                           check=True, capture_output=True, timeout=15)
         modified = bytearray(ix)
         modified[-2] ^= 1
         with self.assertRaisesRegex(ValueError, 'verified original primitive map'):
