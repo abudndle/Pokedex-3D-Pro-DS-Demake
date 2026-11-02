@@ -28,6 +28,9 @@ jobs:
       - name: C260 native P3SV/P3RV cross-process save and torn-slot recovery (host only)
         run: sh tests/run_c260_save_process_resume.sh
 
+      - name: C268 fail-closed synthetic FAT Album roster and deletion
+        run: python3 -m unittest discover -s tests -p 'test_c268_fat_album_gate.py' -v
+
       - name: C235 deterministic DeSmuME frame gate (synthetic XWD only)
         run: python3 -m unittest discover -s tests -p 'test_c235_emulator_frame_gate.py' -v
       - name: C236 isolated SDL2 DeSmuME keypad config (synthetic)
