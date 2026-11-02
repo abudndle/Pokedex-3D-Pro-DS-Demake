@@ -67,12 +67,19 @@ jobs:
           python3 tools/c236_desmume_keymap.py --xdg-config-home "$XDG_CONFIG_HOME"
           echo "Installed DeSmuME package:"
           dpkg-query -W desmume
+          # The installed 0.9.13 CLI has a verified u32/u16 default-key
+          # memcpy mismatch and resets parsed [KEYS] to those bad defaults.
+          # The test-only LD_PRELOAD remaps SDL key events, not DS memory.
+          case "$(dpkg-query -W -f='${Version}' desmume)" in
+            0.9.13-*) ;;
+            *) echo "Unsupported DeSmuME keymap ABI; fail closed" >&2; exit 1 ;;
+          esac
           # C238 draft-only diagnostic: trace the *actual* SDL2 event keysyms
           # and GLib [KEYS] lookup results without modifying game input.
           cc -std=c11 -Wall -Wextra -Werror -fPIC -shared \
             tests/c238_sdl_event_trace.c -ldl -o /tmp/c238_sdl_event_trace.so
           strace -f -e trace=openat -o /tmp/desmume-open.log \
-            env LD_PRELOAD=/tmp/c238_sdl_event_trace.so P3D_C238_TRACE=1 \
+            env LD_PRELOAD=/tmp/c238_sdl_event_trace.so P3D_C238_TRACE=1 P3D_C240_ADAPT_0913=1 \
             /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
