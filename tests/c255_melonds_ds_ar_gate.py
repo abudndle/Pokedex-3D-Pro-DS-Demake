@@ -29,16 +29,28 @@ def verify_ds_ar_and_move(home, ar_tap, move, back):
     labels = (20, 294, 205, 386)
     upper = (0, 43, 250, 185)
     ar_changed = changed(0, 1, labels)
+    # The original HOME menu scrolls up exactly one 16px row when the
+    # disabled sixth entry is selected; its labels must still be present.
+    # Compare the unchanged label sequence in both positions, excluding
+    # the cursor at x<20 and footer/status text below y=386.
+    a, b = frames[0][4], frames[1][4]
+    ar_scrolled = sum(
+        a[y*row+x*stride:y*row+x*stride+3] !=
+        b[(y-16)*row+x*stride:(y-16)*row+x*stride+3]
+        for y in range(310, 377, 2) for x in range(20, 205, 2))
+    ar_top = changed(0, 1, upper)
     move_changed = changed(0, 2, labels)
     move_upper = changed(0, 2, upper)
     back_changed = changed(0, 3, labels)
     result = {'disabled_ar_menu_label_delta': ar_changed,
+              'disabled_ar_scrolled_label_delta': ar_scrolled,
+              'disabled_ar_upper_delta': ar_top,
               'move_dex_menu_label_delta': move_changed,
               'move_dex_upper_delta': move_upper,
               'after_b_menu_label_delta': back_changed,
               'dsi_camera_verified': False,
               'original_assets_verified': False}
-    if ar_changed > 20:
+    if min(ar_changed, ar_scrolled) > 20 or ar_top > 20:
         raise ValueError(f'AR Viewer unexpectedly replaced DS HOME menu: {result}')
     if move_changed < 100 or move_upper < 100:
         raise ValueError(f'Move Dex did not visibly open on both screens: {result}')
