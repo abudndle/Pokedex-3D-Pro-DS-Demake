@@ -1,0 +1,29 @@
+name: C277 original texture tail candidate gate (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c277-texture-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-texture-tail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify C277 source descriptor/tail hypothesis (synthetic only)
+        run: |
+          python3 -m py_compile tools/c277_private_texture_tail_candidates.py
+          python3 -m unittest discover -s tests -p 'test_c277_private_texture_tail_candidates.py' -v
+      - name: Protect private original textures and candidate SHA reports
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C277_PRIVATE_C5_TEXTURE_TAIL_CANDIDATES.json
