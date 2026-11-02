@@ -13,7 +13,7 @@ def quad_c5():
     # One mesh: four 28-byte vertex records, six descriptor u16s, then the
     # independently validated (0,1,2),(0,2,3) topology signature and indices.
     data = bytearray(288)
-    data[:2] = b"\\xc5\\x78"
+    data[:2] = b"\xc5\x78"
     struct.pack_into("<3H", data, 0x14, 1, 1, 0)
     struct.pack_into("<5I", data, 0x3c, 120, 140, 152, 152, 152)
     struct.pack_into("<5I", data, 120, 152, 0, 4 | (28 << 16), 0, 0)
@@ -25,6 +25,13 @@ def quad_c5():
 
 
 class C227TopologyTests(unittest.TestCase):
+    def test_real_archive_member_pattern(self):
+        from c227_private_topology_batch import MODEL_MEMBER
+        self.assertIsNotNone(MODEL_MEMBER.fullmatch("decoded_c5/p000.c5"))
+        self.assertIsNotNone(MODEL_MEMBER.fullmatch("decoded_c5/p733.c5"))
+        self.assertIsNone(MODEL_MEMBER.fullmatch("decoded_c5/p000.c5.bak"))
+        self.assertIsNone(MODEL_MEMBER.fullmatch("decoded_c5/p000.c5\\\\Z"))
+
     def test_unique_topology_recovered(self):
         result = find_topology(quad_c5(), "p000")
         self.assertEqual((result["mesh_count"], result["vertex_count"],
