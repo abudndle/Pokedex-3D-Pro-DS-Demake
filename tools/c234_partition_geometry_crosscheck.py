@@ -73,12 +73,23 @@ def verify_partitioned_meshes(meshes, reference_vertices, reference_groups,
         local_xyz = [reference[vertex] for vertex in used]
         local_faces = [[remap[vertex] for vertex in face] for face in checked]
         try:
+            # Source mesh records may carry a shared/global vertex table. Only
+            # referenced vertices prove face equivalence; unused vertices
+            # still count against the whole-model resource budget.
+            all_source_xyz = _vertices(mesh["vertices"])
+            all_source_faces = _faces(mesh["triangles"], len(all_source_xyz))
+            src_used = sorted({v for face in all_source_faces for v in face})
+            src_remap = {v: i for i, v in enumerate(src_used)}
+            src_local_xyz = [all_source_xyz[v] for v in src_used]
+            src_local_faces = [
+                [src_remap[v] for v in face] for face in all_source_faces
+            ]
             result = verify_geometric_mesh(
-                mesh["vertices"], mesh["triangles"], local_xyz, local_faces,
+                src_local_xyz, src_local_faces, local_xyz, local_faces,
                 tolerance=tolerance)
         except ValueError as exc:
             raise ValueError("mesh partition %d: %s" % (index, exc)) from exc
-        source_vertices += result["source_vertex_count"]
+        source_vertices += len(all_source_xyz)
         source_triangles += result["triangle_count"]
         reference_triangles += len(checked)
         reversed_meshes += result["winding"] == "globally_reversed"
