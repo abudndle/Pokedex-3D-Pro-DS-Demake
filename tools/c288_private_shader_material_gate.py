@@ -136,7 +136,7 @@ def load_evidence(path):
                 raise ValueError("unexpected private C111 ZIP member")
             mid = match.group(1)
             mode = item.external_attr >> 16
-            if ((item.create_system == 3 and mode and not stat.S_ISREG(mode)) or
+            if ((item.create_system == 3 and stat.S_IFMT(mode) not in (0, stat.S_IFREG)) or
                     mid in result or item.is_dir() or item.file_size > MAX_MEMBER_BYTES):
                 raise ValueError("duplicate or oversized C111 evidence member")
             total += item.file_size
