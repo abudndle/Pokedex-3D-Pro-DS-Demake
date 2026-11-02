@@ -36,4 +36,14 @@ fi
 xwd -id "$window" -silent -out c253-melonds-boot.xwd
 test -s c253-melonds-boot.xwd
 python3 tests/c253_melonds_frame_gate.py c253-melonds-boot.xwd
-echo "C253 melonDS 1.1 DS boot visual preflight: PASS (not DSi or original assets)"
+# Real touch input: first HOME menu entry is Pokédex, inside the lower DS
+# display. Hold stylus long enough to be sampled by the emulated touch scan.
+xdotool windowfocus --sync "$window"
+xdotool mousemove --window "$window" 50 300
+xdotool mousedown 1
+sleep 0.5
+xdotool mouseup 1
+sleep 3
+xwd -id "$window" -silent -out c253-melonds-dex.xwd
+python3 tests/c253_melonds_frame_gate.py c253-melonds-boot.xwd c253-melonds-dex.xwd
+echo "C253 melonDS 1.1 DS boot + real touchscreen navigation: PASS (not DSi or original assets)"
