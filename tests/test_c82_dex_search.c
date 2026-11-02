@@ -34,7 +34,58 @@ int main(int argc,char **argv){
     assert(p3dDexFindScoped("PI",0,1,P3D_DEX_SEARCH_NAME,0,9,P3D_DEX_SCOPE_ALL,&history,&menu)==-1);
     assert(strcmp(p3dDexRegionName(5),"UNOVA")==0);
     assert(strcmp(p3dDexScopeName(1),"VIEWED")==0);
+    /* C231: selecting a previously shown Pokémon must not authorize opening
+     * or favoriting it once search text, region, or scope no longer matches. */
+    int selection=0;
+    assert(p3dDexRefreshSelection("pik",&selection,P3D_DEX_SEARCH_NAME,0,
+                                  P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(selection==24);
+    assert(p3dDexSelectionMatches("PIK",selection,P3D_DEX_SEARCH_NAME,0,
+                                  P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(!p3dDexRefreshSelection("ZZZ",&selection,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(selection==24); /* Stale cursor retained but no longer actionable. */
+    assert(!p3dDexSelectionMatches("ZZZ",selection,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(p3dDexRefreshSelection("seed",&selection,
+                                   P3D_DEX_SEARCH_DESCRIPTION,1,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(selection==0);
+    assert(!p3dDexSelectionMatches("seed",selection,
+                                   P3D_DEX_SEARCH_DESCRIPTION,2,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(!p3dDexSelectionMatches("",selection,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_VIEWED,&history,&menu));
+    selection=24;
+    assert(p3dDexSelectionMatches("PIK",selection,P3D_DEX_SEARCH_NAME,0,
+                                  P3D_DEX_SCOPE_FAVORITES,&history,&menu));
+    assert(p3dFavoriteToggle(&menu,24)==-1);
+    assert(!p3dDexSelectionMatches("PIK",selection,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_FAVORITES,&history,&menu));
+    assert(!p3dDexRefreshSelection("PIK",&selection,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_FAVORITES,&history,&menu));
+    assert(selection==24);
+    assert(!p3dDexSelectionMatches("",-1,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(!p3dDexSelectionMatches("",649,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(!p3dDexSelectionMatches("",0,3,0,P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(!p3dDexSelectionMatches("",0,P3D_DEX_SEARCH_NAME,9,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(!p3dDexSelectionMatches("",0,P3D_DEX_SEARCH_NAME,0,9,&history,&menu));
+    assert(!p3dDexSelectionMatches(NULL,0,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(!p3dDexRefreshSelection("pik",NULL,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(!p3dDexSelectionMatches("",24,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_VIEWED,NULL,&menu));
+    assert(!p3dDexSelectionMatches("",24,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_FAVORITES,&history,NULL));
     p3dDexTextClose();
+    assert(!p3dDexSelectionMatches("PIK",24,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    assert(!p3dDexRefreshSelection("PIK",&selection,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
     assert(!p3dDexTextRead(0,&entry));
     puts("C82 original species text and region/viewed/favorite search: PASS");
     return 0;
