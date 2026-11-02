@@ -75,6 +75,9 @@ jobs:
       - name: C245 source-ordered C5 XYZ plus exact face bytes to native P3VX/P3IX (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c245_private_ordered_geometry_pair.py' -v
 
+      - name: C247 unique original C5 global XYZ stride and provisional native candidate (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c247_private_global_xyz_candidate.py' -v
+
       - name: C229 verify strict aligned C5 topology candidates (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c229_aligned_topology_batch.py' -v
 
