@@ -49,6 +49,9 @@ jobs:
       - name: C228 verify source/reference OBJ face and winding correspondence (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c228_reference_topology_crosscheck.py' -v
 
+      - name: C229 verify strict aligned C5 topology candidates (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c229_aligned_topology_batch.py' -v
+
       - name: Validate private asset loader contracts
         run: python3 -m unittest discover -s tests -p 'test_asset_manifest.py' -v
 
