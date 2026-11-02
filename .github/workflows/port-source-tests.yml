@@ -96,7 +96,10 @@ jobs:
       - name: C248 native geometry-only NitroFS loader source contract (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c248_geometry_only_nitrofs_gate.py' -v
 
-      - name: C249 private diagnostic native geometry NitroFS staging (synthetic only)\n        run: python3 -m unittest discover -s tests -p 'test_c249_private_geometry_nitrofs.py' -v\n\n      - name: C229 verify strict aligned C5 topology candidates (synthetic only)
+      - name: C249 private diagnostic native geometry NitroFS staging (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c249_private_geometry_nitrofs.py' -v
+
+      - name: C229 verify strict aligned C5 topology candidates (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c229_aligned_topology_batch.py' -v
 
       - name: Validate private asset loader contracts
