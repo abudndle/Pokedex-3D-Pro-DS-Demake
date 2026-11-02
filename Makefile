@@ -41,6 +41,7 @@ check-host:
 		run_c82_dex_search.sh run_c83_search_touch.sh; do \
 		echo "Running $$test"; sh "tests/$$test"; \
 	done
+	@python3 -m unittest discover -s tests -p 'test_c219_active_dex_sync.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c180_private_c5_coverage.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c183_private_geometry_batch.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c179_private_geometry_draw_probe.py' -v
