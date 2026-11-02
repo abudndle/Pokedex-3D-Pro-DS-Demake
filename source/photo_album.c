@@ -44,31 +44,34 @@ int p3dPhotoAlbumOpen(P3DPhotoAlbum *a,const char *folder){
  if(!ensure_dir(parent))return 0;
  memcpy(a->folder,parent,n+1);return 1;
 }
+/* AR_0000.png..AR_9999.png are a finite namespace. Index one FAT
+ * directory pass in 1250 bytes rather than repeatedly rewinding the
+ * directory for each skipped photo (quadratic for deep pages). */
 size_t p3dPhotoAlbumPage(const P3DPhotoAlbum *a,char names[][32],size_t limit,size_t offset,size_t *total){
- DIR *d;struct dirent *e;size_t count=0,filled=0;
+ unsigned char present[1250]={0};
+ DIR *d;struct dirent *e;size_t count=0,filled=0,rank=0;
  if(total)*total=0;
- /* Bound the output to the actual seven visible DS album slots. */
  if(limit>P3D_ALBUM_PAGE_MAX)limit=P3D_ALBUM_PAGE_MAX;
  if(!a||!a->folder[0]||(limit&&!names)||(d=opendir(a->folder))==NULL)return 0;
- while((e=readdir(d))!=NULL)if(valid_name(e->d_name)&&regular_photo(a->folder,e->d_name))count++;
- if(total)*total=count;
- if(!limit||offset>=count){closedir(d);return 0;}
- /* Avoid offset+limit wraparound when an invalid save supplies SIZE_MAX. */
- size_t end=limit>count-offset?count:offset+limit;
- char prev[32]="AR_9999.png";
- for(size_t index=0;index<end;index++){
-  char best[32]="";
-  rewinddir(d);
-  while((e=readdir(d))!=NULL){
-   if(valid_name(e->d_name)&&regular_photo(a->folder,e->d_name)&&
-      strcmp(e->d_name,prev)<0&&strcmp(e->d_name,best)>0)
-    memcpy(best,e->d_name,12);
+ while((e=readdir(d))!=NULL){
+  int id;
+  if(!valid_name(e->d_name)||!regular_photo(a->folder,e->d_name))continue;
+  id=(e->d_name[3]-'0')*1000+(e->d_name[4]-'0')*100+
+     (e->d_name[5]-'0')*10+(e->d_name[6]-'0');
+  if(!(present[id>>3]&(1u<<(id&7)))){
+   present[id>>3]|=(unsigned char)(1u<<(id&7));
+   count++;
   }
-  if(!best[0])break;
-  memcpy(prev,best,12);
-  if(index>=offset&&filled<limit)memcpy(names[filled++],best,12);
  }
- closedir(d);return filled;
+ closedir(d);
+ if(total)*total=count;
+ if(!limit||offset>=count)return 0;
+ for(int id=9999;id>=0&&filled<limit;id--){
+  if(!(present[id>>3]&(1u<<(id&7))))continue;
+  if(rank++<offset)continue;
+  (void)snprintf(names[filled++],32,"AR_%04d.png",id);
+ }
+ return filled;
 }
 int p3dPhotoAlbumDelete(P3DPhotoAlbum *a,const char *name){
  char path[P3D_PHOTO_PATH_MAX+16];int n;
