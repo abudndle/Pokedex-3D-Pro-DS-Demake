@@ -1,0 +1,29 @@
+name: C286 original source texture format-word consensus (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c286-consensus-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-source-format-consensus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate SHA-anchored source format consensus and fail-closed conflicts
+        run: |
+          python3 -m py_compile tools/c286_private_format_consensus.py
+          python3 -m unittest discover -s tests -p 'test_c286_private_format_consensus.py' -v
+      - name: Ensure original source and private reports never enter CI
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C286_PRIVATE_C5_FORMAT_WORD_CONSENSUS.json
