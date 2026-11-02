@@ -1,0 +1,29 @@
+name: C282 private 16-bpp candidate P3PX differential (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c282-packed16-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-packed16:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate 16-bpp candidate channel, alpha, Morton, ambiguity, and SHA gates
+        run: |
+          python3 -m py_compile tools/c282_private_packed16_candidates.py
+          python3 -m unittest discover -s tests -p 'test_c282_private_packed16_candidates.py' -v
+      - name: No proprietary original texture data or private reports in CI
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C282_PRIVATE_PACKED16_P3PX_CANDIDATES.json
