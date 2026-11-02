@@ -84,7 +84,7 @@ def audit(root, probe, roster=None):
     unexpected = []
     for path in root.iterdir():
         match = MODEL_NAME.fullmatch(path.name)
-        if match is None or int(match.group(1)) not in roster:
+        if match is None or int(match.group(1)) not in roster or path.is_symlink() or not path.is_file():
             unexpected.append(path.name)
     if unexpected:
         raise ValueError("unexpected private geometry entries: " + str(len(unexpected)))
