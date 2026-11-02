@@ -1,0 +1,29 @@
+name: C279 original C5 header texture base (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c279-header-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-original-texture-base:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate C279 original header base and independent C73 SHA gates (synthetic)
+        run: |
+          python3 -m py_compile tools/c279_private_header_texture_base.py
+          python3 -m unittest discover -s tests -p 'test_c279_private_header_texture_base.py' -v
+      - name: Protect private source texture bytes and SHA reports
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C279_PRIVATE_C5_HEADER_TEXTURE_BASE.json
