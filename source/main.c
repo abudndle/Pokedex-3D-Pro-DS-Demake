@@ -110,6 +110,23 @@ static int dex_text_ready=0;
 static int search_region=0;
 static int search_scope=0;
 static int search_field=P3D_DEX_SEARCH_NAME;
+/* C231: numeric browsing remains usable if original text is unavailable,
+ * but active text/region/scope filters require an actual matching entry. */
+static int search_filtered(void){
+    return state.search_query[0]!=0 || search_region!=0 ||
+           search_scope!=P3D_DEX_SCOPE_ALL ||
+           search_field!=P3D_DEX_SEARCH_NAME;
+}
+static int search_actionable(void){
+    return !search_filtered() || (dex_text_ready &&
+        p3dDexSelectionMatches(state.search_query,state.selected_dex,
+            search_field,search_region,search_scope,&records,&state));
+}
+static void refresh_search_selection(void){
+    if(search_filtered() && dex_text_ready)
+        (void)p3dDexRefreshSelection(state.search_query,&state.selected_dex,
+            search_field,search_region,search_scope,&records,&state);
+}
 static int move_text_offset=0;
 /* C100 shows actual original P3DM effect text; defaults to description. */
 static int move_show_effect=0;
@@ -660,8 +677,9 @@ static void render(void) {
         } else if(state.page==P3D_PAGE_SEARCH){
             if(dex_text_ready){
                 P3DDexText entry;
-                if(p3dDexTextRead(state.selected_dex,&entry))
+                if(search_actionable() && p3dDexTextRead(state.selected_dex,&entry))
                     printf("Original name: %.28s\n",entry.name);
+                else printf("No matching original entry\n");
                 printf("X+UP/DOWN: name initial %c\n",state.search_letter);
                 printf("X+LEFT/RIGHT: find by name\n");
                 printf("Text query: %.12s\n",state.search_query);
@@ -672,8 +690,10 @@ static void render(void) {
             printf("Pokemon number: %03d / 649\n",state.selected_dex+1);
             printf("LEFT/RIGHT: +/- 1\n");
             printf("UP/DOWN: +/- 10\n");
-            printf("A: open this Pokemon\n");
-            printf("Y: toggle favorite (%s)\n",p3dFavoriteContains(&state,state.selected_dex)?"saved":"not saved");
+            if(search_actionable()){
+                printf("A: open this Pokemon\n");
+                printf("Y: toggle favorite (%s)\n",p3dFavoriteContains(&state,state.selected_dex)?"saved":"not saved");
+            }else printf("A/Y: select a matching entry\n");
             printf("X: open Favorites\n");
             printf("L: open Move Dex\n");
             printf("R: open Settings\n");
@@ -849,18 +869,24 @@ static void render(void) {
             printf("\x1b[19;1HY: next verified form");
         }else if(state.page==P3D_PAGE_SEARCH){
             printf("\x1b[9;1H%.28s",state.search_query[0]?state.search_query:"NAME / TEXT SEARCH");
-            printf("\x1b[11;1HRegion: %.9s  Scope: %.9s",
-                   p3dDexRegionName(search_region),p3dDexScopeName(search_scope));
-            printf("\x1b[13;1HField: %s",search_field==P3D_DEX_SEARCH_NAME?"NAME":"DESCRIPTION");
+            /* One-based console rows share exact touch coordinates in C83. */
+            printf("\x1b[%d;1HRegion: %.8s",P3D_SEARCH_REGION_ROW,
+                   p3dDexRegionName(search_region));
+            printf("\x1b[%d;17HScope: %.9s",P3D_SEARCH_REGION_ROW,
+                   p3dDexScopeName(search_scope));
+            printf("\x1b[%d;1HField: %s",P3D_SEARCH_FIELD_ROW,
+                   search_field==P3D_DEX_SEARCH_NAME?"NAME":"DESCRIPTION");
             if(dex_text_ready){
                 P3DDexText entry;
-                if(p3dDexTextRead(state.selected_dex,&entry))
-                    printf("\x1b[15;1H#%03d %.23s",state.selected_dex+1,entry.name);
-            }else printf("\x1b[15;1HOriginal text unavailable");
-            printf("\x1b[18;1H  A B C D E F G H I J K L M");
-            printf("\x1b[20;1H  N O P Q R S T U V W X Y Z");
-            printf("\x1b[22;1HDEL       NEXT      PREV");
-            printf("\x1b[23;1HTap region/scope/field above");
+                if(search_actionable() && p3dDexTextRead(state.selected_dex,&entry))
+                    printf("\x1b[%d;1H#%03d %.23s",P3D_SEARCH_RESULT_ROW,
+                           state.selected_dex+1,entry.name);
+                else printf("\x1b[%d;1HNo matching original entry",P3D_SEARCH_RESULT_ROW);
+            }else printf("\x1b[%d;1HOriginal text unavailable",P3D_SEARCH_RESULT_ROW);
+            printf("\x1b[%d;1H  A B C D E F G H I J K L M",P3D_SEARCH_KEYBOARD_ROW);
+            printf("\x1b[%d;1H  N O P Q R S T U V W X Y Z",P3D_SEARCH_KEYBOARD_ROW+2);
+            printf("\x1b[%d;1HDEL       NEXT      PREV",P3D_SEARCH_ACTIONS_ROW);
+            printf("\x1b[24;1HTap region/scope/field above");
         }else if(state.page==P3D_PAGE_MOVES){
             printf("\x1b[11;1HMove %03d of 559",move_index+1);
             if(move_catalog_ready){
@@ -1316,13 +1342,17 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_SEARCH){
-                /* Text-mode keyboard only: never guess original-art hitboxes. */
-                if((down&KEY_TOUCH) && !showing_original_art){
+                /* One touch cannot also open a stale entry or a destination page.
+                 * Bitmap artwork has NO text keyboard hitboxes. */
+                int search_touched=(down&KEY_TOUCH)!=0;
+                int search_navigation=0;
+                if(search_touched && !showing_original_art){
                     touchPosition point;
                     touchRead(&point);
                     int action=p3dSearchTouchAction(point.px,point.py);
                     if(action>='A' && action<='Z'){
-                        if(p3dDexQueryAppend(state.search_query,(char)action))redraw=1;
+                        if(p3dDexQueryAppend(state.search_query,(char)action))
+                            redraw=1;
                     }else if(action==P3D_SEARCH_TOUCH_BACKSPACE){
                         p3dDexQueryBackspace(state.search_query);
                         redraw=1;
@@ -1343,61 +1373,88 @@ int main(void) {
                                       action==P3D_SEARCH_TOUCH_NEXT?1:-1,
                                       search_field,search_region,search_scope,
                                       &records,&state);
-                        if(hit>=0){
-                            state.selected_dex=hit;
+                        if(hit>=0)state.selected_dex=hit;
+                        redraw=1;
+                    }
+                    if(action && action!=P3D_SEARCH_TOUCH_NEXT &&
+                       action!=P3D_SEARCH_TOUCH_PREVIOUS)
+                        refresh_search_selection();
+                }
+                if(!search_touched){
+                    if((down&KEY_R) && !(down&(KEY_A|KEY_X|KEY_Y|KEY_L))){
+                        state.page=P3D_PAGE_SETTINGS;
+                        search_navigation=1;
+                        redraw=1;
+                    }else if((down&KEY_L) && !(down&(KEY_A|KEY_X|KEY_Y))){
+                        state.page=P3D_PAGE_MOVES;
+                        search_navigation=1;
+                        redraw=1;
+                    }
+                    /* X+arrows keep the existing original name-initial jump.
+                     * Numeric arrows still browse when no X key is held. */
+                    int source_search=(down&KEY_X) &&
+                        (down&(KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN));
+                    if(!search_navigation && (down&KEY_X) &&
+                       !(down&(KEY_A|KEY_Y)) && !source_search){
+                        state.page=P3D_PAGE_FAVORITES;
+                        favorite_index=0;
+                        search_navigation=1;
+                        redraw=1;
+                    }
+                    if(!search_navigation){
+                        int next=state.selected_dex;
+                        if(source_search){
+                            if(down&KEY_UP){
+                                state.search_letter=state.search_letter=='Z'?
+                                    'A':state.search_letter+1;
+                                redraw=1;
+                            }
+                            if(down&KEY_DOWN){
+                                state.search_letter=state.search_letter=='A'?
+                                    'Z':state.search_letter-1;
+                                redraw=1;
+                            }
+                            if(dex_text_ready &&
+                               ((down&KEY_LEFT)!=0)!=((down&KEY_RIGHT)!=0)){
+                                char q[2]={state.search_letter,0};
+                                int hit=p3dDexFindScoped(q,state.selected_dex,
+                                    (down&KEY_RIGHT)?1:-1,P3D_DEX_SEARCH_NAME,
+                                    0,P3D_DEX_SCOPE_ALL,&records,&state);
+                                if(hit>=0)next=hit;
+                            }
+                        }else{
+                            if(down&KEY_LEFT)next--;
+                            if(down&KEY_RIGHT)next++;
+                            if(down&KEY_UP)next-=10;
+                            if(down&KEY_DOWN)next+=10;
+                        }
+                        if(next<0)next=0;
+                        if(next>648)next=648;
+                        if(next!=state.selected_dex){
+                            state.selected_dex=next;
+                            redraw=1;
+                        }
+                        if((down&KEY_Y) && !(down&KEY_A) && search_actionable()){
+                            if(p3dFavoriteToggle(&state,state.selected_dex))
+                                progress_dirty=1;
+                            refresh_search_selection();
+                            redraw=1;
+                        }
+                        if((down&KEY_A) && search_actionable()){
+                            dex_index=state.selected_dex;
+                            selected_form=0;
+                            state.page=P3D_PAGE_DEX;
+                            search_navigation=1;
+                            reload_preview();
+                            progress_dirty=1;
                             redraw=1;
                         }
                     }
                 }
-                if((down&KEY_R) && !(down&(KEY_A|KEY_X|KEY_Y|KEY_L))){
-                    state.page=P3D_PAGE_SETTINGS;
-                    redraw=1;
-                }
-                if((down&KEY_L) && !(down&(KEY_A|KEY_X|KEY_Y))){
-                    state.page=P3D_PAGE_MOVES;
-                    redraw=1;
-                }
-                /* X+arrows use the recovered original species-name index.
-                 * Plain X still opens Favorites, and normal arrows retain
-                 * the existing number-based search. */
-                int source_search=(down&KEY_X) && (down&(KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN));
-                if((down&KEY_X) && !(down&(KEY_A|KEY_Y)) && !source_search){
-                    state.page=P3D_PAGE_FAVORITES;
-                    favorite_index=0;
-                    redraw=1;
-                }
-                int next=state.selected_dex;
-                if(source_search){
-                    if(down&KEY_UP){state.search_letter=state.search_letter=='Z'?'A':state.search_letter+1;redraw=1;}
-                    if(down&KEY_DOWN){state.search_letter=state.search_letter=='A'?'Z':state.search_letter-1;redraw=1;}
-                    if(dex_text_ready && ((down&KEY_LEFT)!=0)!=((down&KEY_RIGHT)!=0)){
-                        char q[2]={state.search_letter,0};
-                        int hit=p3dDexFindScoped(q,state.selected_dex,
-                                    (down&KEY_RIGHT)?1:-1,P3D_DEX_SEARCH_NAME,
-                                    0,P3D_DEX_SCOPE_ALL,&records,&state);
-                        if(hit>=0)next=hit;
-                    }
-                }else{
-                    if(down&KEY_LEFT)next--;
-                    if(down&KEY_RIGHT)next++;
-                    if(down&KEY_UP)next-=10;
-                    if(down&KEY_DOWN)next+=10;
-                }
-                if(next<0)next=0;
-                if(next>648)next=648;
-                if(next!=state.selected_dex){state.selected_dex=next;redraw=1;}
-                if((down&KEY_Y) && !(down&KEY_A)){
-                    if(p3dFavoriteToggle(&state,state.selected_dex))progress_dirty=1;
-                    redraw=1;
-                }
-                if(down&KEY_A){
-                    dex_index=state.selected_dex;
-                    selected_form=0;
-                    state.page=P3D_PAGE_DEX;
-                    reload_preview();
-                    progress_dirty=1;
-                    redraw=1;
-                }
+                /* Search navigation is fully consumed in this frame: no
+                 * accidental Dex favorite toggle, animation change, or
+                 * Move Dex/Settings controls from the same press. */
+                if(search_navigation)down=0;
             }
             if(state.page==P3D_PAGE_ALBUM && album_ready){
                 char names[P3D_ALBUM_PAGE_MAX][32];
