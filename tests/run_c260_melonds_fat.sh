@@ -96,6 +96,32 @@ python3 tests/c260_fat_slot_gate.py "$sd_root/export"
 launch
 capture c260-melonds-fat-resumed.xwd
 python3 tests/c253_melonds_frame_gate.py c260-melonds-fat-home.xwd c260-melonds-fat-resumed.xwd
+# C261: from resumed Dex, B returns HOME. Enter Challenge with a real
+# stylus tap and answer once. The save must retain the earlier favorite.
+xdotool windowfocus --sync "$window"
+xdotool keydown z
+sleep 0.4
+xdotool keyup z
+sleep 2
+xdotool mousemove --window "$window" 55 334
+xdotool mousedown 1
+sleep 0.4
+xdotool mouseup 1
+sleep 2
+for stage in question review continued; do
+  xdotool keydown x
+  sleep 0.4
+  xdotool keyup x
+  sleep 2
+  xwd -id "$window" -silent -out "c261-melonds-challenge-$stage.xwd"
+done
+sleep 3
 close_cleanly
-python3 tests/c260_fat_slot_gate.py "$sd_root/export"
-echo 'C260 real melonDS DLDI P3SV/P3RV save and reboot resume: PASS (asset-free DS mode only)'
+python3 tests/c261_fat_challenge_gate.py "$sd_root/export"
+# Third real emulator launch must restore Challenge from the FAT checkpoint.
+launch
+capture c261-melonds-challenge-resumed.xwd
+python3 tests/c253_melonds_frame_gate.py c260-melonds-fat-home.xwd c261-melonds-challenge-resumed.xwd
+close_cleanly
+python3 tests/c261_fat_challenge_gate.py "$sd_root/export"
+echo 'C261 real melonDS FAT Challenge progress, favorite retention and cross-boot resume: PASS (asset-free DS mode only)'
