@@ -61,8 +61,8 @@ jobs:
           # runner/user defaults or the incompatible SDL1 arrow constants.
           export XDG_CONFIG_HOME="$(mktemp -d)"
           python3 tools/c236_desmume_keymap.py --xdg-config-home "$XDG_CONFIG_HOME"
-          echo "DeSmuME CLI version:"
-          /usr/games/desmume-cli --version || true
+          echo "Installed DeSmuME package:"
+          dpkg-query -W desmume
           /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
@@ -88,7 +88,8 @@ jobs:
           # C235: the native HOME's first highlighted entry is Pokédex.
           # Never send Down (which selects Move Dex) or a mouse click
           # (which can independently trigger a touchscreen menu action).
-          # Current DeSmuME CLI source maps x=A and z=B.
+          # C236 isolated SDLKEYS maps x=A, d=Right and b=B.
+          # No source/asset game code or user-visible DS keymap changes.
           xdotool keydown x
           sleep 0.5
           xdotool keyup x
@@ -96,9 +97,9 @@ jobs:
           xwd -id "$window_id" -silent -out emulator-dex.xwd
           # Distinguish a frozen game loop from an unmapped B key:
           # Right should browse from Pokémon #001 to #002 on this page.
-          xdotool keydown Right
+          xdotool keydown d
           sleep 0.4
-          xdotool keyup Right
+          xdotool keyup d
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-right.xwd
           # Diagnostic only: a second A on Dex toggles Favorite, proving
@@ -108,11 +109,11 @@ jobs:
           xdotool keyup x
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-second-a.xwd
-          xdotool keydown z
+          xdotool keydown b
           sleep 0.5
           xwd -id "$window_id" -silent -out emulator-during-back.xwd
           sleep 0.5
-          xdotool keyup z
+          xdotool keyup b
           sleep 2
           xwd -id "$window_id" -silent -out emulator-after-back.xwd
           # C235 diagnostic: inspect alternate X11 keysyms on the still-open
