@@ -32,18 +32,25 @@ def inspect(data):
         raise ValueError("invalid descriptor table bounds")
     strides = {}
     errors = []
+    flags_0x26 = 0
     for i in range(n1):
         off, res, packed, layout, res2 = struct.unpack_from("<5I", data, a + i * 20)
         count, stride = packed & 65535, (packed >> 16) & 255
         strides[str(stride)] = strides.get(str(stride), 0) + 1
-        if res or res2 or off + count * stride > len(data):
+        # Original C56 source files legitimately use the exact 0x26 marker
+        # in this reserved word. The owner-supplied C56 validator treats it
+        # as a warning, not corruption; every other value still fails closed.
+        if res == 0 and res2 == 0x26:
+            flags_0x26 += 1
+        if res or res2 not in (0, 0x26) or off + count * stride > len(data):
             errors.append("primary descriptor " + str(i))
     for i in range(n2):
         off, res, packed = struct.unpack_from("<3I", data, b + i * 12)
         if res or off + (packed & 65535) * (packed >> 16) > len(data):
             errors.append("secondary descriptor " + str(i))
     return dict(sha256=hashlib.sha256(data).hexdigest(), primary=n1, secondary=n2,
-                primary_strides=strides, structural_errors=errors,
+                primary_strides=strides, primary_descriptor_0x26_flags=flags_0x26,
+                structural_errors=errors,
                 vertex_semantics_verified=False, topology_verified=False)
 
 
@@ -87,8 +94,11 @@ def audit(archives):
     missing = sorted(EXPECTED - records.keys())
     failed = sorted(model for model, row in records.items()
                     if row.get("error") or row.get("structural_errors"))
+    warning_models = sorted(model for model, row in records.items()
+                            if row.get("primary_descriptor_0x26_flags", 0))
     return dict(expected=len(EXPECTED), present=len(records), missing=missing,
                 structural_failures=failed, all_structural_checks_passed=not missing and not failed,
+                descriptor_0x26_warning_models=warning_models,
                 vertex_semantics_verified=False, topology_verified=False,
                 models={f"p{k:03d}": records[k] for k in sorted(records)})
 
