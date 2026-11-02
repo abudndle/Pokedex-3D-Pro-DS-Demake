@@ -1,0 +1,73 @@
+name: C260 independent melonDS DLDI save/resume acceptance
+on:
+  push:
+    paths:
+      - 'source/**'
+      - 'tests/c260_*'
+      - 'tests/test_c260_*'
+      - 'tests/run_c260_*'
+      - '.github/workflows/c260-melonds-fat.yml'
+  pull_request:
+    paths:
+      - 'source/**'
+      - 'tests/c260_*'
+      - 'tests/test_c260_*'
+      - 'tests/run_c260_*'
+      - '.github/workflows/c260-melonds-fat.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c260-fat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  fat-save-resume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail closed on synthetic FAT slot corruption and ambiguity
+        run: python3 -m unittest discover -s tests -p 'test_c260_fat_slot_gate.py' -v
+      - name: Compile asset-free native BlocksDS ROM and verify ARM sections
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work \
+            skylyrac/blocksds:slim-latest \
+            make dev-rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
+          python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
+      - name: Obtain official SHA-pinned melonDS 1.1 AppImage
+        shell: bash
+        run: |
+          set -euo pipefail
+          temp="$(mktemp -d)"
+          echo "C260_MELONDS_ROOT=$temp" >> "$GITHUB_ENV"
+          curl -fL --retry 3 --connect-timeout 20 \
+            'https://github.com/melonDS-emu/melonDS/releases/download/1.1/melonDS-1.1-appimage-x86_64.zip' \
+            -o "$temp/melonds.zip"
+          printf '%s  %s\n' 'bf377420a2e95f2cd2cdda17d5372b51c2534f858b038db9ec6d129554875124' "$temp/melonds.zip" | sha256sum -c -
+          unzip -q "$temp/melonds.zip" -d "$temp"
+          app="$(find "$temp" -maxdepth 3 -type f -name '*.AppImage' -print -quit)"
+          test -n "$app"
+          chmod +x "$app"
+          (cd "$temp" && "$app" --appimage-extract >/dev/null)
+          test -x "$temp/squashfs-root/AppRun"
+          echo "C260_APP_RUN=$temp/squashfs-root/AppRun" >> "$GITHUB_ENV"
+      - name: Install independent virtual display dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11-apps x11-utils xdotool libegl1 libgl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-xinerama0
+      - name: Verify real DLDI FAT writes and Pokédex resume across two emulator launches
+        shell: bash
+        run: |
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 170s \
+            bash tests/run_c260_melonds_fat.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C260_APP_RUN"
+      - name: Preserve only synthetic development-ROM dual-screen captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c260-melonds-asset-free-fat-screen-evidence
+          path: |
+            c260-melonds-fat-*.xwd
+            c260-melonds-windows.txt
+          if-no-files-found: ignore
+          retention-days: 3
