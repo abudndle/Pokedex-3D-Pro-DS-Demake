@@ -75,6 +75,12 @@ class PrivateGeometryBatch(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'not executable'):
             mod.audit(self.root, self.probe, {14})
 
+    def test_reject_symlinked_root(self):
+        alias = pathlib.Path(self.temp.name) / 'alias'
+        alias.symlink_to(self.root, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'symlink'):
+            mod.audit(alias, self.probe, {14})
+
     def test_private_path_guard(self):
         with self.assertRaisesRegex(ValueError, "outside public repository"):
             mod.outside_repo(ROOT / "nitrofs")
