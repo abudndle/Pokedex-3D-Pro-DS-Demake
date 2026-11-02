@@ -1613,7 +1613,7 @@ int main(void) {
                 if((down&KEY_Y)){selected_form=p3dFormNext(&alternate_models,dex_index,selected_form);reload_preview();redraw=1;}
                 if((down&KEY_LEFT) && !(down&KEY_RIGHT)){
                     int next=p3dDexNavigate(dex_index,-1);
-                    if(next!=dex_index){dex_index=next;selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
+                    if(next!=dex_index){dex_index=next;state.selected_dex=dex_index;selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
                 }
                 if((down&KEY_RIGHT) && !(down&KEY_LEFT)){
                     int next=p3dDexNavigate(dex_index,1);
@@ -1628,9 +1628,10 @@ int main(void) {
                 if(point.py>=150 && point.py<192){
                     int direction=point.px<64?-1:(point.px>=192?1:0);
                     if(state.page==P3D_PAGE_DEX && direction){
-                        int next=dex_index+direction;
-                        if(next>=0 && next<649){
-                            dex_index=next;selected_form=0;reload_preview();
+                        int next=p3dDexNavigate(dex_index,direction);
+                        if(next!=dex_index){
+                            dex_index=next;state.selected_dex=dex_index;
+                            selected_form=0;reload_preview();
                             progress_dirty=1;redraw=1;
                         }
                     } else if(state.page==P3D_PAGE_SEARCH && direction){
