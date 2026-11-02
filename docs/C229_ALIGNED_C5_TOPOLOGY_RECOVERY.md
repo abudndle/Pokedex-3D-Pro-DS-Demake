@@ -4,10 +4,11 @@ C227's private C5 scanner recognizes a `0,1,2 / 0,2,3` six-index start signature
 
 C229 preserves **every previously accepted C227 candidate unchanged**, then, only for C227 failures, tries a bounded strict alternative that requires (1) valid original C5 primary/secondary descriptor table geometry, (2) a four-byte-aligned index candidate beginning after descriptor payloads, (3) a `0,1,2` triangle prefix, (4) source descriptor vertex/index counts, (5) valid indices, vertex coverage, no duplicate/degenerate faces and no edges incident to more than two triangles, and (6) precisely one full valid candidate region. It aligns each mesh start upward to four bytes. More permissive source encodings and non-manifold meshes are **not** silently accepted.
 
-A private *aggregate-only* experiment against the recovered 730 original C5 records found:
+An independent private *aggregate-only* experiment and a second full private candidate-export run against all three recovered C56 archives agreed on:
 - 400 C227 legacy candidates, with all 400 original starting offsets unchanged by the alignment-based comparison.
 - 287 additional uniquely matching, strict four-byte-aligned `0,1,2` candidates.
-- 687 combined candidate model records and 43 unresolved records.
+- **687 combined candidate model records** containing **3,491 candidate mesh groups**, **2,202,034 source-declared vertices**, and **3,529,184 candidate triangles**. These are not DS render-budget reductions.
+- **43 unresolved records:** 7 with C5 structural-validation problems and 36 without a uniquely accepted candidate under these strict signatures.
 
 This is **94.1% candidate coverage, not authentic model completion**. Matching plausible index data by byte signature and structural tests is not independent proof of original game topology. C228's independent reference-OBJ mesh equivalence check remains necessary; so do verified source XYZ pairing, model materials, UV and skeleton weights, hardware-aware decimation, private NitroFS rendering and emulator verification.
 
