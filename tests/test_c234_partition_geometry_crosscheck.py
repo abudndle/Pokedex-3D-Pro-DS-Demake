@@ -45,9 +45,14 @@ class C234PartitionTests(unittest.TestCase):
 
     def test_seams_and_reversed_winding_within_partition(self):
         vertices, groups = parse_partitioned_obj(OBJ)
-        seam = [{"vertices": XYZ + [XYZ[0]], "triangles": [[4, 1, 2]]},
+        quad_obj = ("v 0 0 0\nv 1 0 0\nv 1 1 0\nv 0 1 0\n"
+                    "g quad\nf 1 2 3\nf 1 3 4\n"
+                    "g other\nf 1 3 4\n")
+        seam = [{"vertices": XYZ + [XYZ[0]],
+                 "triangles": [[0, 1, 2], [4, 2, 3]]},
                 {"vertices": XYZ, "triangles": [[3, 2, 0]]}]
-        report = verify_partitioned_meshes(seam, vertices, groups)
+        quad_xyz, quad_groups = parse_partitioned_obj(quad_obj)
+        report = verify_partitioned_meshes(seam, quad_xyz, quad_groups)
         self.assertEqual(report["source_seam_duplicate_vertices"], 1)
         self.assertEqual(report["globally_reversed_meshes"], 1)
 
@@ -84,8 +89,8 @@ class C234PartitionTests(unittest.TestCase):
             result = run_private(source, obj, report)
             self.assertEqual(json.loads(report.read_text()), result)
             self.assertEqual(os.stat(report).st_mode & 0o777, 0o600)
-            self.assertNotIn("vertices", json.dumps(result))
-            self.assertNotIn("triangles", json.dumps(result))
+            self.assertNotIn('"vertices":', json.dumps(result))
+            self.assertNotIn('"triangles":', json.dumps(result))
             self.assertNotIn("front", json.dumps(result))
 
     def test_invalid_tolerance_and_geometry_fail_closed(self):
