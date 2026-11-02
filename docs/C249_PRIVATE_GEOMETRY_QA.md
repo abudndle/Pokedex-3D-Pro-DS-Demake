@@ -48,3 +48,13 @@ real dual-screen captures, and exact emulator/console results.
 identities, stage the 25 currently native-budget-fitting candidates with
 explicit diagnostic slots, then run a private asset-integrated emulator
 playthrough and compare against authorized original references.
+
+## C250 real native C mapping/geometry integration gate
+
+The synthetic-only `tests/test_c250_species_geometry_runtime.py` compiles the
+actual `source/species_model_map.c` and native P3VX/P3IX loader with a C probe.
+It first stages C249 synthetic NitroFS, then verifies two explicit diagnostic
+species slots resolve to the intended geometry, an unmapped slot remains
+unavailable, corrupted P3SM/geometry and missing pairs fail closed, and a
+failed model reload clears previous native geometry. This is a **host C
+integration test**, not an asset-integrated ROM or authentic species map.

@@ -99,6 +99,9 @@ jobs:
       - name: C249 private diagnostic native geometry NitroFS staging (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c249_private_geometry_nitrofs.py' -v
 
+      - name: C250 native C diagnostic species mapping to P3VX/P3IX loader (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c250_species_geometry_runtime.py' -v
+
       - name: C229 verify strict aligned C5 topology candidates (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c229_aligned_topology_batch.py' -v
 
