@@ -74,13 +74,22 @@ def verify_model(model_id, raw, catalog_raw, c73_rows):
     source_names = c75_from_source(raw)
     source_ranges = candidates(raw)
     catalog = parse_catalog(catalog_raw, model_id)
-    if len(catalog) != len(source_names) or len(source_ranges) != len(catalog):
+    if len(catalog) > len(source_names) or len(source_ranges) != len(source_names):
         raise ValueError("C5/P3TM texture descriptor count mismatch")
     if set(c73_rows) != set(range(len(c73_rows))) or len(c73_rows) > len(catalog):
         raise ValueError("C73 source indices are not a prefix")
     records = []
-    for idx, row in enumerate(catalog):
-        start, size, digest = source_ranges[idx]
+    for idx, (start, size, digest) in enumerate(source_ranges):
+        if idx >= len(catalog):
+            records.append({"index": idx, "opaque_source_format": None,
+                            "width": None, "height": None, "source_bytes": size,
+                            "byte_density": "NO_P3TM_METADATA",
+                            "c73_source_sha_anchor": False,
+                            "p3tm_offset_matches_tail_candidate": False,
+                            "p3tm_sha_matches_tail_candidate": False,
+                            "pixel_format_decoded": False, "gpu_sampler_verified": False})
+            continue
+        row = catalog[idx]
         if row["source_name"] != source_names[idx]["original_texture_name"]:
             raise ValueError("C5/P3TM original texture name mismatch")
         anchored = idx in c73_rows
@@ -166,6 +175,7 @@ def audit(private_root, catalog_zip, c73_csv, require_full=False):
     summary = {"schema": SCHEMA, "models": len(models),
                "source_texture_descriptors": sum(counts.values()),
                "c73_sha_anchored_rows": anchored,
+               "source_rows_missing_p3tm_metadata": counts["NO_P3TM_METADATA"],
                "storage_density_classes": dict(sorted(counts.items())),
                "verified_pixel_formats": 0, "verified_gpu_sampler_roles": 0,
                "verified_p3px_source_pixel_equivalence": 0,
