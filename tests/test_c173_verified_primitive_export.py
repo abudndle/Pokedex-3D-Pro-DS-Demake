@@ -7,12 +7,13 @@ from c173_verified_primitive_export import export,MAGIC
 from c171_verified_primitive_gate import SCHEMA
 
 def fixture():
-    source=bytearray(224)
+    source=bytearray(276)
     source[:2]=bytes((0xc5,0x78))
     struct.pack_into("<H",source,0x10,1)
-    struct.pack_into("<2I",source,0x3c,120,140)
-    struct.pack_into("<5I",source,120,0,0,4,0,0)
-    struct.pack_into("<3I",source,140,200,0,6)
+    struct.pack_into("<HH",source,0x14,1,1)
+    struct.pack_into("<3I",source,0x3c,120,140,152)
+    struct.pack_into("<5I",source,120,152,0,4|(28<<16),0,0)
+    struct.pack_into("<3I",source,140,264,0,6|(2<<16))
     manifest={"schema":SCHEMA,"source":"original-c5",
               "method":"verified-original-primitive-order",
               "verified_by":"source-decoder-crosscheck","model":"p000",
