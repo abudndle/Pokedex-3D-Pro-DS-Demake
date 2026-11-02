@@ -26,6 +26,13 @@ int main(void){
  assert(p3dMenuTouchIndex(256,100,8,0)==-1);
  assert(p3dMenuScroll(7,8,1)==7);
  assert(p3dMenuScroll(0,8,-1)==0);
- puts("Graphical menu navigation: PASS");
+ assert(p3dDexNavigate(0,-1)==0);
+ assert(p3dDexNavigate(0,1)==1);
+ assert(p3dDexNavigate(648,1)==648);
+ assert(p3dDexNavigate(648,-1)==647);
+ assert(p3dDexNavigate(-10,1)==1);
+ assert(p3dDexNavigate(900,-1)==647);
+ assert(p3dDexNavigate(100,0)==100);
+ puts("Graphical and Pokedex navigation: PASS");
  return 0;
 }
