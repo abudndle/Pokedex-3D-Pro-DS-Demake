@@ -104,4 +104,27 @@ python3 tests/c255_melonds_ds_ar_gate.py \
   c253-melonds-boot.xwd c255-melonds-ar-disabled.xwd \
   c255-melonds-move-dex.xwd c255-melonds-move-back.xwd
 echo "C255 real melonDS DS-mode disabled AR and Move Dex/B: PASS (not DSi camera)"
+# C256: HOME has returned from Move Dex; challenge/records/album are
+# visible rows 3/4/5. Verify each genuine touchscreen entry and B exit.
+for spec in 'challenge:334' 'records:350' 'album:366'; do
+  name="${spec%%:*}"
+  y="${spec##*:}"
+  xdotool mousemove --window "$window" 55 "$y"
+  xdotool mousedown 1
+  sleep 0.4
+  xdotool mouseup 1
+  sleep 2
+  xwd -id "$window" -silent -out "c256-melonds-$name.xwd"
+  xdotool keydown z
+  sleep 0.4
+  xdotool keyup z
+  sleep 2
+  xwd -id "$window" -silent -out "c256-melonds-$name-back.xwd"
+done
+python3 tests/c256_melonds_menu_gate.py \
+  c253-melonds-boot.xwd \
+  c256-melonds-challenge.xwd c256-melonds-challenge-back.xwd \
+  c256-melonds-records.xwd c256-melonds-records-back.xwd \
+  c256-melonds-album.xwd c256-melonds-album-back.xwd
+echo "C256 real melonDS Challenge/Records/Album touchscreen/B: PASS (asset-free only)"
 echo "C253 melonDS 1.1 DS boot + real touchscreen navigation: PASS (not DSi or original assets)"
