@@ -91,6 +91,9 @@ jobs:
       - name: Verify C154 real native C P3CS stream loader on 500 synthetic models
         run: python3 -m unittest discover -s tests -p 'test_c154_native_chunk_probe.py' -v
 
+      - name: C196 native P3IX bounded mesh-ID and descriptor-count regression
+        run: sh tests/run_c175_native_primitive_bridge.sh
+
       - name: C177 source-verified vertex transport and exact primitive bridge (synthetic only)
         run: sh tests/run_c177_native_vertex_stream.sh
 

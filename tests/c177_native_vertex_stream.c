@@ -65,6 +65,9 @@ int main(void){
     assert(!p3dVerifiedVerticesDecode(file,sizeof(file),1,meshes,2,xyz,18,&count));
     assert(!p3dVerifiedVerticesDecode(file,sizeof(file),0,meshes,1,xyz,18,&count));
     assert(!p3dVerifiedVerticesDecode(file,sizeof(file),0,meshes,2,xyz,17,&count));
+    /* C196: mesh IDs must be in the bounded 0..63 native namespace. */
+    wr16(file+24,64);checksum(file,sizeof(file));
+    assert(!p3dVerifiedVerticesDecode(file,sizeof(file),0,meshes,2,xyz,18,&count));
     wr16(file+24,7);checksum(file,sizeof(file));
     assert(!p3dVerifiedVerticesDecode(file,sizeof(file),0,meshes,2,xyz,18,&count));
     return 0;

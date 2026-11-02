@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "verified_primitive_bridge.h"
+#include "verified_primitive_stream.h"
 typedef struct {int calls;int16_t first;} Seen;
 static int collect(void *ctx,uint16_t mesh,const int16_t *a,const int16_t *b,const int16_t *c){
     Seen *s=(Seen*)ctx;
@@ -24,6 +25,14 @@ int main(void){
     assert(!p3dVerifiedPrimitiveBridge(index,sizeof(index),0,&mesh,1,collect,&seen,&count));
     assert(seen.calls==1);
     mesh.mesh_id=7;
+    /* C196: direct native index inspection must reject mesh ID 64. */
+    P3DVerifiedIndexInfo info={0};
+    index[10]=64;
+    assert(!p3dVerifiedIndexInspect(index,sizeof(index),0,&info));
+    index[10]=7;
+    /* Reject a 65-mesh declaration before accessing any missing rows. */
+    const uint8_t too_many[]={'P','3','I','X',1,0,0,0,65,0};
+    assert(!p3dVerifiedIndexInspect(too_many,sizeof(too_many),0,&info));
     assert(!p3dVerifiedPrimitiveBridge(index,sizeof(index)-1,0,&mesh,1,collect,&seen,&count));
     return 0;
 }
