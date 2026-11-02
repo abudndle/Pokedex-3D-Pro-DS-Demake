@@ -62,8 +62,8 @@ class PrivateGeometryBatch(unittest.TestCase):
         target.write_bytes(index.read_bytes())
         index.unlink()
         index.symlink_to(target)
-        report = mod.audit(self.root, self.probe, {14})
-        self.assertEqual(report["models"]["p014"]["error"], "unsafe_pair")
+        with self.assertRaisesRegex(ValueError, "unexpected"):
+            mod.audit(self.root, self.probe, {14})
 
     def test_empty_roster_is_invalid(self):
         with self.assertRaises(ValueError):
