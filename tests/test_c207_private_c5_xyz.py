@@ -40,7 +40,7 @@ class SourceXyzTest(unittest.TestCase):
 
     def test_exact_unique_source_and_native_crc(self):
         descriptor, p3vx = mod.convert(fixture(self.v), obj(self.v), 14)
-        self.assertEqual(descriptor, 0)
+        self.assertEqual(descriptor, [(0, 0)])
         self.assertEqual(struct.unpack_from('<4sHHHH', p3vx), (b'P3VX', 1, 14, 1, 0))
         self.assertEqual(struct.unpack_from('<HHI', p3vx, 16), (0, 3, 0))
         self.assertEqual(struct.unpack_from('<I', p3vx, 12)[0], zlib.crc32(p3vx[16:]) & 0xffffffff)
@@ -66,7 +66,7 @@ class SourceXyzTest(unittest.TestCase):
 
     def test_mismatch_rejected(self):
         different = [(0.3, 0, -0.5)] + self.v[1:]
-        with self.assertRaisesRegex(ValueError, 'unique'):
+        with self.assertRaisesRegex(ValueError, 'no independently'):
             mod.convert(fixture(self.v), obj(different), 14)
 
     def test_ambiguous_descriptors_rejected(self):
@@ -76,6 +76,20 @@ class SourceXyzTest(unittest.TestCase):
     def test_non_28_stride_not_assumed(self):
         with self.assertRaisesRegex(ValueError, 'unique'):
             mod.convert(fixture(self.v, stride=32), obj(self.v), 14)
+
+    def test_partial_source_mesh_and_nonzero_xyz_offset(self):
+        data = bytearray(fixture(self.v, duplicate=True))
+        first = struct.unpack_from('<I', data, 0x78)[0]
+        second = struct.unpack_from('<I', data, 0x78 + 20)[0]
+        for j, row in enumerate(self.v):
+            data[first+j*28:first+(j+1)*28] = b'\xff'*8 + struct.pack('<3f', *row) + b'\xff'*8
+            other = tuple(v+0.75 for v in row)
+            data[second+j*28:second+(j+1)*28] = b'\xff'*8 + struct.pack('<3f', *other) + b'\xff'*8
+        matched, output = mod.convert(bytes(data), obj(self.v), 14)
+        self.assertEqual(matched, [(0, 8)])
+        self.assertEqual(struct.unpack_from('<HHI', output, 16), (0, 3, 0))
+        self.assertEqual(struct.unpack_from('<9h', output, 24),
+                         (1024, 0, -2048, 4096, 8192, 12288, -4096, 2048, 4096))
 
     def test_ds_coordinate_overflow_rejected(self):
         v = [(9.0, 0, 0)] + self.v[1:]
