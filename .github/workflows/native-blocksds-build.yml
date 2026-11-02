@@ -63,7 +63,13 @@ jobs:
           python3 tools/c236_desmume_keymap.py --xdg-config-home "$XDG_CONFIG_HOME"
           echo "Installed DeSmuME package:"
           dpkg-query -W desmume
-          strace -f -e trace=openat -o /tmp/desmume-open.log /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
+          # C238 draft-only diagnostic: trace the *actual* SDL2 event keysyms
+          # and GLib [SDLKEYS] lookup results without modifying game input.
+          cc -std=c11 -Wall -Wextra -Werror -fPIC -shared \
+            tests/c238_sdl_event_trace.c -ldl -o /tmp/c238_sdl_event_trace.so
+          strace -f -e trace=openat -o /tmp/desmume-open.log \
+            env LD_PRELOAD=/tmp/c238_sdl_event_trace.so P3D_C238_TRACE=1 \
+            /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
           # Give NitroFS/FAT startup and the DS CPU more time to draw frames.
@@ -137,6 +143,10 @@ jobs:
             xdotool keyup "$candidate"
             sleep 0.1
           done
+          # Archive only numeric diagnostic lines, never private config paths.
+          grep '^C238 ' /tmp/desmume.log > emulator-input-trace.log || true
+          echo "C238 actual SDL/GLib input trace:"
+          cat emulator-input-trace.log
           echo "DeSmuME XDG config open evidence:"
           grep -E '/desmume/config|\\.desmume\\.ini' /tmp/desmume-open.log | tail -8 || true
           sleep 2
@@ -215,4 +225,5 @@ jobs:
             emulator-probe-*.xwd
             emulator-keyscan-*.xwd
             emulator-windows.txt
+            emulator-input-trace.log
           if-no-files-found: warn
