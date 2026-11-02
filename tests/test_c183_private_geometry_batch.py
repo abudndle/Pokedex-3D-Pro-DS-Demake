@@ -73,6 +73,14 @@ class PrivateGeometryBatch(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'invalid model roster'):
             mod.audit(self.root, self.probe, [True])
 
+    def test_reject_index_mesh_identifier_out_of_range(self):
+        self.pair(14)
+        (self.root / 'p014.p3ix').write_bytes(
+            struct.pack('<4sHHHHI3H', b'P3IX', 1, 14, 1, 64, 1, 0, 1, 2))
+        report = mod.audit(self.root, self.probe, {14})
+        self.assertEqual(report['native_pairs_verified'], 0)
+        self.assertEqual(report['models']['p014']['error'], 'ValueError')
+
     def test_empty_roster_is_invalid(self):
         with self.assertRaises(ValueError):
             mod.audit(self.root, self.probe, set())
