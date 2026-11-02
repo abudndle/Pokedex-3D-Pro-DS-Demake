@@ -181,4 +181,29 @@ python3 tests/c258_melonds_records_tabs_gate.py \
   c258-melonds-records-recent.xwd c258-melonds-records-quizzes.xwd \
   c258-melonds-records-back.xwd
 echo "C258 real melonDS Records Regions/Recent/Quizzes/B: PASS (asset-free)"
+# C259: HOME is unscrolled after Records B. Tap third row Challenge,
+# then use real mapped A to begin, answer once, and continue review.
+xdotool mousemove --window "$window" 55 334
+xdotool mousedown 1
+sleep 0.4
+xdotool mouseup 1
+sleep 2
+xwd -id "$window" -silent -out c259-melonds-challenge-picker.xwd
+for stage in question review continued; do
+  xdotool keydown x
+  sleep 0.4
+  xdotool keyup x
+  sleep 2
+  xwd -id "$window" -silent -out "c259-melonds-challenge-$stage.xwd"
+done
+xdotool keydown z
+sleep 0.4
+xdotool keyup z
+sleep 2
+xwd -id "$window" -silent -out c259-melonds-challenge-back.xwd
+python3 tests/c259_melonds_challenge_round_gate.py \
+  c253-melonds-boot.xwd c259-melonds-challenge-picker.xwd \
+  c259-melonds-challenge-question.xwd c259-melonds-challenge-review.xwd \
+  c259-melonds-challenge-continued.xwd c259-melonds-challenge-back.xwd
+echo "C259 real melonDS Challenge picker/question/review/continue/B: PASS (asset-free)"
 echo "C253 melonDS 1.1 DS boot + real touchscreen navigation: PASS (not DSi or original assets)"
