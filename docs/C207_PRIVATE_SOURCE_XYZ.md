@@ -17,16 +17,21 @@ The output directory must already exist; the output must not already exist.
 The converter rejects symlink paths and public-repository destinations, writes
 with mode 0600, and does not print private hashes or vertex data.
 
-Acceptance is fail-closed: a structurally bounded original C5 primary
-descriptor with 28-byte stride must have the **same number and order** of
-finite float32 XYZ triples as the OBJ vertex records, with per-component
-difference at most 1e-6. Exactly one descriptor must match. Signed 4.12
-coordinates must fit the DS transport range. A P3VX v1 single-mesh sidecar
-with CRC32 is then produced. Descriptor index is reported only as a number.
+Acceptance is fail-closed: structurally bounded original C5 primary descriptors
+with 28-byte stride are considered individually. For each descriptor, the
+converter searches float32 XYZ triples at offsets 0, 4, 8, 12, and 16 within
+the record. A descriptor is accepted only when **exactly one** offset gives
+finite triples whose float32 values are all present in the independent OBJ
+vertex multiset (including duplicate counts). Multiple accepted descriptors
+must not reuse the same OBJ vertex occurrences. Only these proven source
+descriptors are emitted, preserving their original descriptor IDs; all other
+descriptors are omitted. The output may be a **partial model**, never an
+automatic claim of complete original geometry. Coordinates must fit signed
+4.12; P3VX v1 mesh tables and CRC32 are validated in synthetic native C tests.
 
 The OBJ is *independent comparison evidence*, not a source of output vertices.
 No topology, material, UV, shader, skin weight, skeleton, animation, or original
-mesh partition is inferred. A single-mesh P3VX alone is **not renderable**;
+mesh partition is inferred. A P3VX sidecar alone is **not renderable**;
 a separately proven, compatible P3IX index stream is required. The existing
 C183 private native pair audit and a real asset-integrated emulator test are
 still required before any authentic rendering claim.
