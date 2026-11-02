@@ -4,7 +4,9 @@ on:
     paths:
       - 'source/**'
       - 'tests/c253_*'
+      - 'tests/c254_*'
       - 'tests/test_c253_*'
+      - 'tests/test_c254_*'
       - 'tests/run_c253_*'
       - 'Makefile.native'
       - '.github/workflows/c253-melonds-smoke.yml'
@@ -12,7 +14,9 @@ on:
     paths:
       - 'source/**'
       - 'tests/c253_*'
+      - 'tests/c254_*'
       - 'tests/test_c253_*'
+      - 'tests/test_c254_*'
       - 'tests/run_c253_*'
       - 'Makefile.native'
       - '.github/workflows/c253-melonds-smoke.yml'
@@ -30,6 +34,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Reject malformed or blank synthetic XWD frames
         run: python3 -m unittest discover -s tests -p 'test_c253_melonds_frame_gate.py' -v
+      - name: C254 fail-closed dual-screen Right/B synthetic regressions
+        run: python3 -m unittest discover -s tests -p 'test_c254_melonds_nav_gate.py' -v
       - name: Compile actual asset-free BlocksDS ROM without original game assets
         run: |
           docker run --rm -v "$PWD:/work" -w /work \
@@ -71,6 +77,8 @@ jobs:
           path: |
             c253-melonds-boot.xwd
             c253-melonds-dex.xwd
+            c254-melonds-right.xwd
+            c254-melonds-back.xwd
             c253-melonds-windows.txt
           retention-days: 3
           if-no-files-found: ignore
