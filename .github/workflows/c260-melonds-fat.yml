@@ -6,9 +6,11 @@ on:
       - 'tests/c260_*'
       - 'tests/c261_*'
       - 'tests/c262_*'
+      - 'tests/c263_*'
       - 'tests/test_c260_*'
       - 'tests/test_c261_*'
       - 'tests/test_c262_*'
+      - 'tests/test_c263_*'
       - 'tests/run_c260_*'
       - '.github/workflows/c260-melonds-fat.yml'
   pull_request:
@@ -17,9 +19,11 @@ on:
       - 'tests/c260_*'
       - 'tests/c261_*'
       - 'tests/c262_*'
+      - 'tests/c263_*'
       - 'tests/test_c260_*'
       - 'tests/test_c261_*'
       - 'tests/test_c262_*'
+      - 'tests/test_c263_*'
       - 'tests/run_c260_*'
       - '.github/workflows/c260-melonds-fat.yml'
   workflow_dispatch:
@@ -40,6 +44,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_c261_fat_challenge_gate.py' -v
       - name: C262 fail-closed real Challenge frame transition regressions
         run: python3 -m unittest discover -s tests -p 'test_c262_melonds_challenge_phase_gate.py' -v
+      - name: C263 fail-closed Records visit and incomplete-round FAT regressions
+        run: python3 -m unittest discover -s tests -p 'test_c263_fat_records_gate.py' -v
       - name: Compile asset-free native BlocksDS ROM and verify ARM sections
         run: |
           docker run --rm -v "$PWD:/work" -w /work \
