@@ -52,6 +52,7 @@ class C279Tests(unittest.TestCase):
         raw, rows = fixture()
         self.assertEqual(source_ranges(raw), rows)
         result = verify_model("p200", raw, dict(enumerate(rows)))
+        self.assertEqual(result["source_c5_sha256"], hashlib.sha256(raw).hexdigest())
         self.assertEqual([x["status"] for x in result["records"]], ["C73_SOURCE_SHA_VERIFIED"] * 2)
 
     def test_missing_catalog_rows_are_not_promoted(self):
