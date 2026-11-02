@@ -10,7 +10,7 @@ import zlib
 
 from c235_emulator_frame_gate import read_xwd
 
-PNG_SIGNATURE = b'\\x89PNG\\r\\n\\x1a\\n'
+PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
 MAX_ROM_BYTES = 4 * 1024 * 1024
 
 
@@ -74,7 +74,7 @@ def write_evidence(rom, commit, frames, output):
         png_path.write_bytes(xwd_to_png(raw))
         result['frames'].append({'xwd': raw.name, 'xwd_sha256': sha256(raw),
                                  'png': png_path.name, 'png_sha256': sha256(png_path)})
-    (output / 'manifest.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\\n')
+    (output / 'manifest.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
     return result
 
 
