@@ -2,7 +2,8 @@
 """Write an isolated SDL2 DeSmuME CLI keymap for asset-free CI.
 
 DeSmuME CLI loads [SDLKEYS] from $XDG_CONFIG_HOME/desmume/config. SDL2
-keycodes are NOT X11 keysyms or SDL1.2 arrow constants. Prefer printable\nkeys for headless input injection. Never touch the
+keycodes are NOT X11 keysyms or SDL1.2 arrow constants. Prefer printable
+keys for headless input injection. Never touch the
 user's existing DeSmuME config.
 """
 import argparse
