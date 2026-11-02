@@ -84,6 +84,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c233_seam_geometry_crosscheck.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c234_partition_geometry_crosscheck.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c244_c5_obj_index_provenance.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c245_private_ordered_geometry_pair.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c150_private_asset_integrity.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c154_native_chunk_probe.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c86_preview_bundle_audit.py' -v

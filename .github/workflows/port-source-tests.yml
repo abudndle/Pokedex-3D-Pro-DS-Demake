@@ -72,6 +72,9 @@ jobs:
       - name: C244 exact private C5-to-OBJ index bytes and variable alignment (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c244_c5_obj_index_provenance.py' -v
 
+      - name: C245 source-ordered C5 XYZ plus exact face bytes to native P3VX/P3IX (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_c245_private_ordered_geometry_pair.py' -v
+
       - name: C229 verify strict aligned C5 topology candidates (synthetic only)
         run: python3 -m unittest discover -s tests -p 'test_c229_aligned_topology_batch.py' -v
 
