@@ -40,23 +40,37 @@ def compare_frames(home, dex, right, back, min_changed=100):
         raise ValueError("XWD capture dimensions changed")
     width, height, row_bytes, pixel_bytes = shape
 
-    def changed(a, b):
+    if (width, height) != (256, 384):
+        raise ValueError("expected native 256x384 dual-screen capture")
+
+    def changed(a, b, region=None, step=2):
         left, right_pixels = frames[a][1], frames[b][1]
+        x0, y0, x1, y1 = region or (0, 0, width, height)
         return sum(left[y * row_bytes + x * pixel_bytes:
                         y * row_bytes + x * pixel_bytes + 3] !=
                    right_pixels[y * row_bytes + x * pixel_bytes:
                                 y * row_bytes + x * pixel_bytes + 3]
-                   for y in range(0, height, 2) for x in range(0, width, 2))
+                   for y in range(y0, y1, step) for x in range(x0, x1, step))
 
     opened, advanced, restored = changed(0, 1), changed(1, 2), changed(0, 3)
+    # #001->#002 changes one small number glyph on each screen. The former
+    # 100-sampled-pixel Right threshold was impossible for this transition.
+    # Require BOTH number glyph regions, excluding the ARM9 debug heartbeat.
+    upper_number = changed(1, 2, (125, 35, 150, 60), 1)
+    lower_number = changed(1, 2, (80, 288, 105, 315), 1)
+    lower_restored = changed(0, 3, (0, 200, 256, 384), 2)
     result = {"home_to_dex_pixels": opened,
               "dex_right_pixels": advanced,
-              "after_b_pixels_different_from_home": restored}
+              "dex_upper_number_pixels": upper_number,
+              "dex_lower_number_pixels": lower_number,
+              "after_b_pixels_different_from_home": restored,
+              "after_b_lower_pixels_different_from_home": lower_restored}
     if opened < min_changed:
         raise ValueError(f"A did not visibly open Pokédex: {result}")
-    if advanced < min_changed:
-        raise ValueError(f"Right did not visibly advance Pokédex: {result}")
-    if restored > max(min_changed // 2, opened // 4):
+    if upper_number < 10 or lower_number < 10:
+        raise ValueError(f"Right did not visibly advance Pokédex on BOTH screens: {result}")
+    if (restored > max(min_changed // 2, opened // 4)
+            or lower_restored > max(10, opened // 10)):
         raise ValueError(f"B did not visibly return to home: {result}")
     return result
 
