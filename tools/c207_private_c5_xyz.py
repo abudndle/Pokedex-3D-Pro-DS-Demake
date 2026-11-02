@@ -6,6 +6,7 @@ original C5 topology/material/skin data is inferred. Run only on authorized
 private files; no original data, output, or hashes belong in public GitHub.
 """
 import argparse
+from collections import Counter
 import math
 import os
 from pathlib import Path
@@ -47,24 +48,22 @@ def c5_candidates(data):
     n1, n2 = struct.unpack_from('<2H', data, 0x14)
     if not (0x78 <= a <= b <= c <= len(data)) or b-a != n1*20 or c-b != n2*12:
         raise ValueError('invalid C5 descriptor bounds')
+    if n1 > 256 or n2 > 256:
+        raise ValueError('C5 descriptor budget exceeded')
     candidates = []
     for i in range(n1):
         off, reserved, packed, layout, reserved2 = struct.unpack_from('<5I', data, a+i*20)
         count, stride = packed & 65535, (packed >> 16) & 255
         if reserved or reserved2 not in (0, 0x26) or off < c or off > len(data) or count*stride > len(data)-off:
             raise ValueError('invalid C5 primary descriptor')
-        if stride != 28 or not 3 <= count <= MAX_VERTICES:
-            continue
-        xyz = [struct.unpack_from('<3f', data, off+j*stride) for j in range(count)]
-        if all(math.isfinite(v) for vertex in xyz for v in vertex):
-            candidates.append((i, xyz))
+        if stride == 28 and 3 <= count <= MAX_VERTICES:
+            candidates.append((i, off, count))
     for i in range(n2):
         off, reserved, packed = struct.unpack_from('<3I', data, b+i*12)
         count, stride = packed & 65535, packed >> 16
         if reserved or off > len(data) or count*stride > len(data)-off:
             raise ValueError('invalid C5 secondary descriptor')
     return candidates
-
 
 def obj_vertices(data):
     vertices = []
@@ -96,26 +95,49 @@ def convert(c5, obj, model):
     if type(model) is not int or model not in (set(range(734))-{721,722,723,724}):
         raise ValueError('invalid model ID')
     reference = obj_vertices(obj)
-    matches = [(idx, xyz) for idx, xyz in c5_candidates(c5)
-               if len(xyz) == len(reference) and
-               all(abs(a-b) <= 1e-6 for source, expected in zip(xyz, reference)
-                   for a,b in zip(source, expected))]
-    if len(matches) != 1:
-        raise ValueError('C5 XYZ source match must be unique (found %d)' % len(matches))
-    descriptor, xyz = matches[0]
+    reference_counts = Counter(struct.pack('<3f', *v) for v in reference)
+    verified = []
+    combined = Counter()
+    for idx, off, count in c5_candidates(c5):
+        matches = []
+        for shift in (0, 4, 8, 12, 16):
+            xyz = [struct.unpack_from('<3f', c5, off+j*28+shift) for j in range(count)]
+            if not all(math.isfinite(v) for row in xyz for v in row):
+                continue
+            values = Counter(struct.pack('<3f', *v) for v in xyz)
+            if all(values[key] <= reference_counts[key] for key in values):
+                matches.append((shift, xyz, values))
+        if len(matches) > 1:
+            raise ValueError('ambiguous C5 XYZ byte offset for descriptor %d' % idx)
+        if matches:
+            shift, xyz, values = matches[0]
+            if idx >= 64:
+                raise ValueError('source descriptor exceeds native mesh ID budget')
+            verified.append((idx, shift, xyz))
+            combined.update(values)
+    if not verified:
+        raise ValueError('no independently matched C5 XYZ descriptors')
+    if any(count > reference_counts[key] for key, count in combined.items()):
+        raise ValueError('ambiguous overlapping source descriptors')
+    total = sum(len(xyz) for _, _, xyz in verified)
+    if total > MAX_VERTICES or len(verified) > 64:
+        raise ValueError('native vertex or mesh budget exceeded')
+    table = bytearray()
     fixed = []
-    for vertex in xyz:
-        for value in vertex:
-            q = round(value*4096)
-            if not -32768 <= q <= 32767:
-                raise ValueError('source coordinate outside DS signed 4.12 range')
-            fixed.append(q)
-    table = struct.pack('<HHI', 0, len(xyz), 0)
+    first = 0
+    for idx, shift, xyz in verified:
+        table.extend(struct.pack('<HHI', idx, len(xyz), first))
+        first += len(xyz)
+        for row in xyz:
+            for value in row:
+                q = round(value*4096)
+                if not -32768 <= q <= 32767:
+                    raise ValueError('source coordinate outside DS signed 4.12 range')
+                fixed.append(q)
     payload = struct.pack('<%dh' % len(fixed), *fixed)
     crc = zlib.crc32(table+payload) & 0xffffffff
-    output = struct.pack('<4sHHHHI', b'P3VX', 1, model, 1, 0, crc)+table+payload
-    return descriptor, output
-
+    output = struct.pack('<4sHHHHI', b'P3VX', 1, model, len(verified), 0, crc)+table+payload
+    return [(idx, shift) for idx, shift, _ in verified], output
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -127,7 +149,7 @@ def main():
     match = MODEL.fullmatch(c5.stem)
     if match is None or obj.stem != c5.stem or target.name != c5.stem+'.p3vx':
         parser.error('private files must use matching pNNN names')
-    descriptor, result = convert(read_bounded(c5), read_bounded(obj), int(match.group(1)))
+    descriptors, result = convert(read_bounded(c5), read_bounded(obj), int(match.group(1)))
     if not target.parent.is_dir():
         parser.error('private output directory must exist')
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
@@ -142,8 +164,8 @@ def main():
     except BaseException:
         target.unlink(missing_ok=True)
         raise
-    print('P3VX model', match.group(1), 'source descriptor', descriptor,
-          'vertices', (len(result)-24)//6, '(topology, materials, animation NOT verified)')
+    print('P3VX model', match.group(1), 'verified source descriptors', descriptors,
+          '(PARTIAL geometry only; topology, materials, animation NOT verified)')
 
 
 if __name__ == '__main__':
