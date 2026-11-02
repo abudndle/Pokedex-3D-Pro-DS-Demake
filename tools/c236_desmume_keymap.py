@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Write an isolated SDL2 DeSmuME CLI keymap for asset-free CI.
 
-DeSmuME CLI 0.9.13 loads [KEYS] from $XDG_CONFIG_HOME/desmume/config.\nThe newer upstream master uses [SDLKEYS]; the installed Ubuntu CI 0.9.13\nbinary does NOT recognize that newer group. SDL2
+DeSmuME CLI 0.9.13 loads [KEYS] from $XDG_CONFIG_HOME/desmume/config.
+The newer upstream master uses [SDLKEYS]; the installed Ubuntu CI 0.9.13
+binary does NOT recognize that newer group. Moreover, 0.9.13 resets the
+parsed configuration to its broken default keyboard map, so this file alone
+does not fix input. The C240 CI-only SDL adapter handles that bug. SDL2
 keycodes are NOT X11 keysyms or SDL1.2 arrow constants. Prefer printable
 keys for headless input injection. Never touch the
 user's existing DeSmuME config.
