@@ -2,7 +2,7 @@
 """Write an isolated SDL2 DeSmuME CLI keymap for asset-free CI.
 
 DeSmuME CLI loads [SDLKEYS] from $XDG_CONFIG_HOME/desmume/config. SDL2
-keycodes are NOT X11 keysyms or SDL1.2 arrow constants. Never touch the
+keycodes are NOT X11 keysyms or SDL1.2 arrow constants. Prefer printable\nkeys for headless input injection. Never touch the
 user's existing DeSmuME config.
 """
 import argparse
@@ -11,12 +11,12 @@ from pathlib import Path
 
 SDL_SCANCODE_MASK = 1 << 30
 KEYS = {
-    "A": ord("x"), "B": ord("z"),
+    # Use distinct printable keys for direction/B. This avoids SDL/X11
+    # arrow-scancode translation on headless CI and is NOT a user keymap.
+    "A": ord("x"), "B": ord("b"),
     "Select": SDL_SCANCODE_MASK | 229, "Start": 13,
-    "Right": SDL_SCANCODE_MASK | 79,
-    "Left": SDL_SCANCODE_MASK | 80,
-    "Up": SDL_SCANCODE_MASK | 82,
-    "Down": SDL_SCANCODE_MASK | 81,
+    "Right": ord("d"), "Left": ord("f"),
+    "Up": ord("i"), "Down": ord("k"),
     "R": ord("w"), "L": ord("q"),
     "X": ord("s"), "Y": ord("a"),
     "Debug": ord("p"), "Boost": ord("o"), "Lid": 8,
