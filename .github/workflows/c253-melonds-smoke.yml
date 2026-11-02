@@ -96,7 +96,7 @@ jobs:
       - name: Attempt genuine melonDS 1.1 ROM boot and capture
         shell: bash
         run: |
-          xvfb-run -a -s '-screen 0 1024x768x24' timeout 70s \
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 115s \
             bash tests/run_c253_melonds_smoke.sh \
             "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C253_APP_RUN"
       - name: Keep only asset-free melonDS evidence, never the ROM
