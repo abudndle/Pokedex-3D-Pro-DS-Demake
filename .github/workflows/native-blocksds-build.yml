@@ -139,7 +139,10 @@ jobs:
           # (Move Dex): DS touch y=88+16+8=112, window y=192+112=304.
           # This is a touchscreen test, NOT a claim that CLI Down works.
           xdotool mousemove --window "$window_id" 110 304
-          xdotool click 1
+          # Hold through several VBlanks so SDL cannot miss the touch edge.
+          xdotool mousedown 1
+          sleep 0.4
+          xdotool mouseup 1
           sleep 2
           xwd -id "$window_id" -silent -out emulator-move-dex.xwd
           xdotool keydown b
@@ -151,7 +154,10 @@ jobs:
           # disabled: touch selects it; A must NOT open a camera page.
           # Touch y=88+5*16+8=176, window y=368.
           xdotool mousemove --window "$window_id" 110 368
-          xdotool click 1
+          # Hold through several VBlanks so SDL cannot miss the touch edge.
+          xdotool mousedown 1
+          sleep 0.4
+          xdotool mouseup 1
           sleep 2
           xwd -id "$window_id" -silent -out emulator-ar-selected.xwd
           xdotool keydown x
