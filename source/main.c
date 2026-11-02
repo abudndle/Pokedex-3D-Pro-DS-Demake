@@ -647,9 +647,9 @@ static void render(void) {
             else printf("Source mesh unavailable\n");
             if(preview_found){
                 if(preview_animation.ready && source_geometry_ready)
-                    printf("Source geometry: animation not verified\\n");
+                    printf("Source geometry: animation not verified\n");
                 else if(preview_animation.ready){
-                    printf("Animation: %u frames, %u ticks (%s)\\n",preview_animation.count,preview_animation.total_ticks,preview_animation.version==2?"smooth":"held");
+                    printf("Animation: %u frames, %u ticks (%s)\n",preview_animation.count,preview_animation.total_ticks,preview_animation.version==2?"smooth":"held");
                     printf("Verified clip: %u / %u\n",preview_animation_library.selected+1,preview_animation_library.count);
                     if(preview_animation_library.count>1)
                         printf("UP/DOWN: select animation\n");
