@@ -112,6 +112,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c114_crossfile_source_consistency.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c114_original_sampler_differential.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c80_feature_parity.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c268_fat_album_gate.py' -v
 
 # C137 locally integrate an owner-supplied private NitroFS archive.
 # Asset-free CI is NOT this target. Does not imply release readiness.
