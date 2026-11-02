@@ -31,7 +31,8 @@ int main(int argc,char **argv){
     assert(p3dDexFindScoped("",0,1,P3D_DEX_SEARCH_NAME,0,P3D_DEX_SCOPE_FAVORITES,&history,&menu)==-1);
     assert(p3dFavoriteToggle(&menu,24)==1);
     assert(p3dDexFindScoped("PI",0,1,P3D_DEX_SEARCH_NAME,0,P3D_DEX_SCOPE_FAVORITES,&history,&menu)==24);
-    assert(p3dDexFindScoped("PI",0,1,P3D_DEX_SEARCH_NAME,0,9,P3D_DEX_SCOPE_ALL,&history,&menu)==-1);
+    assert(p3dDexFindScoped("PI",0,1,P3D_DEX_SEARCH_NAME,0,9,&history,&menu)==-1);
+    assert(p3dDexFindScoped("PI",0,1,P3D_DEX_SEARCH_NAME,9,P3D_DEX_SCOPE_ALL,&history,&menu)==-1);
     assert(strcmp(p3dDexRegionName(5),"UNOVA")==0);
     assert(strcmp(p3dDexScopeName(1),"VIEWED")==0);
     /* C231: selecting a previously shown Pokémon must not authorize opening
