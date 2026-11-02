@@ -20,12 +20,13 @@ class C238TraceTests(unittest.TestCase):
             (root / "fake.c").write_text(r"""
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 int SDL_PollEvent(void *event) {
     static int called = 0;
     if (called++) return 0;
     memset(event, 0, 56);
     uint32_t type=0x300, scan=7;
-    int32_t sym=100;
+    int32_t sym=(int32_t)atoi(getenv("C238_TEST_SYM") ? getenv("C238_TEST_SYM") : "100");
     memcpy((char *)event, &type, 4);
     memcpy((char *)event+16, &scan, 4);
     memcpy((char *)event+20, &sym, 4);
@@ -83,6 +84,15 @@ int main(void) {
                                   text=True, check=True)
             self.assertEqual(proc.stderr, "")
             self.assertIn("sym=100", proc.stdout)
+            for original, expected in (("100", "229"), ("98", "0")):
+                env = {**os.environ, "LD_PRELOAD": str(hook),
+                       "P3D_C238_TRACE": "1", "P3D_C240_ADAPT_0913": "1",
+                       "C238_TEST_SYM": original}
+                proc = subprocess.run([str(main)], env=env,
+                                      capture_output=True, text=True, check=True)
+                self.assertIn("sym=" + expected, proc.stdout)
+                self.assertIn("C240 DeSmuME 0.9.13 SDL key remap " + original
+                              + " -> " + expected, proc.stderr)
 
 
 if __name__ == "__main__":
