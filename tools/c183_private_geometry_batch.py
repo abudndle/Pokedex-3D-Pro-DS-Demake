@@ -16,6 +16,7 @@ import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from c180_private_c5_coverage import EXPECTED, write_private_report
+from c211_mesh_index_preflight import inspect_pair
 
 REPO = Path(__file__).resolve().parents[1]
 MODEL_NAME = re.compile(r"p([0-9]{3})\.(p3vx|p3ix)\Z")
@@ -118,6 +119,8 @@ def audit(root, probe, roster=None):
             if vx.stat().st_size > MAX_VERTEX_BYTES:
                 raise ValueError("oversized vertex stream")
             triangles = index_triangle_count(ix, model)
+            if inspect_pair(vx, ix, model) != triangles:
+                raise ValueError('mesh-local triangle count mismatch')
             run = subprocess.run(
                 [str(probe), str(vx), str(ix), str(model), str(triangles)],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15,
