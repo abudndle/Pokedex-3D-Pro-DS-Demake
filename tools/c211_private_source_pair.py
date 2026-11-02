@@ -89,7 +89,7 @@ def validate_source_pair(c5, obj, manifest, vx, ix, model):
         raise ValueError('P3IX differs from verified original primitive map')
     result = validate_native_pair(vx, ix, model)
     result['source_xyz_descriptors'] = len(descriptors)
-    result['source_triangle_manifest_verified'] = True
+    result['source_triangle_manifest_consistent'] = True
     return result
 
 
