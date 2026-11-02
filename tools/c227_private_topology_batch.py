@@ -97,6 +97,8 @@ def find_topology(data, model=None):
             for index in range(len(groups))
         ],
         "scope": "Topology only; positions, materials, UVs and rendering are not verified.",
+        "complete_models_verified": False,
+        "native_ds_rendering_verified": False,
     }
 
 
