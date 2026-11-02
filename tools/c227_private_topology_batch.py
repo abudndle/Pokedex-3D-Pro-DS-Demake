@@ -16,7 +16,7 @@ from pathlib import Path
 from c5_dual_table_parser import parse
 
 START_TRIANGLES = struct.pack("<6H", 0, 1, 2, 0, 2, 3)
-MODEL_MEMBER = re.compile(r"decoded_c5/p([0-9]{3})\.c5\\Z")
+MODEL_MEMBER = re.compile(r"decoded_c5/p([0-9]{3})\.c5\Z")
 EXPECTED_MODELS = {f"p{i:03d}" for i in range(734) if i not in (721, 722, 723, 724)}
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -141,7 +141,7 @@ def audit_archives(archive_dir, output_dir):
                     failures[str(exc).split(":")[0][:100]] += 1
                     continue
                 (topology_dir / f"{model}.json").write_text(
-                    json.dumps(result, indent=2, sort_keys=True) + "\\n",
+                    json.dumps(result, indent=2, sort_keys=True) + "\n",
                     encoding="utf-8")
                 totals["models_with_topology"] += 1
                 totals["meshes"] += result["mesh_count"]
@@ -164,7 +164,7 @@ def audit_archives(archive_dir, output_dir):
         "native_ds_rendering_verified": False,
     }
     (output_dir / "summary.json").write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return summary
 
 
