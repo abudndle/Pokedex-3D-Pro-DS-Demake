@@ -60,6 +60,17 @@ class PrivateGeometryBatch(unittest.TestCase):
                                 str(self.root / 'p014.p3ix'), '14', '1'])
         self.assertEqual(run.call_args.kwargs['timeout'], 15)
 
+    def test_native_probe_runs_without_shell_and_discards_output(self):
+        self.pair(14)
+        with unittest.mock.patch.object(mod.subprocess, 'run', return_value=unittest.mock.Mock(returncode=0)) as run:
+            report = mod.audit(self.root, self.probe, {14})
+        self.assertTrue(report['all_pairs_verified'])
+        self.assertIsInstance(run.call_args.args[0], list)
+        self.assertFalse(run.call_args.kwargs.get('shell', False))
+        self.assertIs(run.call_args.kwargs['stdout'], mod.subprocess.DEVNULL)
+        self.assertIs(run.call_args.kwargs['stderr'], mod.subprocess.DEVNULL)
+        self.assertFalse(run.call_args.kwargs['check'])
+
     def test_mixed_pair_outcomes_count_only_verified_models(self):
         self.pair(14)
         self.pair(15, corrupt=True)
