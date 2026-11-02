@@ -17,6 +17,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Compile asset-free native Nintendo DS ROM
         run: make dev-rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
+      - name: C273 compile and unpack isolated synthetic private diagnostic ROM
+        run: python3 tests/c273_native_private_rom_gate.py
       - name: Inspect generated ROM
         run: |
           test -s Pokedex3D_DS_BlocksDS.nds
