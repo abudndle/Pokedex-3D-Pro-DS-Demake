@@ -115,6 +115,12 @@ for stage in question review continued; do
   sleep 2
   xwd -id "$window" -silent -out "c261-melonds-challenge-$stage.xwd"
 done
+# C262: actual captured question/review/continued touchscreen UI must change.
+# A nonzero FAT score alone cannot prove the three visual phases advanced.
+python3 tests/c262_melonds_challenge_phase_gate.py \
+  c261-melonds-challenge-question.xwd \
+  c261-melonds-challenge-review.xwd \
+  c261-melonds-challenge-continued.xwd
 sleep 3
 close_cleanly
 python3 tests/c261_fat_challenge_gate.py "$sd_root/export"
