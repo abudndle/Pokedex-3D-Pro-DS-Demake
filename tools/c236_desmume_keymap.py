@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write an isolated SDL2 DeSmuME CLI keymap for asset-free CI.
 
-DeSmuME CLI loads [SDLKEYS] from $XDG_CONFIG_HOME/desmume/config. SDL2
+DeSmuME CLI 0.9.13 loads [KEYS] from $XDG_CONFIG_HOME/desmume/config.\nThe newer upstream master uses [SDLKEYS]; the installed Ubuntu CI 0.9.13\nbinary does NOT recognize that newer group. SDL2
 keycodes are NOT X11 keysyms or SDL1.2 arrow constants. Prefer printable
 keys for headless input injection. Never touch the
 user's existing DeSmuME config.
@@ -33,7 +33,7 @@ def write_config(xdg_config_home):
     if folder.exists() or folder.is_symlink():
         raise FileExistsError("isolated DeSmuME config directory already exists")
     folder.mkdir(mode=0o700)
-    content = "[SDLKEYS]\n" + "".join(
+    content = "[KEYS]\n" + "".join(
         f"{name}={code}\n" for name, code in KEYS.items())
     target = folder / "config"
     fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
