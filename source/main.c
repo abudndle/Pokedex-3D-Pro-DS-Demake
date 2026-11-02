@@ -435,9 +435,22 @@ static int show_original_title(void){
 }
 static int model_yaw=0;
 static void update_preview_mode(void){
-    display_preview=preview_found &&
+    int next_preview=preview_found &&
         ((!home && state.page==P3D_PAGE_DEX) ||
          (title_active && title_idle.active));
+    /* C252: a 3D frame remains in the hardware BG0 framebuffer until the
+     * next glFlush. When a mapped model is followed by an unavailable model
+     * or HOME, render_model() stops flushing and its last triangle can stay
+     * visible over the text console indefinitely. Present one EMPTY frame
+     * on the preview -> non-preview transition; never draw guessed geometry
+     * or clear every idle menu frame. The actual emulator screenshot gate
+     * must prove the previous triangle is gone. */
+    if(display_preview && !next_preview){
+        glDisable(GL_TEXTURE_2D);
+        glBindTexture(0,0);
+        glFlush(0);
+    }
+    display_preview=next_preview;
 }
 static void render_model(void){
     if(!display_preview)return;
