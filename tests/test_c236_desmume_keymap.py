@@ -30,7 +30,7 @@ class TestC236Keymap(unittest.TestCase):
         self.assertNotEqual(KEYS["Right"], SDL_SCANCODE_MASK | 79)
         self.assertNotEqual(KEYS["Right"], 275)  # SDL 1.2, not SDL2
 
-    def test_a_b_are_upstream_cli_defaults(self):
+    def test_a_is_default_and_b_is_isolated_override(self):
         self.assertEqual((KEYS["A"], KEYS["B"]), (120, 98))
 
     def test_writes_private_glib_keyfile(self):
