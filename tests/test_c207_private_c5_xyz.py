@@ -70,11 +70,11 @@ class SourceXyzTest(unittest.TestCase):
             mod.convert(fixture(self.v), obj(different), 14)
 
     def test_ambiguous_descriptors_rejected(self):
-        with self.assertRaisesRegex(ValueError, 'unique'):
+        with self.assertRaisesRegex(ValueError, 'ambiguous'):
             mod.convert(fixture(self.v, duplicate=True), obj(self.v), 14)
 
     def test_non_28_stride_not_assumed(self):
-        with self.assertRaisesRegex(ValueError, 'unique'):
+        with self.assertRaisesRegex(ValueError, 'no independently'):
             mod.convert(fixture(self.v, stride=32), obj(self.v), 14)
 
     def test_partial_source_mesh_and_nonzero_xyz_offset(self):
