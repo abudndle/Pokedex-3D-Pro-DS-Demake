@@ -800,6 +800,13 @@ static void render(void) {
                 printf("Total correct: %d / %d\n",challenge_correct_total,challenge_answer_total);
                 printf("A: Try again\n");
                 printf("Y: Type Matchups\n");
+            }else if(quiz.stage==P3D_CHALLENGE_REVIEW){
+                printf("%s\n",quiz.selected==quiz.correct?"Correct!":"Incorrect");
+                printf("Your answer: Pokemon #%03d\n",quiz.choices[quiz.selected]+1);
+                printf("Correct answer: #%03d\n",quiz.pokemon+1);
+                printf("Score: %d / %d\n",quiz.score,quiz.question+1);
+                printf("A: %s\n",quiz.question+1==P3D_CHALLENGE_QUESTIONS?
+                       "show results":"next question");
             }else{
                 printf("Question %d / %d\n",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
                 printf("Choose Pokemon number:\n");
@@ -977,6 +984,12 @@ static void render(void) {
             }else if(quiz.stage==P3D_CHALLENGE_RESULTS){
                 printf("\x1b[13;1HScore: %d / %d",quiz.score,P3D_CHALLENGE_QUESTIONS);
                 printf("\x1b[15;1HA: replay challenge");
+            }else if(quiz.stage==P3D_CHALLENGE_REVIEW){
+                printf("\x1b[11;1H%s",quiz.selected==quiz.correct?"Correct!":"Incorrect");
+                printf("\x1b[13;1HAnswer: Pokemon #%03d",quiz.pokemon+1);
+                printf("\x1b[15;1HYou chose: #%03d",quiz.choices[quiz.selected]+1);
+                printf("\x1b[19;2HA / tap: %s",quiz.question+1==P3D_CHALLENGE_QUESTIONS?
+                       "results":"continue");
             }else{
                 printf("\x1b[8;1HQuestion %d / %d",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
                 for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++)
@@ -987,7 +1000,9 @@ static void render(void) {
         }else{
             printf("\x1b[13;1HFeature implementation pending");
         }
-        if(state.page==P3D_PAGE_CHALLENGE && quiz.stage==P3D_CHALLENGE_QUESTION)
+        if(state.page==P3D_PAGE_CHALLENGE &&
+           (quiz.stage==P3D_CHALLENGE_QUESTION ||
+            quiz.stage==P3D_CHALLENGE_REVIEW))
             printf("\x1b[24;1HB: Return to menu");
         else printf("\x1b[17;1HPress B to go back");
     }
@@ -1279,68 +1294,76 @@ int main(void) {
                 if((down&KEY_RIGHT)&&quiz.mode_cursor<available-1){quiz.mode_cursor++;redraw=1;}
             }
             if(state.page==P3D_PAGE_CHALLENGE){
-                if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH)) && quiz.stage!=P3D_CHALLENGE_QUESTION){
-                    state.page=P3D_PAGE_TYPES;
-                    redraw=1;
+                int touch_x=-1,touch_y=-1;
+                /* The source-art bitmap has no verified text-mode hitboxes.
+                 * Capture touch only on the visible text fallback screen. */
+                if(!showing_original_art && (down&KEY_TOUCH)){
+                    touchPosition point;
+                    touchRead(&point);
+                    touch_x=point.px;
+                    touch_y=point.py;
                 }
-                if(quiz.stage==P3D_CHALLENGE_PICKER||quiz.stage==P3D_CHALLENGE_RESULTS){
-                    if(down&KEY_A){
-                        /* Preserve the selected region when retrying. */
+                /* Only picker/results can navigate to Type Matchups.
+                 * Consume this key so destination's Y handler cannot run
+                 * again in this same frame (Types -> Challenge bounce). */
+                if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH)) &&
+                   (quiz.stage==P3D_CHALLENGE_PICKER||
+                    quiz.stage==P3D_CHALLENGE_RESULTS)){
+                    state.page=P3D_PAGE_TYPES;
+                    down=0;
+                    redraw=1;
+                }else if(quiz.stage==P3D_CHALLENGE_PICKER||
+                         quiz.stage==P3D_CHALLENGE_RESULTS){
+                    if((down&KEY_A) && !(down&KEY_TOUCH)){
+                        /* Preserve region selected in picker / replay. */
                         int mode=quiz.mode_cursor;
-                        if(p3dChallengeBegin(&quiz,mode,challenge_seed,challenge_answer_total))
+                        if(p3dChallengeBegin(&quiz,mode,challenge_seed,
+                                             challenge_answer_total))
                             redraw=1;
                     }
-                }else{
-                    if((down&KEY_UP)&&quiz.selected>0){quiz.selected--;redraw=1;}
-                    if((down&KEY_DOWN)&&quiz.selected<3){quiz.selected++;redraw=1;}
-                    if((down&KEY_A)&&!(down&KEY_TOUCH)){
-                        int result=p3dChallengeAnswer(&quiz,quiz.selected);
+                }else if(quiz.stage==P3D_CHALLENGE_REVIEW){
+                    /* Repeated A/touch while reviewing may only advance
+                     * once. The final question's review precedes results. */
+                    if(((down&KEY_A) && !(down&KEY_TOUCH))||
+                       p3dChallengeTouchContinue(touch_x,touch_y)){
+                        if(p3dChallengeContinue(&quiz)){
+                            if(quiz.stage==P3D_CHALLENGE_RESULTS &&
+                               p3dRecordsComplete(&records,quiz.mode,quiz.score)){
+                                records_dirty=1;
+                                progress_dirty=1;
+                            }
+                            redraw=1;
+                        }
+                    }
+                }else if(quiz.stage==P3D_CHALLENGE_QUESTION){
+                    int choice=-1;
+                    if((down&KEY_UP) && quiz.selected>0){
+                        quiz.selected--;
+                        redraw=1;
+                    }
+                    if((down&KEY_DOWN) && quiz.selected<P3D_CHALLENGE_OPTIONS-1){
+                        quiz.selected++;
+                        redraw=1;
+                    }
+                    /* Touch and A cannot submit two answers in one VBlank.
+                     * The first choice starts exactly at console row 11:
+                     * 80px, followed by three 24px-high label rows. */
+                    if(down&KEY_TOUCH)
+                        choice=p3dChallengeTouchChoice(touch_x,touch_y);
+                    else if(down&KEY_A)
+                        choice=quiz.selected;
+                    if(choice>=0){
+                        int result=p3dChallengeAnswer(&quiz,choice);
                         if(result>=0 && challenge_answer_total<100000000){
                             challenge_answer_total++;
                             if(result)challenge_correct_total++;
                             progress_dirty=1;
                         }
-                        if(result>=0 && quiz.stage==P3D_CHALLENGE_RESULTS &&
-                           p3dRecordsComplete(&records,quiz.mode,quiz.score)){
-                            records_dirty=1;
-                            progress_dirty=1;
-                        }
-                        redraw=1;
+                        if(result>=0)redraw=1;
                     }
                 }
             }
 
-            /* Touch the four answer rows on the lower screen in text mode.
-             * Keep the original-art layout untouched until its coordinates
-             * have been recovered from the source game. */
-            if(state.page==P3D_PAGE_CHALLENGE &&
-               quiz.stage==P3D_CHALLENGE_QUESTION &&
-               !showing_original_art && (down&KEY_TOUCH)){
-                touchPosition point;
-                touchRead(&point);
-                /* Choices are drawn at console rows 11,14,17,20:
-                 * y=88,112,136,160. Keep the four 24px hitboxes
-                 * aligned with their visible labels. */
-                if(point.px>=24 && point.px<232 &&
-                   point.py>=88 && point.py<184){
-                    int selected=(point.py-88)/24;
-                    if(selected>=0 && selected<P3D_CHALLENGE_OPTIONS){
-                        quiz.selected=selected;
-                        int result=p3dChallengeAnswer(&quiz,selected);
-                        if(result>=0 && challenge_answer_total<100000000){
-                            challenge_answer_total++;
-                            if(result)challenge_correct_total++;
-                            progress_dirty=1;
-                        }
-                        if(result>=0 && quiz.stage==P3D_CHALLENGE_RESULTS &&
-                           p3dRecordsComplete(&records,quiz.mode,quiz.score)){
-                            records_dirty=1;
-                            progress_dirty=1;
-                        }
-                        redraw=1;
-                    }
-                }
-            }
             if(state.page==P3D_PAGE_SEARCH){
                 /* One touch cannot also open a stale entry or a destination page.
                  * Bitmap artwork has NO text keyboard hitboxes. */
