@@ -39,7 +39,8 @@ int p3dVerifiedVerticesDecode(const uint8_t *data,size_t size,
         const uint8_t *row=data+HEADER_BYTES+(size_t)i*TABLE_BYTES;
         uint16_t mesh=rd16(row),n=rd16(row+2);
         uint32_t first=rd32(row+4);
-        if((i&&mesh<=previous)||n<3||first!=vertices||
+        if(mesh>=P3D_VERTEX_MAX_MESHES||(i&&mesh<=previous)||
+           n<3||first!=vertices||
            n>P3D_VERTEX_MAX_VERTICES-vertices)return 0;
         previous=mesh;
         vertices+=n;
