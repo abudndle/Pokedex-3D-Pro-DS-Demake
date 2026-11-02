@@ -4,8 +4,6 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
-import struct
-import zlib
 import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,6 +67,24 @@ class MeshPreflightTests(unittest.TestCase):
                        + struct.pack("<HHI", 1, 3, 3) + bytes(36))
             vp.write_bytes(b"P3VX" + struct.pack("<HHHHI", 1, 14, 2, 0, zlib.crc32(payload)) + payload)
             with self.assertRaisesRegex(ValueError, "rosters differ"):
+                mod.inspect_pair(vp, ip, 14)
+
+    def test_index_mesh_count_cannot_exceed_vertex_roster(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vp, ip = self.pair(tmp)
+            raw = bytearray(ip.read_bytes())
+            struct.pack_into("<H", raw, 8, 2)
+            ip.write_bytes(raw)
+            with self.assertRaisesRegex(ValueError, "truncated index mesh"):
+                mod.inspect_pair(vp, ip, 14)
+
+    def test_index_cannot_reference_unlisted_vertex_mesh(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vp, ip = self.pair(tmp)
+            raw = bytearray(ip.read_bytes())
+            struct.pack_into("<H", raw, 10, 1)
+            ip.write_bytes(raw)
+            with self.assertRaisesRegex(ValueError, "invalid index mesh"):
                 mod.inspect_pair(vp, ip, 14)
 
     def test_degenerate_triangle(self):
