@@ -83,7 +83,7 @@ def write_private_file(path, data):
         os.fsync(output.fileno())
 
 
-def stage(source_dir, mapping_json, destination, *, probe=None):
+def stage(source_dir, mapping_json, destination):
     source_dir = private_path(source_dir, directory=True)
     mapping_json = private_path(mapping_json)
     destination = private_path(destination)
@@ -93,10 +93,6 @@ def stage(source_dir, mapping_json, destination, *, probe=None):
         raise ValueError('destination must not be inside source directory')
     assignments = parse_assignments(read_regular(mapping_json, MAX_MAPPING_BYTES))
     models = sorted({model for _, model in assignments})
-    if probe is not None:
-        probe = private_path(probe)
-        if not probe.is_file() or not os.access(probe, os.X_OK):
-            raise ValueError('native C179 probe must be executable')
     stage_dir = Path(tempfile.mkdtemp(prefix='.c249-', dir=destination.parent))
     os.chmod(stage_dir, 0o700)
     try:
@@ -137,15 +133,11 @@ def stage(source_dir, mapping_json, destination, *, probe=None):
                                      'native_gl_probe_passed': executable is not None,
                                      'p3vx_sha256': hashlib.sha256(vx).hexdigest(),
                                      'p3ix_sha256': hashlib.sha256(ix).hexdigest()}
-        if probe is None:
-            with tempfile.TemporaryDirectory(prefix='c249-native-probe-') as tmp:
-                executable = Path(tmp) / 'c179-probe'
-                build_probe(executable)
-                for model in models:
-                    check_model(model, executable)
-        else:
+        with tempfile.TemporaryDirectory(prefix='c249-native-probe-') as tmp:
+            executable = Path(tmp) / 'c179-probe'
+            build_probe(executable)
             for model in models:
-                check_model(model, probe)
+                check_model(model, executable)
         write_private_file(stage_dir / 'C249_PRIVATE_DIAGNOSTIC_REPORT.json',
                            (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())
         for directory in (geometry, models_dir, stage_dir):
@@ -173,9 +165,8 @@ def main():
     ap.add_argument('--source-dir', required=True, type=Path)
     ap.add_argument('--mapping-json', required=True, type=Path)
     ap.add_argument('--destination', required=True, type=Path)
-    ap.add_argument('--native-probe', type=Path)
     args = ap.parse_args()
-    result = stage(args.source_dir, args.mapping_json, args.destination, probe=args.native_probe)
+    result = stage(args.source_dir, args.mapping_json, args.destination)
     print(json.dumps({'diagnostic_species_slots': result['species_slots'],
                       'native_pairs_staged': result['unique_models'],
                       'original_species_mapping_verified': False,
