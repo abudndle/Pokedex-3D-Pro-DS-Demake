@@ -6,7 +6,9 @@ int p3dUvLoad(P3DUvMap *map,const char *path,unsigned model_triangles){
  unsigned char h[8],b[2];
  FILE *f; unsigned count;
  if(!map)return 0;
+ /* Never expose a previous model's triangle count after any failed load. */
  map->ready=0;
+ map->triangles=0;
  if(!path||!model_triangles||model_triangles>P3D_UV_MAX_TRIANGLES)return 0;
  f=fopen(path,"rb");if(!f)return 0;
  if(fread(h,1,8,f)!=8||memcmp(h,"P3UV",4)!=0||rd16(h+4)!=1){
