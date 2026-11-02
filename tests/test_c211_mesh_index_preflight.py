@@ -4,6 +4,8 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
+import struct
+import zlib
 import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +33,15 @@ class MeshPreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             vp, ip = self.pair(tmp, (0, 1, 3), 3)
             with self.assertRaisesRegex(ValueError, "mesh-local"):
+                mod.inspect_pair(vp, ip, 14)
+
+    def test_index_roster_must_cover_every_vertex_mesh(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vp, ip = self.pair(tmp)
+            payload = (struct.pack("<HHI", 0, 3, 0)
+                       + struct.pack("<HHI", 1, 3, 3) + bytes(36))
+            vp.write_bytes(b"P3VX" + struct.pack("<HHHHI", 1, 14, 2, 0, zlib.crc32(payload)) + payload)
+            with self.assertRaisesRegex(ValueError, "rosters differ"):
                 mod.inspect_pair(vp, ip, 14)
 
     def test_degenerate_triangle(self):
