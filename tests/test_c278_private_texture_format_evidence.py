@@ -117,6 +117,15 @@ class C278IntegrationTests(unittest.TestCase):
         self.assertFalse(result["records"][0]["pixel_format_decoded"])
         self.assertFalse(result["records"][0]["gpu_sampler_verified"])
 
+    def test_missing_c76_catalog_rows_remain_unverified(self):
+        from c278_private_texture_format_evidence import verify_model
+        raw, rows = self.source_fixture()
+        result = verify_model("p200", raw, self.original_catalog(rows[:1]), {0: rows[0]})
+        self.assertEqual(len(result["records"]), 2)
+        self.assertEqual(result["records"][1]["byte_density"], "NO_P3TM_METADATA")
+        self.assertIsNone(result["records"][1]["opaque_source_format"])
+        self.assertFalse(result["records"][1]["c73_source_sha_anchor"])
+
     def test_anchor_rejects_wrong_p3tm_sha(self):
         from c278_private_texture_format_evidence import verify_model
         raw, rows = self.source_fixture()
