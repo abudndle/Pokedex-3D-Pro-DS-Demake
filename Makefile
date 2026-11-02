@@ -86,6 +86,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c244_c5_obj_index_provenance.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c245_private_ordered_geometry_pair.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c247_private_global_xyz_candidate.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c271_private_contiguous_xyz.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c248_geometry_only_nitrofs_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c249_private_geometry_nitrofs.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c250_species_geometry_runtime.py' -v
