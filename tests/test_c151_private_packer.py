@@ -55,8 +55,8 @@ class OriginalTrackPackerTests(unittest.TestCase):
                             ('name_offset_in_original_C5_strings',8)]:
             node,tracks=self.data()
             tracks[0][field]=value
-            with patch.object(c151,'inspect_source_nodes',return_value=node), \\
-                 patch.object(c151,'inspect_tracks',return_value={'original_source_named_node_tracks':tracks}), \\
+            with patch.object(c151,'inspect_source_nodes',return_value=node), \
+                 patch.object(c151,'inspect_tracks',return_value={'original_source_named_node_tracks':tracks}), \
                  patch.object(c151,'packed_skeleton',return_value=b'expected'):
                 with self.subTest(field=field), self.assertRaises(ValueError):
                     c151.pack_binding(14,b'synthetic',b'expected')
@@ -68,8 +68,8 @@ class OriginalTrackPackerTests(unittest.TestCase):
                     name_offset_in_original_C5_strings=9,
                     source_first_track_record=2,original_node_name='Base')
         tracks.append(second)
-        with patch.object(c151,'inspect_source_nodes',return_value=node), \\
-             patch.object(c151,'inspect_tracks',return_value={'original_source_named_node_tracks':tracks}), \\
+        with patch.object(c151,'inspect_source_nodes',return_value=node), \
+             patch.object(c151,'inspect_tracks',return_value={'original_source_named_node_tracks':tracks}), \
              patch.object(c151,'packed_skeleton',return_value=b'expected'):
             with self.assertRaisesRegex(ValueError,'duplicate, out-of-range or unsorted'):
                 c151.pack_binding(14,b'synthetic',b'expected')
@@ -79,8 +79,8 @@ class OriginalTrackPackerTests(unittest.TestCase):
             node,tracks=self.data()
             node['original_source_nodes'][1]['source_name']=name
             tracks[0]['original_node_name']=name
-            with patch.object(c151,'inspect_source_nodes',return_value=node), \\
-                 patch.object(c151,'inspect_tracks',return_value={'original_source_named_node_tracks':tracks}), \\
+            with patch.object(c151,'inspect_source_nodes',return_value=node), \
+                 patch.object(c151,'inspect_tracks',return_value={'original_source_named_node_tracks':tracks}), \
                  patch.object(c151,'packed_skeleton',return_value=b'expected'):
                 with self.subTest(name=name), self.assertRaises(ValueError):
                     c151.pack_binding(14,b'synthetic',b'expected')
