@@ -79,6 +79,7 @@ check-host:
 	@python3 -m unittest discover -s tests -p 'test_c151_private_packer.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c223_private_animation_report.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c227_private_topology_batch.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c229_aligned_topology_batch.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c228_reference_topology_crosscheck.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c150_private_asset_integrity.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c154_native_chunk_probe.py' -v
