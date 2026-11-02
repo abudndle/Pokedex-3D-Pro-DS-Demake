@@ -99,7 +99,7 @@ class PairGateTests(unittest.TestCase):
         ix = export(manifest, bytes(source))
         result = mod.validate_source_pair(bytes(source), reference, manifest, vx, ix, 0)
         self.assertEqual((result['vertices'], result['triangles']), (4, 2))
-        self.assertTrue(result['source_triangle_manifest_verified'])
+        self.assertTrue(result['source_triangle_manifest_consistent'])
         self.assertFalse(result['complete_original_model_verified'])
         modified = bytearray(ix)
         modified[-2] ^= 1
