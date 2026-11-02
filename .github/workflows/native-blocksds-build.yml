@@ -47,7 +47,7 @@ jobs:
       - name: Install Nintendo DS emulator and virtual display
         run: |
           sudo apt-get update
-          sudo apt-get install -y desmume xvfb x11-apps x11-utils xdotool
+          sudo apt-get install -y desmume xvfb x11-apps x11-utils xdotool strace
       - name: Attempt ROM startup in DeSmuME CLI
         shell: bash
         run: |
@@ -63,7 +63,7 @@ jobs:
           python3 tools/c236_desmume_keymap.py --xdg-config-home "$XDG_CONFIG_HOME"
           echo "Installed DeSmuME package:"
           dpkg-query -W desmume
-          /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
+          strace -f -e trace=openat -o /tmp/desmume-open.log /usr/games/desmume-cli --disable-sound emulator-rom/Pokedex3D_DS_BlocksDS.nds >/tmp/desmume.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
           # Give NitroFS/FAT startup and the DS CPU more time to draw frames.
@@ -127,6 +127,18 @@ jobs:
             sleep 0.5
             xwd -id "$window_id" -silent -out "emulator-probe-$candidate.xwd"
           done
+          # C237: capture the actual ARM9 keymask for every printable
+          # candidate while it is held. This is temporary draft-only CI
+          # evidence; do not infer mappings from key names or merge on it.
+          for candidate in q w e r t y u i o p a s d f g h j k l z x c v b n m; do
+            xdotool keydown "$candidate"
+            sleep 0.3
+            xwd -id "$window_id" -silent -out "emulator-keyscan-$candidate.xwd"
+            xdotool keyup "$candidate"
+            sleep 0.1
+          done
+          echo "DeSmuME XDG config open evidence:"
+          grep -E '/desmume/config|\\.desmume\\.ini' /tmp/desmume-open.log | tail -8 || true
           sleep 2
           if ! kill -0 "$pid" 2>/dev/null; then
             cat /tmp/desmume.log
@@ -144,7 +156,7 @@ jobs:
           tail -30 /tmp/desmume.log || true
           SCRIPT
           chmod +x /tmp/check_emulator.sh
-          xvfb-run -a -s '-screen 0 1024x768x24' timeout 75s /tmp/check_emulator.sh
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 100s /tmp/check_emulator.sh
       - name: Reject mostly blank emulator display
         run: |
           python3 - <<'PY'
@@ -201,5 +213,6 @@ jobs:
             emulator-after-back.xwd
             emulator-during-back.xwd
             emulator-probe-*.xwd
+            emulator-keyscan-*.xwd
             emulator-windows.txt
           if-no-files-found: warn
