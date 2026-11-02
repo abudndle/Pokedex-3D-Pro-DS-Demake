@@ -2,8 +2,8 @@
 # C268: real melonDS 1.1 DLDI FolderSync Album browse/page/delete/reboot.
 # No Nintendo data, private ROMs or camera access; the PNGs are generated fixtures.
 set -euo pipefail
-rom="\${1:?asset-free BlocksDS ROM required}"
-app_run="\${2:?SHA-pinned melonDS 1.1 AppRun required}"
+rom="${1:?asset-free BlocksDS ROM required}"
+app_run="${2:?SHA-pinned melonDS 1.1 AppRun required}"
 test -s "$rom" && test -x "$app_run"
 source tests/c260_melonds_window.sh
 export QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 SDL_VIDEODRIVER=x11
