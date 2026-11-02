@@ -1,0 +1,31 @@
+name: C287 original draw-to-texture SHA provenance (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c287-source-chain-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-original-draw-texture-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate original C5 source SHA and draw-material-to-texture provenance
+        run: |
+          python3 -m py_compile tools/c287_private_draw_texture_chain.py
+          python3 -m unittest discover -s tests -p 'test_c279_private_header_texture_base.py' -v
+          python3 -m unittest discover -s tests -p 'test_c286_private_format_consensus.py' -v
+          python3 -m unittest discover -s tests -p 'test_c287_private_draw_texture_chain.py' -v
+      - name: Prevent original source or private JSON in CI
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C287_PRIVATE_DRAW_TO_SOURCE_TEXTURE_CHAIN.json
