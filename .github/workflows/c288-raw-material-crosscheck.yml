@@ -1,0 +1,32 @@
+name: C288 raw original material-to-draw consistency (synthetic)
+on:
+  push:
+    branches:
+      - main
+      - 'c*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c288-raw-material-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-raw-material-crosscheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify original C111 material SHA to C275/C287 draw identity
+        run: |
+          python3 -m py_compile tools/c288_private_shader_material_gate.py
+          python3 -m unittest discover -s tests -p 'test_c111_original_sampler_evidence.py' -v
+          python3 -m unittest discover -s tests -p 'test_c114_original_sampler_differential.py' -v
+          python3 -m unittest discover -s tests -p 'test_c287_private_draw_texture_chain.py' -v
+          python3 -m unittest discover -s tests -p 'test_c288_private_shader_material_gate.py' -v
+      - name: Reject private source data in public CI
+        run: |
+          test ! -d Pokedex_3D_Pro_PRIVATE_workspace
+          test ! -e C288_PRIVATE_RAW_MATERIAL_DRAW_CROSSCHECK.json
