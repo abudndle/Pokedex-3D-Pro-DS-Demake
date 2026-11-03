@@ -1,4 +1,5 @@
 #include "ds_material_uv_draw.h"
+#include "model_material_texture.h"
 #ifdef C7_TEST_HOST
 extern int p3dTestMaterialBegin(int texture_id);
 extern void p3dTestMaterialTexCoord(int16_t u,int16_t v);
@@ -51,6 +52,15 @@ int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
     if(drawn_triangles)*drawn_triangles=0;
     if(!geometry||!uv||!source||!materials||!textures||!shader_caps||
        !cache||!cache->ready||!scratch)return 0;
+    /* Preload every material texture before emitting the first triangle.
+     * A missing private asset therefore fails before any partial model draw. */
+    if(!p3dModelMaterialTexturesMatchMesh(materials,textures,
+          (unsigned)geometry->triangles))return 0;
+    for(unsigned i=0;i<materials->count;i++){
+        int hardware_id=0;
+        if(!p3dDsMaterialTextureCacheGet(cache,
+             materials->ranges[i].texture_id,scratch,&hardware_id))return 0;
+    }
     ctx.cache=cache;ctx.scratch=scratch;ctx.count=0;ctx.failed=0;
     if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
        shader_caps,draw_material_triangle,&ctx)||ctx.failed)return 0;
