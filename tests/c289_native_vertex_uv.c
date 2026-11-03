@@ -87,6 +87,17 @@ int main(int argc,char **argv){
     {uint16_t original=g.meshes[0].mesh_id;g.meshes[0].mesh_id=8;
      assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
      assert(u==4096&&v==0);g.meshes[0].mesh_id=original;}
+    /* C296: reject a redirected live mesh pointer even if IDs and CRC match. */
+    {const int16_t *original=g.meshes[0].xyz;
+     g.meshes[0].xyz=g.xyz+3;
+     assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
+     assert(u==4096&&v==0);
+     g.meshes[0].xyz=original;}
+    {const int16_t *original=g.meshes[0].xyz;
+     g.meshes[0].xyz=NULL;
+     assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
+     assert(u==4096&&v==0);
+     g.meshes[0].xyz=original;}
     assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,1,0,&u,&v));
     assert(p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
     /* Corrupted staged UV coordinates must fail without modifying outputs. */

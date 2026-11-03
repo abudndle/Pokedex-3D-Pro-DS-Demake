@@ -138,8 +138,16 @@ int p3dVerifiedVertexUvGetPaired(const P3DVerifiedVertexUv *uv,
        mesh_index>=geometry->mesh_count||
        uv->size<UV_HEADER+(size_t)uv->mesh_count*UV_ROW)return 0;
     const uint8_t *row=uv->bytes+UV_HEADER+(size_t)mesh_index*UV_ROW;
-    if(
+    /* Rebind the live mesh to the exact packed vertex slice. A copied or
+     * redirected pointer must not borrow otherwise valid staged UVs. */
+    uint32_t first=rd32(row+4);
+    unsigned vertices=rd16(row+2);
+    if(first>uv->vertex_count||vertices>uv->vertex_count-first||
+       first>P3D_VERTEX_MAX_VERTICES||
+       vertices>P3D_VERTEX_MAX_VERTICES-first||
        rd16(row)!=geometry->meshes[mesh_index].mesh_id||
-       rd16(row+2)!=geometry->meshes[mesh_index].vertex_count)return 0;
+       vertices!=geometry->meshes[mesh_index].vertex_count||
+       geometry->meshes[mesh_index].xyz!=geometry->xyz+(size_t)first*3u)
+        return 0;
     return p3dVerifiedVertexUvGet(uv,mesh_index,vertex_index,u,v);
 }
