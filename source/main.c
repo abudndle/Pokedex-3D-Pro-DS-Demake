@@ -12,6 +12,7 @@
 #include "menu_navigation.h"
 #include "dsi_features.h"
 #include "challenge.h"
+#include "challenge_text.h"
 #include "game_save_bridge.h"
 #include "resume_state.h"
 #include "title_idle.h"
@@ -942,15 +943,39 @@ static void render(void) {
                 printf("Y: Type Matchups\n");
             }else if(quiz.stage==P3D_CHALLENGE_REVIEW){
                 printf("%s\n",quiz.selected==quiz.correct?"Correct!":"Incorrect");
-                printf("Your answer: Pokemon #%03d\n",quiz.choices[quiz.selected]+1);
-                printf("Correct answer: #%03d\n",quiz.pokemon+1);
+                P3DChallengeText original;
+                if(quiz.mode==P3D_CHALLENGE_TEXT_MODE &&
+                   p3dChallengeTextLoad(&original,&quiz)){
+                    printf("Your answer: %.28s\n",original.names[quiz.selected]);
+                    printf("Correct answer: %.28s\n",original.names[quiz.correct]);
+                }else{
+                    printf("Your answer: Pokemon #%03d\n",quiz.choices[quiz.selected]+1);
+                    printf("Correct answer: #%03d\n",quiz.pokemon+1);
+                }
                 printf("Score: %d / %d\n",quiz.score,quiz.question+1);
                 printf("A: %s\n",quiz.question+1==P3D_CHALLENGE_QUESTIONS?
                        "show results":"next question");
             }else{
                 printf("Question %d / %d\n",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
-                printf("Choose Pokemon number:\n");
-                for(int i=0;i<4;i++)printf("%c %d: #%03d\n",quiz.selected==i?'>':' ',i+1,quiz.choices[i]+1);
+                if(quiz.mode==P3D_CHALLENGE_TEXT_MODE){
+                    P3DChallengeText original;
+                    if(p3dChallengeTextLoad(&original,&quiz)){
+                        char first[29],second[29];
+                        p3dChallengeClue(original.clue,quiz.clue_page,first,second);
+                        printf("Original Pokedex clue %d/%d:\n",quiz.clue_page+1,original.pages);
+                        printf("%.28s\n%.28s\n",first,second);
+                        printf("L/R: clue page\n");
+                        for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++)
+                            printf("%c %d: %.23s\n",quiz.selected==i?'>':' ',i+1,original.names[i]);
+                    }else{
+                        printf("Original P3DX clue/options missing.\n");
+                        printf("Answers disabled (no substitutes).\n");
+                    }
+                }else{
+                    printf("Choose Pokemon number:\n");
+                    for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++)
+                        printf("%c %d: #%03d\n",quiz.selected==i?'>':' ',i+1,quiz.choices[i]+1);
+                }
                 printf("UP/DOWN + A: Answer\n");
             }
         } else {
@@ -1127,16 +1152,36 @@ static void render(void) {
                 printf("\x1b[15;1HA: replay challenge");
             }else if(quiz.stage==P3D_CHALLENGE_REVIEW){
                 printf("\x1b[11;1H%s",quiz.selected==quiz.correct?"Correct!":"Incorrect");
-                printf("\x1b[13;1HAnswer: Pokemon #%03d",quiz.pokemon+1);
-                printf("\x1b[15;1HYou chose: #%03d",quiz.choices[quiz.selected]+1);
+                P3DChallengeText original;
+                if(quiz.mode==P3D_CHALLENGE_TEXT_MODE &&
+                   p3dChallengeTextLoad(&original,&quiz)){
+                    printf("\x1b[13;1HAnswer: %.23s",original.names[quiz.correct]);
+                    printf("\x1b[15;1HYou chose: %.21s",original.names[quiz.selected]);
+                }else{
+                    printf("\x1b[13;1HAnswer: Pokemon #%03d",quiz.pokemon+1);
+                    printf("\x1b[15;1HYou chose: #%03d",quiz.choices[quiz.selected]+1);
+                }
                 printf("\x1b[19;2HA / tap: %s",quiz.question+1==P3D_CHALLENGE_QUESTIONS?
                        "results":"continue");
             }else{
                 printf("\x1b[8;1HQuestion %d / %d",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
-                for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++)
-                    printf("\x1b[%d;2H%c Pokemon #%03d",11+i*3,
-                           quiz.selected==i?'>':' ',quiz.choices[i]+1);
-                printf("\x1b[23;1HTap answer or press A");
+                P3DChallengeText original;
+                if(quiz.mode==P3D_CHALLENGE_TEXT_MODE){
+                    if(p3dChallengeTextLoad(&original,&quiz)){
+                        for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++)
+                            printf("\x1b[%d;2H%c %.24s",11+i*3,
+                                   quiz.selected==i?'>':' ',original.names[i]);
+                        printf("\x1b[23;1HTap answer or press A");
+                    }else{
+                        printf("\x1b[12;1HOriginal P3DX text missing");
+                        printf("\x1b[14;1HQuiz answers disabled");
+                    }
+                }else{
+                    for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++)
+                        printf("\x1b[%d;2H%c Pokemon #%03d",11+i*3,
+                               quiz.selected==i?'>':' ',quiz.choices[i]+1);
+                    printf("\x1b[23;1HTap answer or press A");
+                }
             }
         }else{
             printf("\x1b[13;1HFeature implementation pending");
@@ -1489,6 +1534,12 @@ int main(void) {
                     }
                 }else if(quiz.stage==P3D_CHALLENGE_QUESTION){
                     int choice=-1;
+                    if(quiz.mode==P3D_CHALLENGE_TEXT_MODE &&
+                       (down&(KEY_L|KEY_R)) && !(down&(KEY_A|KEY_TOUCH)) &&
+                       !((down&KEY_L) && (down&KEY_R))){
+                        int direction=(down&KEY_R)?1:-1;
+                        if(p3dChallengeTextPageStep(&quiz,direction))redraw=1;
+                    }
                     if((down&KEY_UP) && quiz.selected>0){
                         quiz.selected--;
                         redraw=1;
@@ -1505,7 +1556,9 @@ int main(void) {
                     else if(down&KEY_A)
                         choice=quiz.selected;
                     if(choice>=0){
-                        int result=p3dChallengeAnswer(&quiz,choice);
+                        int result=quiz.mode==P3D_CHALLENGE_TEXT_MODE?
+                            p3dChallengeTextAnswer(&quiz,choice):
+                            p3dChallengeAnswer(&quiz,choice);
                         if(result>=0 && challenge_answer_total<100000000){
                             challenge_answer_total++;
                             if(result)challenge_correct_total++;

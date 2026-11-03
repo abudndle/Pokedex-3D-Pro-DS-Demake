@@ -56,7 +56,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/challenge.c",
-      "gap": "C232 adds exactly-once question review and calibrated DS text-mode touchscreen answers across seven existing synthetic Challenge modes; 29 original modes, recovered question clues, 3DS artwork/audio, native visual comparison and final source gameplay parity remain unfinished.",
+      "gap": "C232 adds exactly-once question review and calibrated text-fallback touchscreen answers across seven development Challenge modes; C330 advances the replay seed; C331 connects recovered P3DX descriptions and option names to the unlocked Pokédex Test mode with clue paging and fail-closed scoring. Twenty-nine original modes, recovered 3DS challenge artwork/audio, private source-game parity and native visual comparison remain unfinished.",
       "verified_end_to_end": false
     },
     {
