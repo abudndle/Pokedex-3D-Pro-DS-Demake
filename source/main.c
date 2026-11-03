@@ -1553,6 +1553,12 @@ int main(void) {
                                p3dRecordsComplete(&records,quiz.mode,quiz.score)){
                                 records_dirty=1;
                                 progress_dirty=1;
+                                /* Finish the prior round before a new one can
+                                 * snapshot its P3RC round generation. P3RV
+                                 * v3 clears active review before P3RC commits,
+                                 * preventing an older v4 review from being
+                                 * replayed as a second completed round. */
+                                if(save_progress())progress_dirty=0;
                             }
                             redraw=1;
                         }
