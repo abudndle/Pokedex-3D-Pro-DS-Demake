@@ -847,7 +847,7 @@ static void render(void) {
             else printf("Effect: normal (1x)\n");
             printf("Arrows: change types\n");
             printf("X: second type ON/OFF\n");
-            printf("Y: open Challenge\n");
+            printf("A: Pokemon Search  Y: Challenge\n");
             printf("L/R: second type\n");
         } else if(state.page==P3D_PAGE_SETTINGS){
             printf("Automatic model rotation: %s\n",state.rotate?"ON":"OFF");
@@ -1051,6 +1051,7 @@ static void render(void) {
             else if(effect==40)printf("\x1b[17;1HEffect: 4x");
             else printf("\x1b[17;1HEffect: 1x");
             printf("\x1b[20;1HX: 2nd type  L/R: change");
+            printf("\x1b[22;1HA: Search  Y: Challenge");
         }else if(state.page==P3D_PAGE_RECORDS){
             printf("\x1b[9;1HRecords: %s",records_tab==0?"REGIONS":records_tab==1?"RECENT":"QUIZZES");
             if(records_tab==0){
@@ -1735,6 +1736,19 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_TYPES){
+                /* Source-backed original text Search is reachable from the
+                 * Type Chart without losing the selected national species.
+                 * Clear stale region, scope and description filters so the
+                 * destination never displays a different old query result.
+                 * Consume the key to prevent same-frame search actions. */
+                if((down&KEY_A) && !(down&(KEY_Y|KEY_X|KEY_TOUCH)) &&
+                   p3dTypeChartOpenSearch(&state,dex_index)){
+                    search_region=P3D_DEX_SCOPE_ALL;
+                    search_scope=P3D_DEX_SCOPE_ALL;
+                    search_field=P3D_DEX_SEARCH_NAME;
+                    down=0;
+                    redraw=1;
+                }
                 if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
                     state.page=P3D_PAGE_CHALLENGE;
                     p3dChallengeReset(&quiz);
