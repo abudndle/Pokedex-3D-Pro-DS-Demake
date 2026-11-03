@@ -596,7 +596,7 @@ static void render_model(void){
         /* Read the real DS texture-attribute command and display-enable bit
          * *before* flushing/unbinding; no synthetic pass is inferred. */
         unsigned long c306_tex_format=(unsigned long)GFX_TEX_FORMAT;
-        int c306_tex_enabled=(REG_DISP3DCNT&GL_TEXTURE_2D)!=0;
+        int c306_tex_enabled=(GFX_CONTROL&GL_TEXTURE_2D)!=0;
 #endif
         glFlush(0);
         glDisable(GL_TEXTURE_2D);
