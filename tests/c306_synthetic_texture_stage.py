@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""C306: fully synthetic, visually distinct native P3VX/P3VU/P3MT/P3PX ROM.
+Only authored geometric/color fixtures are staged. No Nintendo assets or
+private manifests are read, hashed, copied, or included in public artifacts.
+"""
+import argparse
+import json
+import struct
+from pathlib import Path
+import zlib
+
+
+def put(path, payload):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(payload)
+
+
+def pack_crc_header(magic, version, model, count_a, count_b, records):
+    return (struct.pack("<4sHHHHI", magic, version, model, count_a, count_b,
+                        zlib.crc32(records)) + records)
+
+
+def stage(root):
+    root = Path(root)
+    if root.is_symlink() or not root.is_dir() or list(root.iterdir()):
+        raise ValueError("requires a new, empty, non-symlinked temp directory")
+    destination = root / "staged"
+    try:
+        mapping = [0xffff] * 649
+        mapping[0], mapping[1] = 2, 3
+        put(destination / "models/species_map.p3sm",
+            struct.pack("<4sHH649H", b"P3SM", 1, 649, *mapping))
+        for model, tex_id, color in ((2, 7, 0x001f), (3, 8, 0x7c00)):
+            mesh = struct.pack("<HHI", 0, 3, 0)
+            coords = struct.pack("<9h", 0, 0, 0, 4096, 0, 0, 0, 4096, 0)
+            vx = struct.pack("<4sHHHHI", b"P3VX", 1, model, 1, 0,
+                             zlib.crc32(mesh + coords)) + mesh + coords
+            ix = struct.pack("<4sHHH", b"P3IX", 1, model, 1)
+            ix += struct.pack("<HI3H", 0, 1, 0, 1, 2)
+            uv_table = struct.pack("<HHI", 0, 3, 0)
+            uv_values = struct.pack("<6h", 0, 0, 4096, 0, 0, 4096)
+            vu_payload = uv_table + uv_values
+            vu = struct.pack("<4sHHHHII", b"P3VU", 1, model, 1, 0,
+                             zlib.crc32(vx), zlib.crc32(vu_payload)) + vu_payload
+            stem = f"p{model:03d}"
+            put(destination / "geometry" / (stem + ".p3vx"), vx)
+            put(destination / "geometry" / (stem + ".p3ix"), ix)
+            put(destination / "geometry" / (stem + ".p3vu"), vu)
+            put(destination / "materials" / (stem + ".p3mt"),
+                struct.pack("<4sHH4H", b"P3MT", 1, 1, 0, 1, 0, tex_id))
+            put(destination / "materials" / (stem + ".p3tx"),
+                struct.pack("<4sHH4H", b"P3TX", 1, 1, tex_id, 8, 8, 1))
+            source = struct.pack("<6H", 0, 1, 0, tex_id, 0xffff, 0x0c02)
+            put(destination / "materials" / (stem + ".p3mr"),
+                pack_crc_header(b"P3MR", 1, model, 1, 1, source))
+            cap = struct.pack("<5H", 0, 0, tex_id, 0xffff, 1)
+            put(destination / "materials" / (stem + ".p3sc"),
+                pack_crc_header(b"P3SC", 2, model, 1, 0, cap))
+            words = struct.pack("<13I", 0, (0xffff << 16) | tex_id,
+                                *([0] * 11))
+            put(destination / "materials" / (stem + ".p3sw"),
+                pack_crc_header(b"P3SW", 1, model, 1, 0, words))
+            put(destination / "textures" / stem / f"t{tex_id:03d}.p3px",
+                struct.pack("<4sHHH", b"P3PX", 1, 8, 8) +
+                struct.pack("<64H", *([color] * 64)))
+        return destination
+    except Exception:
+        # A failed synthetic stage must not leave partially usable private-
+        # looking files. The entire temporary root is owned by its CI caller.
+        import shutil
+        shutil.rmtree(destination, ignore_errors=True)
+        raise
+
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("empty_temp_dir", type=Path)
+    args = p.parse_args()
+    output = stage(args.empty_temp_dir)
+    print(json.dumps({"schema": "c306-synthetic-texture-visual-v1",
+                      "staged": str(output), "models": [2, 3],
+                      "synthetic_texture_colors": ["red", "blue"],
+                      "nintendo_assets_included": False,
+                      "original_visual_parity_verified": False}, sort_keys=True))
