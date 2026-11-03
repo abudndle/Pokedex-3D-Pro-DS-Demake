@@ -1,6 +1,7 @@
 #include "resume_state.h"
 #include "title_idle.h"
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -114,6 +115,16 @@ int main(int argc,char **argv){
         for(unsigned i=1;i<P3D_TITLE_SCENE_TICKS;i++)
             assert(!p3dTitleIdleSceneDue(&first));
         assert(p3dTitleIdleSceneDue(&first));
+        /* C317: a saturated scene counter must rotate immediately rather
+         * than wrap and suppress a due scene for another 600 frames. */
+        first.scene_ticks=UINT_MAX;
+        assert(p3dTitleIdleSceneDue(&first));
+        assert(first.scene_ticks==0);
+        first.scene_ticks=P3D_TITLE_SCENE_TICKS-2u;
+        assert(!p3dTitleIdleSceneDue(&first));
+        assert(first.scene_ticks==P3D_TITLE_SCENE_TICKS-1u);
+        assert(p3dTitleIdleSceneDue(&first));
+        assert(first.scene_ticks==0);
         unsigned previous=first.species;
         unsigned next=p3dTitleIdleChooseSpecies(&first);
         assert(next<P3D_TITLE_POKEDEX_COUNT && next!=previous);
