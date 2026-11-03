@@ -4,12 +4,28 @@
 #include <string.h>
 #include "verified_geometry_pair.h"
 #include "verified_vertex_uv.h"
+#include "verified_primitive_uv_bridge.h"
 static P3DVerifiedGeometryPair g;
 static P3DVerifiedVertexUv uv;
 static uint8_t vx[16+8+18];
 static uint8_t ix[]={ 'P','3','I','X',1,0,14,0,1,0,
                       7,0,1,0,0,0,0,0,1,0,2,0 };
 static uint8_t vu[20+8+12];
+
+static unsigned uv_triangles;
+static int uv_sink(void *ctx,uint16_t mesh,
+    const P3DPrimitiveUvVertex *a,const P3DPrimitiveUvVertex *b,
+    const P3DPrimitiveUvVertex *c){
+    (void)ctx;
+    assert(mesh==7);
+    assert(a->u==0&&a->v==0);
+    assert(b->u==4096&&b->v==0);
+    assert(c->u==0&&c->v==4096);
+    assert(a->xyz==g.xyz&&b->xyz==g.xyz+3&&c->xyz==g.xyz+6);
+    uv_triangles++;
+    return 1;
+}
+
 static void wr16(uint8_t *p,uint16_t n){p[0]=(uint8_t)n;p[1]=(uint8_t)(n>>8);}
 static void wr32(uint8_t *p,uint32_t n){wr16(p,(uint16_t)n);wr16(p+2,(uint16_t)(n>>16));}
 static uint32_t crc(const uint8_t *p,size_t n){
@@ -78,6 +94,18 @@ int main(int argc,char **argv){
     assert(p3dVerifiedVertexUvGet(&uv,0,1,&u,&v));
     /* C294: a UV read is valid only for the exact live geometry. */
     assert(p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
+    /* C298: renderer receives verified XYZ and paired UV per triangle. */
+    uv_triangles=0;
+    assert(p3dVerifiedPrimitiveUvBridge(&g,&uv,uv_sink,NULL));
+    assert(uv_triangles==1);
+    /* C298: bad UV payload must be rejected before any triangle is emitted. */
+    {uint8_t original=uv.bytes[32];uv.bytes[32]^=1;
+     uv_triangles=0;
+     assert(!p3dVerifiedPrimitiveUvBridge(&g,&uv,uv_sink,NULL));
+     assert(uv_triangles==0);
+     uv.bytes[32]=original;}
+
+
     {uint8_t original=g.vx[24];g.vx[24]^=1;
      assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
      assert(u==4096&&v==0);g.vx[24]=original;}
