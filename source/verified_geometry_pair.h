@@ -14,7 +14,7 @@ typedef struct {
     uint8_t ix[P3D_GEOMETRY_P3IX_MAX_BYTES];
     int16_t xyz[P3D_VERTEX_MAX_VERTICES*3u];
     P3DPrimitiveVertices meshes[P3D_VERTEX_MAX_MESHES];
-    size_t mesh_count,ix_size;
+    size_t mesh_count,vx_size,ix_size;
     uint32_t triangles;
     uint16_t model;
     int ready;
