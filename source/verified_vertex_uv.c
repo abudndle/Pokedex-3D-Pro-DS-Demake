@@ -112,7 +112,11 @@ int p3dVerifiedVertexUvGet(const P3DVerifiedVertexUv *uv,
     if(idx>=uv->vertex_count)return 0;
     offset=UV_HEADER+(size_t)uv->mesh_count*UV_ROW+idx*4u;
     if(offset>uv->size||uv->size-offset<4u)return 0;
-    *u=(int16_t)rd16(uv->bytes+offset);
-    *v=(int16_t)rd16(uv->bytes+offset+2);
+    /* Revalidate staged bytes before exposing either coordinate. */
+    int16_t next_u=(int16_t)rd16(uv->bytes+offset);
+    int16_t next_v=(int16_t)rd16(uv->bytes+offset+2);
+    if(next_u<0||next_u>4096||next_v<0||next_v>4096)return 0;
+    *u=next_u;
+    *v=next_v;
     return 1;
 }

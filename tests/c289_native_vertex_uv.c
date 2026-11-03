@@ -68,6 +68,18 @@ int main(int argc,char **argv){
      assert(u==4096&&v==0);
      uv.bytes[24]=(uint8_t)first;uv.bytes[25]=(uint8_t)(first>>8);
      uv.bytes[26]=(uint8_t)(first>>16);uv.bytes[27]=(uint8_t)(first>>24);}
+    /* Corrupted staged UV coordinates must fail without modifying outputs. */
+    {uint8_t original=uv.bytes[32];
+     uv.bytes[32]=1; /* U=4097 */
+     assert(!p3dVerifiedVertexUvGet(&uv,0,1,&u,&v));
+     assert(u==4096&&v==0);
+     uv.bytes[32]=original;}
+    {uint8_t original=uv.bytes[35];
+     uv.bytes[35]=0x80; /* negative V */
+     assert(!p3dVerifiedVertexUvGet(&uv,0,1,&u,&v));
+     assert(u==4096&&v==0);
+     uv.bytes[35]=original;}
+    assert(p3dVerifiedVertexUvGet(&uv,0,1,&u,&v));
     /* Exact byte identity of the original vertex transport is required. */
     wr32(vu+12,0);write_file(argv[3],vu,sizeof(vu));denied(argv[3]);
     wr32(vu+12,crc(vx,sizeof(vx)));
