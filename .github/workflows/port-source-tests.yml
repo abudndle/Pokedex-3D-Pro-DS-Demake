@@ -189,6 +189,9 @@ jobs:
       - name: C178 bounded private geometry pair loader (synthetic only)
         run: sh tests/run_c178_native_geometry_pair.sh
 
+      - name: C289 CRC-bound source vertex UV sidecar (synthetic only)
+        run: sh tests/run_c289_native_vertex_uv.sh
+
       - name: Compile C154 asset-free Linux private-offline native P3CS checker
         run: |
           cc -std=c11 -O2 -Wall -Wextra -Werror \

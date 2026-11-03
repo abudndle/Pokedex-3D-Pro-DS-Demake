@@ -46,6 +46,7 @@ int p3dVerifiedGeometryPairLoad(P3DVerifiedGeometryPair *pair,
         return 0;
     }
     pair->mesh_count=mesh_count;
+    pair->vx_size=vx_size;
     pair->ix_size=ix_size;
     pair->triangles=emitted;
     pair->model=model;
