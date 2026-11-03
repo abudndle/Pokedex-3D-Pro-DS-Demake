@@ -1,6 +1,11 @@
 name: Free bounded on-runner coding agent
 
 on:
+  # Run this workflow once when its own configuration is changed.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/local-linux-agent.yml'
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
