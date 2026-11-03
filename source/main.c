@@ -1523,7 +1523,9 @@ int main(void) {
                      * once. The final question's review precedes results. */
                     if(((down&KEY_A) && !(down&KEY_TOUCH))||
                        p3dChallengeTouchContinue(touch_x,touch_y)){
-                        if(p3dChallengeContinue(&quiz)){
+                        if((quiz.mode==P3D_CHALLENGE_TEXT_MODE?
+                            p3dChallengeTextContinue(&quiz):
+                            p3dChallengeContinue(&quiz))){
                             if(quiz.stage==P3D_CHALLENGE_RESULTS &&
                                p3dRecordsComplete(&records,quiz.mode,quiz.score)){
                                 records_dirty=1;
