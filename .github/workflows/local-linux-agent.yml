@@ -108,6 +108,7 @@ jobs:
       contents: write
       pull-requests: write
       actions: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -180,9 +181,23 @@ jobs:
           git commit -m 'agent: bounded free local-model DS code and regression proposal'
           git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" \
             push "https://github.com/${{ github.repository }}.git" "HEAD:refs/heads/$branch"
-          gh pr create --repo "$GITHUB_REPOSITORY" --draft --base main --head "$branch" \
+          if ! gh pr create --repo "$GITHUB_REPOSITORY" --draft --base main --head "$branch" \
             --title "Free local coding agent: bounded DS source and test fix" \
-            --body-file agent-output/pr-body.md
+            --body-file agent-output/pr-body.md; then
+            echo "::error title=Agent PR publishing blocked::Proposal branch $branch was pushed, but the GitHub Actions token cannot open a PR. Confirm repo Settings -> Actions -> General -> Workflow permissions -> Allow GitHub Actions to create and approve pull requests."
+            {
+              echo "### Coding agent: PR publishing blocked"
+              echo "- Branch: \`$branch\` (unmerged)"
+              echo "- Repository setting: https://github.com/$GITHUB_REPOSITORY/settings/actions"
+              echo "- Independent host/ROM checks were requested, but the branch is NOT accepted until CI passes and a PR is reviewed."
+            } >> "$GITHUB_STEP_SUMMARY"
+            # Keep a useful validation trail even while GitHub blocks bot PRs.
+              gh workflow run port-source-tests.yml --ref "$branch" || true
+              gh workflow run native-blocksds.yml --ref "$branch" || true
+            gh issue comment 300 --repo "$GITHUB_REPOSITORY" \
+              --body "Coding agent produced branch \`$branch\` but PR publication failed (repository Actions create-PR permission). No source merged. Enable GitHub Actions PR creation in Settings > Actions > General; existing hourly developer can inspect and recover validated branch." || true
+            exit 1
+          fi
           # Dispatch workflow since GITHUB_TOKEN-created PRs may not trigger CI.
           gh workflow run port-source-tests.yml --ref "$branch"
           gh workflow run native-blocksds.yml --ref "$branch"
