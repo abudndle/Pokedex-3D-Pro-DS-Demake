@@ -53,7 +53,7 @@ static void run_complete_quiz(void){
  }
  assert(quiz.stage==P3D_CHALLENGE_RESULTS && quiz.score==5);
  assert(!p3dChallengeTextLoad(&text,&quiz));
- assert(!p3dChallengeTextAnswer(&quiz,0));
+ assert(p3dChallengeTextAnswer(&quiz,0)==-1);
 }
 int main(int argc,char **argv){
  P3DChallenge quiz,before;
