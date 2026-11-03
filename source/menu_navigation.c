@@ -1,5 +1,6 @@
 #include "menu_navigation.h"
 #include "menu_layout.h"
+#include <stdint.h>
 #define TOUCH_Y 88
 #define TOUCH_STEP 16
 #define VISIBLE 6
@@ -11,10 +12,12 @@ int p3dMenuTouchIndex(int x,int y,int count,int cursor){
 }
 int p3dMenuScroll(int cursor,int count,int direction){
  if(count<=0)return -1;
- int next=cursor+direction;
+ /* Saved cursors and controller deltas can be any signed integer.
+  * Widen before addition; even INT_MIN + INT_MIN must be defined. */
+ int64_t next=(int64_t)cursor+(int64_t)direction;
  if(next<0)return 0;
  if(next>=count)return count-1;
- return next;
+ return (int)next;
 }
 
 int p3dDexNavigate(int current,int direction){
