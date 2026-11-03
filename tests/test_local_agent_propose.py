@@ -31,6 +31,8 @@ with tempfile.TemporaryDirectory() as directory:
         {"summary": good["summary"], "changes": [
             dict(good["changes"][0], old="snippet missing"), good["changes"][1]]},
     ]
+    invalid.append({"summary": good["summary"], "changes": [
+        good["changes"][0], dict(good["changes"][1], new="assert(1); assert(2);")]})
     for bad in invalid:
         try:
             module.validate_and_apply(base, focus, bad)
