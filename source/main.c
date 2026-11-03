@@ -725,6 +725,7 @@ static P3DResumeState current_resume(void){
         view.quiz=quiz;
         view.challenge_answer_total=(uint32_t)challenge_answer_total;
         view.challenge_correct_total=(uint32_t)challenge_correct_total;
+        view.challenge_recorded_rounds=records.rounds;
     }
     return view;
 }
@@ -1298,10 +1299,10 @@ int main(void) {
              * loss; never add a REVIEW answer twice on boot. If P3SV has
              * since advanced beyond this checkpoint, fail back to picker. */
             quiz.mode_cursor=resume.challenge_mode;
-            if(resume.quiz_active && !home &&
-               state.page==P3D_PAGE_CHALLENGE &&
-               resume.challenge_answer_total>=(uint32_t)challenge_answer_total &&
-               resume.challenge_correct_total>=(uint32_t)challenge_correct_total){
+            if(!home && state.page==P3D_PAGE_CHALLENGE &&
+               p3dResumeCanRestoreQuiz(&resume,
+                   (uint32_t)challenge_correct_total,
+                   (uint32_t)challenge_answer_total,records.rounds)){
                 quiz=resume.quiz;
                 challenge_answer_total=(int)resume.challenge_answer_total;
                 challenge_correct_total=(int)resume.challenge_correct_total;
