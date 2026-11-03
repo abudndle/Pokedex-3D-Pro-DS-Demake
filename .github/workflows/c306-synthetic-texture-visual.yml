@@ -41,6 +41,8 @@ jobs:
           test -s "$stage_root/staged/materials/p003.p3sw"
           test -s "$stage_root/staged/textures/p002/t007.p3px"
           test -s "$stage_root/staged/textures/p003/t008.p3px"
+      - name: Assert actual native C material and UV witnesses are coherent
+        run: sh tests/run_c306_native_texture_sidecar_probe.sh "$C306_STAGE_ROOT/staged"
       - name: Compile a genuine native BlocksDS ROM containing only synthetic assets
         shell: bash
         run: |
