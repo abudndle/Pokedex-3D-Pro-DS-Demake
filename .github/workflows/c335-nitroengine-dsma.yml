@@ -69,7 +69,8 @@ jobs:
           test -f "$BLOCKSDSEXT/nitro-engine/tools/obj2dl/obj2dl.py"
       - name: Build native ROM linked with actual Nitro Engine and DSMA
         run: |
-          make -f Makefile.native P3D_NITRO_ENGINE=1 NITROFSDIR=nitrofs rom
+          # No private Nintendo files exist in public CI; keep NitroFS empty.
+          make -f Makefile.native P3D_NITRO_ENGINE=1 NITROFSDIR= rom
       - name: Preserve optional Nitro Engine-linked asset-free ROM
         uses: actions/upload-artifact@v4
         with:
