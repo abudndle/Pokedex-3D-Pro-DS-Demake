@@ -32,10 +32,20 @@ int p3dMoveDexRead(int index,P3DMove *out){
  memcpy(out->name,buf+6,a);memcpy(out->description,buf+6+a,b);memcpy(out->effect,buf+6+a+b,c);return 1;
 }
 int p3dMoveDexFindInitial(int start,char initial,int direction){
- P3DMove m;int i,idx;
+ P3DMove m;
  if(s_count!=P3D_MOVE_COUNT||(direction!=1&&direction!=-1))return -1;
  if(initial>='a'&&initial<='z')initial=(char)(initial-32);
- for(i=1;i<=s_count;i++){idx=(start+direction*i+s_count*(i+2))%s_count;
- if(p3dMoveDexRead(idx,&m)){char c=m.name[0];if(c>='a'&&c<='z')c=(char)(c-32);if(c==initial)return idx;}}
+ /* Resume/old saves may supply any signed cursor, including INT_MIN.
+  * Normalize before adding steps; never overflow signed int. */
+ int base=start%s_count;
+ if(base<0)base+=s_count;
+ for(int step=1;step<=s_count;step++){
+  int idx=direction>0?(base+step)%s_count:
+      (base+s_count-(step%s_count))%s_count;
+  if(p3dMoveDexRead(idx,&m)){
+   char c=m.name[0];if(c>='a'&&c<='z')c=(char)(c-32);
+   if(c==initial)return idx;
+  }
+ }
  return -1;
 }
