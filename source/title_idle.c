@@ -52,6 +52,7 @@ int p3dTitleIdleSceneDue(P3DTitleIdle *idle){
         idle->scene_ticks=0;
         return 1;
     }
+    idle->scene_ticks++;
     return 0;
 }
 int p3dTitleIdleClock(char *dest,size_t size,time_t now){
