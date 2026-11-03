@@ -46,6 +46,7 @@
 #include "move_dex.h"
 #include "move_text_view.h"
 #include "dex_text.h"
+#include "species_details.h"
 #include "dex_search.h"
 #include "search_touch.h"
 #include "photo_album.h"
@@ -133,6 +134,10 @@ static P3DFormNames form_names;
 static int selected_form=0;
 static int move_catalog_ready=0;
 static int dex_text_ready=0;
+/* C333 optional real-source sidecar. Never substitute guessed species data. */
+static P3DSpeciesDetails dex_details;
+static int dex_details_ready=0;
+static int dex_detail_tab=0; /* 0 original entry, 1-4 optional details */
 static int search_region=0;
 static int search_scope=0;
 static int search_field=P3D_DEX_SEARCH_NAME;
@@ -233,7 +238,9 @@ static void prepare_original_art(void){
     int page=home?P3D_PAGE_HOME:(int)state.page;
     if(page==art_page)return;
     art_page=page;
-    original_art_available=prefer_original_art&&nitro_ready&&p3dOriginalUiPageLoad(page);
+    original_art_available=prefer_original_art&&nitro_ready&&
+        !(page==P3D_PAGE_DEX && dex_detail_tab) &&
+        p3dOriginalUiPageLoad(page);
     /* Source 3DS icons are not located at development text-menu rows.
      * Only authentic privately measured original art hitboxes may route
      * touches on original HOME artwork; keyboard navigation always works. */
@@ -263,6 +270,17 @@ static void prepare_original_art(void){
 }
 
 static void reload_preview(void){
+    /* Optional form-specific metadata is never reconstructed from model
+     * resources or public species databases. An absent private sidecar
+     * becomes an explicitly unavailable detail screen. */
+    p3dSpeciesDetailsClear(&dex_details);
+    dex_details_ready=0;
+    if(nitro_ready && !title_active && dex_index>=0 && dex_index<649){
+        char details_path[80];
+        if(p3dSpeciesDetailPath(details_path,dex_index,selected_form))
+            dex_details_ready=p3dSpeciesDetailsLoad(
+                details_path,dex_index,selected_form,&dex_details);
+    }
     /* Free all prior per-material VRAM allocations on species/form changes. */
     p3dPreviewTextureSetRelease(&preview_gl_textures);
     p3dDsMaterialTextureCacheDestroy(&native_texture_cache);
@@ -715,6 +733,8 @@ static P3DResumeState current_resume(void){
     view.type_defend=(uint8_t)defend_type;
     view.type_defend2_plus_one=(uint8_t)(defend_type2+1);
     view.favorites_selected=(uint8_t)favorite_index;
+    view.dex_detail_tab=(uint8_t)(!home && state.page==P3D_PAGE_DEX?
+                                  dex_detail_tab:0);
     /* An active question/review is a real resume state, not just a mode.
      * The exact seed, asked set, choices and already-counted totals travel
      * together in the CRC-protected optional P3RV v4 checkpoint. */
@@ -787,7 +807,53 @@ static void render(void) {
         printf("A: OPEN\n");
     } else {
         printf("%s\n\n", p3dPageName(state.page));
-        if(state.page==P3D_PAGE_DEX){
+        if(state.page==P3D_PAGE_DEX && dex_detail_tab){
+            printf("\x1b[10;1H%s %d/4 - #%03d",
+                   p3dSpeciesDetailTabName(dex_detail_tab),
+                   dex_detail_tab,dex_index+1);
+            if(!dex_details_ready){
+                printf("\x1b[12;1HOriginal detail unavailable");
+                printf("\x1b[14;1HNo source-verified P3SD");
+                printf("\x1b[15;1Hfor this species/form");
+            }else if(dex_detail_tab==1){
+                if(dex_details.fields&P3D_DETAIL_STATS){
+                    printf("\x1b[12;1HHP:%3u   ATK:%3u  DEF:%3u",
+                           dex_details.stats[0],dex_details.stats[1],dex_details.stats[2]);
+                    printf("\x1b[14;1HSPA:%3u  SPD:%3u  SPE:%3u",
+                           dex_details.stats[3],dex_details.stats[4],dex_details.stats[5]);
+                }else printf("\x1b[12;1HOriginal stats unavailable");
+            }else if(dex_detail_tab==2){
+                if(dex_details.fields&P3D_DETAIL_ABILITIES){
+                    for(unsigned i=0;i<dex_details.abilities_count;i++)
+                        printf("\x1b[%u;1HAbility ID %u",12u+i*2u,
+                               dex_details.ability_ids[i]);
+                    if(!dex_details.abilities_count)
+                        printf("\x1b[12;1HNo verified ability IDs");
+                }else printf("\x1b[12;1HOriginal abilities unavailable");
+            }else if(dex_detail_tab==3){
+                if(dex_details.fields&P3D_DETAIL_EVOLUTIONS){
+                    for(unsigned i=0;i<dex_details.evolutions_count;i++)
+                        printf("\x1b[%u;1HTo Pokemon #%03u",12u+i*2u,
+                               dex_details.evolutions[i]+1);
+                    if(!dex_details.evolutions_count)
+                        printf("\x1b[12;1HNo listed evolutions");
+                }else printf("\x1b[12;1HOriginal evolution unavailable");
+            }else if(dex_detail_tab==4){
+                if(dex_details.fields&P3D_DETAIL_MOVES){
+                    for(unsigned i=0;i<dex_details.moves_count;i++){
+                        unsigned index=dex_details.move_indices[i];
+                        P3DMove move;
+                        if(move_catalog_ready&&p3dMoveDexRead((int)index,&move))
+                            printf("\x1b[%u;1H%03u %.23s",12u+i*2u,index+1,move.name);
+                        else printf("\x1b[%u;1HMove reference #%03u",12u+i*2u,index+1);
+                    }
+                    if(!dex_details.moves_count)
+                        printf("\x1b[12;1HNo verified learnset refs");
+                }else printf("\x1b[12;1HOriginal learnset unavailable");
+            }
+            printf("\x1b[21;1HL/R: tabs  START/B: close");
+            printf("\x1b[23;1HLEFT/RIGHT: species");
+        }else if(state.page==P3D_PAGE_DEX){
             if(dex_text_ready){
                 P3DDexText entry;
                 if(p3dDexTextRead(dex_index,&entry)){
@@ -797,6 +863,10 @@ static void render(void) {
                 }
             }
             printf("Pokemon entry: %03d / 649\n",dex_index+1);
+            printf("START: %s\n",dex_detail_tab?"close details":"details");
+            if(dex_detail_tab)
+                printf("Details %s %d/4 (L/R)\n",
+                       p3dSpeciesDetailTabName(dex_detail_tab),dex_detail_tab);
             printf("LEFT/RIGHT: browse entries\n");
             printf("Form: %s",selected_form?"alternate":"base");
             if(selected_form){
@@ -1051,6 +1121,7 @@ static void render(void) {
             }
             else printf("\x1b[17;1HBase form");
             printf("\x1b[19;1HY: next verified form");
+            printf("\x1b[24;1HSTART: original data details");
         }else if(state.page==P3D_PAGE_SEARCH){
             printf("\x1b[9;1H%.28s",state.search_query[0]?state.search_query:"NAME / TEXT SEARCH");
             /* One-based console rows share exact touch coordinates in C83. */
@@ -1280,6 +1351,7 @@ int main(void) {
         if(p3dResumeRestoreBoot(P3D_SAVE_BASE,&resume,caps,
                                 &home,&state,&highlighted)){
             dex_index=(int)resume.dex;
+            dex_detail_tab=(int)resume.dex_detail_tab;
             move_index=(int)resume.move;
             records_tab=(int)resume.records_tab;
             album_offset=(size_t)resume.album_page*P3D_ALBUM_PAGE_MAX;
@@ -1499,7 +1571,10 @@ int main(void) {
             }
         } else {
             if(down&KEY_B){
-                if(state.page==P3D_PAGE_ALBUM && album_confirm_delete){
+                if(state.page==P3D_PAGE_DEX && dex_detail_tab){
+                    dex_detail_tab=0;
+                    art_page=-1;
+                }else if(state.page==P3D_PAGE_ALBUM && album_confirm_delete){
                     album_confirm_delete=0;
                 }else{
                     if(progress_dirty && save_progress())progress_dirty=0;
@@ -1921,6 +1996,17 @@ int main(void) {
                 redraw=1;
             }
             if(state.page==P3D_PAGE_DEX && !(down&KEY_X)){
+                if((down&KEY_START) && !(down&(KEY_B|KEY_TOUCH))){
+                    dex_detail_tab=dex_detail_tab?0:1;
+                    art_page=-1; /* details are visible on text, not source art */
+                    redraw=1;
+                }
+                if(dex_detail_tab && ((down&KEY_L)!=0)!=((down&KEY_R)!=0)){
+                    int delta=(down&KEY_R)?1:-1;
+                    dex_detail_tab=(dex_detail_tab+delta+3)%4+1;
+                    art_page=-1;
+                    redraw=1;
+                }
                 /* Cycle only existing verified optional animation files;
                  * reset playback at the new keyframe sequence. */
                 if(preview_found && preview_animation_library.ready &&
@@ -1937,9 +2023,9 @@ int main(void) {
                  * only one step per press.  The model is drawn each frame, so
                  * rotation needs no expensive full-console redraw. */
                 if(preview_found){
-                    if((held&KEY_L) && !(held&KEY_R))
+                    if(!dex_detail_tab && (held&KEY_L) && !(held&KEY_R))
                         model_yaw=(model_yaw-256)&32767;
-                    else if((held&KEY_R) && !(held&KEY_L))
+                    else if(!dex_detail_tab && (held&KEY_R) && !(held&KEY_L))
                         model_yaw=(model_yaw+256)&32767;
                     else if(state.rotate && !(held&KEY_L) && !(held&KEY_R))
                         model_yaw=(model_yaw+64)&32767;
@@ -1969,6 +2055,12 @@ int main(void) {
                                     !source_geometry_ready,!showing_original_art,
                                     point.px,point.py))
                     redraw=1;
+                if(state.page==P3D_PAGE_DEX && dex_detail_tab &&
+                   point.py>=112 && point.py<150){
+                    int delta=point.px>=128?1:-1;
+                    dex_detail_tab=(dex_detail_tab+delta+3)%4+1;
+                    art_page=-1;redraw=1;
+                }
                 if(point.py>=150 && point.py<192){
                     int direction=point.px<64?-1:(point.px>=192?1:0);
                     if(state.page==P3D_PAGE_DEX && direction){
