@@ -62,6 +62,12 @@ int main(int argc,char **argv){
      assert(!p3dVerifiedVertexUvGet(&uv,0,1,&u,&v));
      assert(u==4096&&v==0);uv.mesh_count=original;}
     assert(u==4096&&v==0);
+    {uint32_t first=0;memcpy(&first,uv.bytes+24,4);
+     uv.bytes[24]=0xff;uv.bytes[25]=0xff;uv.bytes[26]=0xff;uv.bytes[27]=0xff;
+     assert(!p3dVerifiedVertexUvGet(&uv,0,1,&u,&v));
+     assert(u==4096&&v==0);
+     uv.bytes[24]=(uint8_t)first;uv.bytes[25]=(uint8_t)(first>>8);
+     uv.bytes[26]=(uint8_t)(first>>16);uv.bytes[27]=(uint8_t)(first>>24);}
     /* Exact byte identity of the original vertex transport is required. */
     wr32(vu+12,0);write_file(argv[3],vu,sizeof(vu));denied(argv[3]);
     wr32(vu+12,crc(vx,sizeof(vx)));
