@@ -562,8 +562,6 @@ static void render_model(void){
                 &source_geometry_pair,&source_geometry_uv,
                 &native_source_materials,&native_materials,&native_textures,
                 &native_shader_caps,&native_texture_cache,&preview_pixels,&drawn);
-            glDisable(GL_TEXTURE_2D);
-            glBindTexture(0,0);
             if(!native_draw_ok){
                 /* C305: a failed upload invalidates the entire texture cache.
                  * Disable repeated attempts until the next model reload,
@@ -573,6 +571,11 @@ static void render_model(void){
             }
         }
         if(!native_draw_ok){
+            /* The fallback must explicitly reset texture state before its
+             * untextured vertices, but a successful native draw keeps its
+             * texture state intact through the GX frame flush. */
+            glDisable(GL_TEXTURE_2D);
+            glBindTexture(0,0);
             drawn=0;
             glColor3b(192,224,232);
             native_draw_ok=source_geometry_uv_ready
@@ -590,6 +593,8 @@ static void render_model(void){
             if(previewStreamHasModel())previewStreamDraw();
         }
         glFlush(0);
+        glDisable(GL_TEXTURE_2D);
+        glBindTexture(0,0);
 #ifdef P3D_EMULATOR_DIAGNOSTICS
         /* C306: emulator-only indicator of whether native source material
          * passed all gates and actually reached a textured draw. Never
