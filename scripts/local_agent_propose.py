@@ -25,7 +25,6 @@ def validate_and_apply(root: Path, focus: str, plan: object) -> list[str]:
     allowed = {task["source"], task["test"]}
     originals: dict[str, str] = {}
     proposed: dict[str, str] = {}
-    asserted = False
     for edit in edits:
         if not isinstance(edit, dict) or set(edit) != {"path", "old", "new"}:
             raise ValueError("Only path, old, new allowed")
@@ -44,10 +43,14 @@ def validate_and_apply(root: Path, focus: str, plan: object) -> list[str]:
         if before.count(old) != 1:
             raise ValueError("Snippet does not occur exactly once")
         proposed[path] = before.replace(old, new, 1)
-        if path == task["test"] and re.search(r"\bassert\s*\(", new):
-            asserted = True
-    if set(proposed) != allowed or not asserted:
-        raise ValueError("Must modify source and regression, adding assertion")
+    if set(proposed) != allowed:
+        raise ValueError("Both source and regression must be modified")
+    # Duplicate existing assertions do not test a new behavior.
+    assertion_pattern = r"\\bassert\\s*\\([^;\\n]*\\)\\s*;"
+    previous_asserts = set(re.findall(assertion_pattern, originals[task["test"]]))
+    next_asserts = set(re.findall(assertion_pattern, proposed[task["test"]]))
+    if not next_asserts - previous_asserts:
+        raise ValueError("Must add a distinct regression assertion")
     for path, content in proposed.items():
         if (len(content) > len(originals[path]) + 2800 or
             len(content) < len(originals[path]) - 1800):
