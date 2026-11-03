@@ -715,6 +715,18 @@ static P3DResumeState current_resume(void){
     view.type_defend=(uint8_t)defend_type;
     view.type_defend2_plus_one=(uint8_t)(defend_type2+1);
     view.favorites_selected=(uint8_t)favorite_index;
+    /* An active question/review is a real resume state, not just a mode.
+     * The exact seed, asked set, choices and already-counted totals travel
+     * together in the CRC-protected optional P3RV v4 checkpoint. */
+    if(!home && state.page==P3D_PAGE_CHALLENGE &&
+       (quiz.stage==P3D_CHALLENGE_QUESTION ||
+        quiz.stage==P3D_CHALLENGE_REVIEW)){
+        view.quiz_active=1;
+        view.quiz=quiz;
+        view.challenge_answer_total=(uint32_t)challenge_answer_total;
+        view.challenge_correct_total=(uint32_t)challenge_correct_total;
+        view.challenge_recorded_rounds=records.rounds;
+    }
     return view;
 }
 /* Commit page/selection immediately when it changes. The independent
@@ -1282,13 +1294,26 @@ int main(void) {
                    sizeof(state.search_query));
             state.search_letter=resume.search_letter?
                 resume.search_letter:'A';
-            /* A quiz in progress cannot be recreated from the mode alone:
-             * resume only the picker, never fabricate an answer or question. */
+            /* C332: recover exactly the validated question/review. The
+             * saved v4 answer totals may be ahead of old P3SV after power
+             * loss; never add a REVIEW answer twice on boot. If P3SV has
+             * since advanced beyond this checkpoint, fail back to picker. */
             quiz.mode_cursor=resume.challenge_mode;
-            if(quiz.mode_cursor>=p3dChallengeAvailableModes(
-                    challenge_answer_total))
-                quiz.mode_cursor=p3dChallengeAvailableModes(
-                    challenge_answer_total)-1;
+            if(!home && state.page==P3D_PAGE_CHALLENGE &&
+               p3dResumeCanRestoreQuiz(&resume,
+                   (uint32_t)challenge_correct_total,
+                   (uint32_t)challenge_answer_total,records.rounds)){
+                quiz=resume.quiz;
+                challenge_answer_total=(int)resume.challenge_answer_total;
+                challenge_correct_total=(int)resume.challenge_correct_total;
+                challenge_seed=quiz.seed;
+                progress_dirty=1; /* Repair lagging P3SV if necessary. */
+            }else{
+                if(quiz.mode_cursor>=p3dChallengeAvailableModes(
+                       challenge_answer_total))
+                    quiz.mode_cursor=p3dChallengeAvailableModes(
+                       challenge_answer_total)-1;
+            }
             attack_type=resume.type_attack;
             defend_type=resume.type_defend;
             defend_type2=(int)resume.type_defend2_plus_one-1;
@@ -1528,6 +1553,12 @@ int main(void) {
                                p3dRecordsComplete(&records,quiz.mode,quiz.score)){
                                 records_dirty=1;
                                 progress_dirty=1;
+                                /* Finish the prior round before a new one can
+                                 * snapshot its P3RC round generation. P3RV
+                                 * v3 clears active review before P3RC commits,
+                                 * preventing an older v4 review from being
+                                 * replayed as a second completed round. */
+                                if(save_progress())progress_dirty=0;
                             }
                             redraw=1;
                         }

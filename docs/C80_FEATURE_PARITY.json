@@ -56,7 +56,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/challenge.c",
-      "gap": "C232 adds exactly-once question review and calibrated text-fallback touchscreen answers across seven development Challenge modes; C330 advances the replay seed; C331 connects recovered P3DX descriptions and option names to the unlocked Pokédex Test mode with clue paging and fail-closed scoring. Twenty-nine original modes, recovered 3DS challenge artwork/audio, private source-game parity and native visual comparison remain unfinished.",
+      "gap": "C232 single-scoring question review, C330 replay seed, C331 source-backed seventh-mode clues and fail-closed original P3DX answer names, and C332 exact active question/review save/restore with stale-record round rejection are implemented. The remaining 29 original modes, recovered 3DS Challenge artwork/audio, private source-game gameplay parity and original visual comparison remain unfinished.",
       "verified_end_to_end": false
     },
     {
@@ -128,7 +128,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/records.c",
-      "gap": "C122 adds an 80-byte dual-slot P3RV v3 checkpoint with saved exact Search query and initial-letter cursor, selected Challenge mode on a safely reset picker, Type Matchups attack/defend/optional second type, and currently selected Favorites entry. CRC/length/range/NUL validation and old 32-byte C119 v1 and 48-byte C121 v2 reads remain, with v2→v3 write in alternate slot for rollback. C121 in-screen Pokémon form, Move/Album/Records/Search and direct reset-to-last-screen are retained. A live Challenge question/result cannot be reconstructed safely from the mode only and is NOT falsely resumed. Private original 3DS graphics and whole-game save-format parity remain unverified.",
+      "gap": "C332 adds an optional 144-byte, CRC-checked P3RV v4 active Challenge checkpoint preserving exact question/review, chosen answer, four choices, ten asked species, RNG seed, clue page, and already counted answers; stores P3RC round generation to reject stale reviews after a completed round. Inactive checkpoints remain 80-byte P3RV v3; P3RV v1/v2/v3, P3SV and P3RC readers remain compatible. Dual-slot integrity and cross-process synthetic host tests exist; independent private-asset DSi save/display, exact original 3DS save-format parity, and power-loss recovery on real hardware remain unverified.",
       "verified_end_to_end": false
     },
     {
