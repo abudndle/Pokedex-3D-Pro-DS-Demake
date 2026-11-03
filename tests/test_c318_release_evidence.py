@@ -31,3 +31,9 @@ invalid = evidence()
 invalid.append(dict(invalid[0]))
 assert not module.has_release_evidence({"release_evidence": invalid})
 print("C318 release evidence acceptance/rejection checks passed")
+
+# The canonical parity inventory legitimately cites a tools/ audit for
+# original texture/material provenance. Keep the normal audit executable.
+manifest = Path(__file__).resolve().parents[1] / "docs/C80_FEATURE_PARITY.json"
+module.check(manifest, manifest.parent.parent)
+print("C318 canonical feature inventory accepted")
