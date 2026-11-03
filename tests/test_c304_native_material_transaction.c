@@ -36,7 +36,7 @@ int p3dVerifiedMaterialUvDraw(const P3DVerifiedGeometryPair *g,
 }
 int p3dTestMaterialBegin(int id){assert(id>0);begin_calls++;trace(1,id,0);return 1;}
 void p3dTestMaterialTexCoord(int16_t u,int16_t v){
-    assert(u==0||u==4096);assert(v==0||v==4096);uv_calls++;trace(2,u,v);
+    assert(u==0||u==128);assert(v==0||v==128);uv_calls++;trace(2,u,v);
 }
 void p3dTestMaterialVertex(const int16_t *p){
     assert(p>=xyz&&p<xyz+9);vertices++;trace(3,p[0],p[1]);
@@ -103,8 +103,8 @@ int main(void){
         const int expected_kinds[16]={
             1,2,3,2,3,2,3,4,1,2,3,2,3,2,3,4
         };
-        const int expected_u[3]={0,4096,0};
-        const int expected_v[3]={0,0,4096};
+        const int expected_u[3]={0,128,0};
+        const int expected_v[3]={0,0,128};
         const int expected_x[3]={0,4096,0};
         const int expected_y[3]={0,0,4096};
         assert(trace_count==16);
