@@ -16,7 +16,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/main.c",
-      "gap": "C82 displays recovered original English names, descriptions, height and weight from private 649-record P3DX data; complete forms/stats/evolutions, final 3D rendering and localization still incomplete",
+      "gap": "C82 original 649 P3DX names/descriptions/height/weight and C333 optional source-validated P3SD sidecar and tab viewer; no proven original 3DS stats/ability/evolution/complete learnset records yet. Source form semantics, final 3D renderer, original UI art and localization incomplete.",
       "verified_end_to_end": false
     },
     {
@@ -118,9 +118,9 @@
     {
       "id": "pokemon_stats_evolutions_learnsets",
       "required_for_release": true,
-      "status": "missing",
-      "source": "source/main.c",
-      "gap": "Detailed authentic species metadata screens and filters not integrated",
+      "status": "partial",
+      "source": "source/species_details.c",
+      "gap": "C333 adds fail-closed per-species/form P3SD v1 native reader, four tab details UI and persistent P3RV v5 detail tab. Only 649 P3DX names/descriptions/height/weight and 559 P3DM move names/effects are verified original source. The user's original private stats/ability/evolution/complete learnset records are not recovered in the accessible workspace, no original values are bundled, and the v1 sidecar supports only 4 optional move references, not full learnsets. Original-source binary extraction, provenance, full forms/data, authentic 3DS art, 3DS side-by-side comparison, DSi/hardware still missing.",
       "verified_end_to_end": false
     },
     {

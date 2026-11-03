@@ -3,6 +3,11 @@
 # This test NEVER uses Nintendo BIOS, private source assets or a retail ROM.
 set -euo pipefail
 full_round="${C264_FULL_ROUND:-0}"
+detail_only="${C333_DETAIL_ONLY:-0}"
+if [[ "$detail_only" != 0 && "$detail_only" != 1 ]]; then
+  echo 'C333_DETAIL_ONLY must be 0 or 1' >&2
+  exit 2
+fi
 if [[ "$full_round" != 0 && "$full_round" != 1 ]]; then
   echo 'C264_FULL_ROUND must be 0 or 1' >&2
   exit 2
@@ -23,6 +28,7 @@ cat > "$XDG_CONFIG_HOME/melonDS/melonDS.toml" <<TOML
 A = 88
 B = 90
 Right = 16777236
+Start = 16777220
 [DLDI]
 Enable = true
 ImagePath = "$sd_root/dldi.bin"
@@ -95,6 +101,26 @@ sleep 0.4
 xdotool keyup x
 sleep 4
 capture c260-melonds-fat-favorite.xwd
+if [[ "$detail_only" == 1 ]]; then
+  xdotool windowfocus --sync "$window"
+  xdotool keydown Return
+  sleep 0.5
+  xdotool keyup Return
+  sleep 2
+  capture c333-melonds-detail.xwd
+  close_cleanly
+  python3 tests/c333_fat_detail_gate.py "$sd_root/export"
+  launch
+  capture c333-melonds-detail-resumed.xwd
+  python3 tests/c333_melonds_detail_frame_gate.py \
+    c260-melonds-fat-favorite.xwd \
+    c333-melonds-detail.xwd \
+    c333-melonds-detail-resumed.xwd
+  close_cleanly
+  python3 tests/c333_fat_detail_gate.py "$sd_root/export"
+  echo 'C333 real melonDS exact detail-tab navigation and FAT resume: PASS (asset-free only)'
+  exit 0
+fi
 close_cleanly
 python3 tests/c260_fat_slot_gate.py "$sd_root/export"
 python3 tests/c263_fat_records_gate.py "$sd_root/export"

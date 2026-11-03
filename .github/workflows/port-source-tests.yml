@@ -25,6 +25,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: C333 enforce native touchscreen detail UI routing and fail-closed source
+        run: python3 -m unittest discover -s tests -p 'test_c333_native_detail_wiring.py' -v
+      - name: C333 strict source-detail payload and form metadata regression
+        run: sh tests/run_c333_species_details.sh
+      - name: C333 exact detail tab P3RV cross-process resume and corrupt-slot regression
+        run: sh tests/run_c333_detail_resume.sh
       - name: C332 exact active Challenge checkpoint and torn-slot regressions
         run: sh tests/run_c332_quiz_checkpoint.sh
       - name: C331 recovered P3DX Challenge clue and fail-closed answer regressions
