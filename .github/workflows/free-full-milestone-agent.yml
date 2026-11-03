@@ -116,7 +116,18 @@ jobs:
           set -euo pipefail
           # Only stage the public paths permitted by the unchanged safety gate.
           # Aider history and interpreter cache files are never candidate source edits.
-          git add -A -- source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md 2>/dev/null || true
+          # Stage only existing public roots. A single nonexistent pathspec can
+          # make git add fail; never hide that failure with '|| true'.
+          public_roots=(source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md)
+          existing_roots=()
+          for root in "${public_roots[@]}"; do
+            if [[ -e "$root" ]] || git ls-files --error-unmatch -- "$root" >/dev/null 2>&1; then
+              existing_roots+=("$root")
+            fi
+          done
+          if (( ${#existing_roots[@]} > 0 )); then
+            git add -A -- "${existing_roots[@]}"
+          fi
           if git diff --cached --quiet; then
             echo "No material code changes; no branch/PR will be published."
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
@@ -146,7 +157,18 @@ jobs:
           set -euo pipefail
           # After all tests, check again so no asset or workflow file can slip
           # into the commit via a test-generated change.
-          git add -A -- source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md 2>/dev/null || true
+          # Stage only existing public roots. A single nonexistent pathspec can
+          # make git add fail; never hide that failure with '|| true'.
+          public_roots=(source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md)
+          existing_roots=()
+          for root in "${public_roots[@]}"; do
+            if [[ -e "$root" ]] || git ls-files --error-unmatch -- "$root" >/dev/null 2>&1; then
+              existing_roots+=("$root")
+            fi
+          done
+          if (( ${#existing_roots[@]} > 0 )); then
+            git add -A -- "${existing_roots[@]}"
+          fi
           python3 tools/hosted_milestone_agent.py check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
