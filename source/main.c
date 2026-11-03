@@ -18,6 +18,8 @@
 #include "preview_stream.h"
 #include "verified_geometry_pair.h"
 #include "verified_primitive_draw.h"
+#include "verified_vertex_uv.h"
+#include "verified_primitive_uv_draw.h"
 #include "original_skeleton.h"
 #include "source_track_bindings.h"
 #include "species_model_map.h"
@@ -81,6 +83,9 @@ static int preview_found=0;
 /* Optional private source-verified P3VX/P3IX geometry; no inferred textures. */
 static P3DVerifiedGeometryPair source_geometry_pair;
 static int source_geometry_ready=0;
+/* C301: paired UV bytes are not proof of original sampler/material roles. */
+static P3DVerifiedVertexUv source_geometry_uv;
+static int source_geometry_uv_ready=0;
 /* Original C5 node hierarchy only; no animation or skinning is inferred. */
 static P3DOriginalSkeleton preview_skeleton;
 /* C151: original track owners are preflighted only; no unverified motion. */
@@ -256,6 +261,8 @@ static void reload_preview(void){
      * CRC/bounds prove transport, NOT original 3DS renderer provenance.
      * Missing/corrupt pairs fall back to a loaded legacy preview if present. */
     p3dVerifiedGeometryPairClear(&source_geometry_pair);
+    p3dVerifiedVertexUvClear(&source_geometry_uv);
+    source_geometry_uv_ready=0;
     source_geometry_ready=0;
     if(nitro_ready&&resource>=0){
         char vertex_path[80],index_path[80];
@@ -265,6 +272,12 @@ static void reload_preview(void){
                  "nitro:/geometry/p%03d.p3ix",resource);
         source_geometry_ready=p3dVerifiedGeometryPairLoad(
             &source_geometry_pair,vertex_path,index_path,(uint16_t)resource);
+        if(source_geometry_ready){
+            snprintf(vertex_path,sizeof(vertex_path),
+                     "nitro:/geometry/p%03d.p3vu",resource);
+            source_geometry_uv_ready=p3dVerifiedVertexUvLoad(
+                &source_geometry_uv,vertex_path,&source_geometry_pair);
+        }
     }
     preview_found=legacy_preview_found||source_geometry_ready;
     p3dOriginalSkeletonClear(&preview_skeleton);
@@ -476,10 +489,14 @@ static void render_model(void){
         glDisable(GL_TEXTURE_2D);
         glBindTexture(0,0);
         glColor3b(192,224,232);
-        if(!p3dVerifiedPrimitiveDraw(source_geometry_pair.ix,
+        int native_draw_ok=source_geometry_uv_ready
+            ?p3dVerifiedPrimitiveUvDraw(&source_geometry_pair,
+                                        &source_geometry_uv,&drawn)
+            :p3dVerifiedPrimitiveDraw(source_geometry_pair.ix,
                 source_geometry_pair.ix_size,source_geometry_pair.model,
                 source_geometry_pair.meshes,source_geometry_pair.mesh_count,
-                &drawn)){
+                &drawn);
+        if(!native_draw_ok){
             /* Fail closed if the verified geometry changes or cannot draw. */
             p3dVerifiedGeometryPairClear(&source_geometry_pair);
             source_geometry_ready=0;
