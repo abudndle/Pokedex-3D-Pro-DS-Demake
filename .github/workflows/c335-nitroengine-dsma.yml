@@ -78,6 +78,58 @@ jobs:
           path: Pokedex3D_DS_BlocksDS.nds
           if-no-files-found: error
           retention-days: 3
+  emulator-linked-rom:
+    needs: verify-linked-rom
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: c335-nitro-engine-dsma-asset-free-native-rom
+      - name: Download official SHA-pinned melonDS 1.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$(mktemp -d)"
+          echo "C335_MELONDS_ROOT=$root" >> "$GITHUB_ENV"
+          curl -fL --retry 3 --connect-timeout 20 \
+            'https://github.com/melonDS-emu/melonDS/releases/download/1.1/melonDS-1.1-appimage-x86_64.zip' \
+            -o "$root/melonds.zip"
+          printf '%s  %s\n' 'bf377420a2e95f2cd2cdda17d5372b51c2534f858b038db9ec6d129554875124' "$root/melonds.zip" | sha256sum -c -
+          unzip -q "$root/melonds.zip" -d "$root"
+          app="$(find "$root" -maxdepth 3 -type f -name '*.AppImage' -print -quit)"
+          test -n "$app"
+          chmod +x "$app"
+          (cd "$root" && "$app" --appimage-extract >/dev/null)
+          test -x "$root/squashfs-root/AppRun"
+          echo "C335_APP_RUN=$root/squashfs-root/AppRun" >> "$GITHUB_ENV"
+      - name: Install independent DS emulator UI dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11-apps x11-utils xdotool libegl1 libgl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-xinerama0
+      - name: Actual Nitro Engine-linked ROM boot, source-free Pokédex UI and controls
+        shell: bash
+        run: |
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 145s \
+            bash tests/run_c253_melonds_smoke.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C335_APP_RUN"
+      - name: Preserve emulator screenshots, not private assets
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c335-nitro-engine-linked-melonds-evidence
+          path: |
+            c253-melonds-*.xwd
+            c254-melonds-*.xwd
+            c255-melonds-*.xwd
+            c256-melonds-*.xwd
+            c257-melonds-*.xwd
+            c258-melonds-*.xwd
+            c259-melonds-*.xwd
+            c253-melonds-windows.txt
+          if-no-files-found: ignore
+          retention-days: 3
   verify-linked-rom:
     needs: native-nitro-engine
     runs-on: ubuntu-latest
