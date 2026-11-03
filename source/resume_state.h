@@ -22,8 +22,14 @@ typedef struct {
     uint8_t quiz_active;
     P3DChallenge quiz;
     uint32_t challenge_correct_total, challenge_answer_total;
+    uint32_t challenge_recorded_rounds; /* P3RC rounds at checkpoint time */
 } P3DResumeState;
 int p3dResumeStateValid(const P3DResumeState *state);
+/* A previously completed round must never be resurrected by a stale
+ * review snapshot after P3RC has advanced, even if that snapshot has CRC. */
+int p3dResumeCanRestoreQuiz(const P3DResumeState *state,
+                            uint32_t progress_correct,uint32_t progress_answers,
+                            uint32_t recorded_rounds);
 int p3dResumeLoad(const char *base,P3DResumeState *out);
 int p3dResumeStore(const char *base,const P3DResumeState *state);
 int p3dResumeApply(const P3DResumeState *state,P3DCapabilities caps,
