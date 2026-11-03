@@ -42,6 +42,20 @@ with tempfile.TemporaryDirectory() as directory:
             raise AssertionError("Unsafe proposal was accepted")
         assert (base / task["source"]).read_text() == orig_source
         assert (base / task["test"]).read_text() == orig_test
+    # Reject cosmetically modified C code even with a new test assertion.
+    for cosmetic in ("source token // cosmetic note", "source   token"):
+        bad = {"summary": good["summary"], "changes": [
+            dict(good["changes"][0], new=cosmetic),
+            good["changes"][1],
+        ]}
+        try:
+            module.validate_and_apply(base, focus, bad)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Cosmetic-only C edit accepted")
+        assert (base / task["source"]).read_text() == orig_source
+        assert (base / task["test"]).read_text() == orig_test
     changed = module.validate_and_apply(base, focus, good)
     assert set(changed) == {task["source"], task["test"]}
     assert (base / task["test"]).read_text().count("assert(") == 2
