@@ -49,7 +49,7 @@ static void run_complete_quiz(void){
   assert(p3dChallengeTextAnswer(&quiz,quiz.correct)==-1);
   assert(!memcmp(&quiz,&before,sizeof quiz));
   assert(!p3dChallengeTextPageStep(&quiz,1));
-  assert(p3dChallengeContinue(&quiz));
+  assert(p3dChallengeTextContinue(&quiz));
  }
  assert(quiz.stage==P3D_CHALLENGE_RESULTS && quiz.score==5);
  assert(!p3dChallengeTextLoad(&text,&quiz));
@@ -74,6 +74,16 @@ int main(int argc,char **argv){
  assert(!text.ready && !text.clue[0]);
  assert(p3dChallengeTextAnswer(NULL,0)==-1);
  assert(!p3dChallengeTextPageStep(NULL,1));
+ /* A missing catalog during REVIEW cannot commit the next question. */
+ assert(p3dChallengeBegin(&quiz,P3D_CHALLENGE_TEXT_MODE,124,50));
+ assert(p3dChallengeTextAnswer(&quiz,quiz.correct)==1);
+ before=quiz;
+ p3dDexTextClose();
+ assert(!p3dChallengeTextContinue(&quiz));
+ assert(!memcmp(&quiz,&before,sizeof quiz));
+ assert(p3dDexTextInit(argv[1]));
+ assert(p3dChallengeTextContinue(&quiz));
+ assert(quiz.stage==P3D_CHALLENGE_QUESTION && quiz.question==1);
  assert(p3dDexTextInit(argv[2]));
  before=quiz;
  memset(&text,0x6f,sizeof text);
@@ -88,6 +98,6 @@ int main(int argc,char **argv){
  assert(p3dChallengeBegin(&quiz,0,1,0));
  assert(!p3dChallengeTextLoad(&text,&quiz));
  p3dDexTextClose();
- puts("C331 recovered P3DX Challenge names, clues, paging, and fail-closed scoring: PASS");
+ puts("C332 source-backed Challenge review/next-question atomic continuation: PASS");
  return 0;
 }
