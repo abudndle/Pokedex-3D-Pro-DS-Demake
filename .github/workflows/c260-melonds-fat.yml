@@ -9,12 +9,14 @@ on:
       - 'tests/c263_*'
       - 'tests/c264_*'
       - 'tests/c332_*'
+      - 'tests/c333_*'
       - 'tests/test_c260_*'
       - 'tests/test_c261_*'
       - 'tests/test_c262_*'
       - 'tests/test_c263_*'
       - 'tests/test_c264_*'
       - 'tests/test_c332_*'
+      - 'tests/test_c333_*'
       - 'tests/run_c260_*'
       - '.github/workflows/c260-melonds-fat.yml'
   pull_request:
@@ -26,12 +28,14 @@ on:
       - 'tests/c263_*'
       - 'tests/c264_*'
       - 'tests/c332_*'
+      - 'tests/c333_*'
       - 'tests/test_c260_*'
       - 'tests/test_c261_*'
       - 'tests/test_c262_*'
       - 'tests/test_c263_*'
       - 'tests/test_c264_*'
       - 'tests/test_c332_*'
+      - 'tests/test_c333_*'
       - 'tests/run_c260_*'
       - '.github/workflows/c260-melonds-fat.yml'
   workflow_dispatch:
@@ -85,10 +89,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb x11-apps x11-utils xdotool libegl1 libgl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-xinerama0
+      - name: C333 strict synthetic FAT source-detail checkpoint gates
+        run: python3 -m unittest discover -s tests -p 'test_c333_fat_detail_gate.py' -v
       - name: Verify real DLDI FAT writes and Pokédex resume across two emulator launches
         shell: bash
         run: |
           xvfb-run -a -s '-screen 0 1024x768x24' timeout 220s \
+            bash tests/run_c260_melonds_fat.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C260_APP_RUN"
+      - name: Verify real melonDS START detail subview, exact tab FAT resume and screenshot continuity
+        shell: bash
+        run: |
+          C333_DETAIL_ONLY=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
             bash tests/run_c260_melonds_fat.sh \
             "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C260_APP_RUN"
       - name: Verify real completed ten-question Challenge and P3RC round persistence
@@ -106,6 +118,7 @@ jobs:
             c260-melonds-fat-*.xwd
             c261-melonds-*.xwd
             c264-melonds-*.xwd
+            c333-melonds-*.xwd
             c260-melonds-windows.txt
           if-no-files-found: ignore
           retention-days: 3
