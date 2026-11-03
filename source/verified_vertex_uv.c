@@ -105,6 +105,9 @@ int p3dVerifiedVertexUvGet(const P3DVerifiedVertexUv *uv,
        mesh_index>=uv->mesh_count)return 0;
     row=uv->bytes+UV_HEADER+(size_t)mesh_index*UV_ROW;
     if(vertex_index>=rd16(row+2))return 0;
+    /* Recheck table integrity even if a caller damaged the staged state. */
+    if(rd16(row+2)<3u||rd32(row+4)>uv->vertex_count||
+       rd16(row+2)>uv->vertex_count-rd32(row+4))return 0;
     idx=(size_t)rd32(row+4)+vertex_index;
     if(idx>=uv->vertex_count)return 0;
     offset=UV_HEADER+(size_t)uv->mesh_count*UV_ROW+idx*4u;
