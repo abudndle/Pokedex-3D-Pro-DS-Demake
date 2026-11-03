@@ -2,7 +2,9 @@
 #define P3D_DS_MATERIAL_TEXTURE_CACHE_H
 #include "ds_texture_upload.h"
 #include "model_textures.h"
-#define P3D_DS_TEXTURE_CACHE_MAX P3D_TEXTURE_MAX
+/* Match the native preview's bounded texture bank and allocation count. */
+#define P3D_DS_TEXTURE_CACHE_MAX 8u
+#define P3D_DS_TEXTURE_VRAM_BYTES (128u*1024u)
 typedef const char *(*P3DDsTexturePathResolver)(void *context,unsigned texture_id);
 typedef struct {
     const P3DTextureManifest *manifest;
@@ -22,5 +24,10 @@ int p3dDsMaterialTextureCacheInit(P3DDsMaterialTextureCache *cache,
  * Caller supplies reusable pixel scratch to avoid a large DS stack object. */
 int p3dDsMaterialTextureCacheGet(P3DDsMaterialTextureCache *cache,
     unsigned texture_id,P3DTexturePixels *scratch,int *hardware_texture_id);
+/* Preflight distinct texture allocations with no GL calls or pixel reads.
+ * Reused texture IDs consume VRAM only once. Reject incomplete material
+ * coverage, unknown formats, or resource usage beyond bank B. */
+int p3dDsMaterialTextureBudgetValid(const P3DMaterialMap *materials,
+    const P3DTextureManifest *manifest,unsigned triangle_count);
 void p3dDsMaterialTextureCacheDestroy(P3DDsMaterialTextureCache *cache);
 #endif
