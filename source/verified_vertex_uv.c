@@ -132,10 +132,12 @@ int p3dVerifiedVertexUvGetPaired(const P3DVerifiedVertexUv *uv,
        !geometry->vx_size||geometry->vx_size>sizeof(geometry->vx)||
        uv->size<UV_HEADER||uv->size>sizeof(uv->bytes)||
        crc32_bytes(geometry->vx,geometry->vx_size)!=rd32(uv->bytes+12)||
-       mesh_index>=geometry->mesh_count)return 0;
+       geometry->mesh_count>P3D_VERTEX_MAX_MESHES||
+       uv->mesh_count>P3D_VERTEX_MAX_MESHES||
+       mesh_index>=geometry->mesh_count||
+       uv->size<UV_HEADER+(size_t)uv->mesh_count*UV_ROW)return 0;
     const uint8_t *row=uv->bytes+UV_HEADER+(size_t)mesh_index*UV_ROW;
-    if(uv->mesh_count>P3D_VERTEX_MAX_MESHES||
-       uv->size<UV_HEADER+(size_t)uv->mesh_count*UV_ROW||
+    if(
        rd16(row)!=geometry->meshes[mesh_index].mesh_id||
        rd16(row+2)!=geometry->meshes[mesh_index].vertex_count)return 0;
     return p3dVerifiedVertexUvGet(uv,mesh_index,vertex_index,u,v);
