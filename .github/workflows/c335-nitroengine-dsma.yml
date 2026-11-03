@@ -53,12 +53,15 @@ jobs:
         run: |
           set -eu
           wf-pacman -Sy --noconfirm blocksds-nitroengine
-          test -f /opt/blocksds/external/nitro-engine/include/NEMain.h
-          test -f /opt/blocksds/external/nitro-engine/lib/libNE.a
+          # BlocksDS docs: external libraries reside at BLOCKSDSEXT,
+          # e.g. /opt/wonderful/thirdparty/blocksds/external in the container.
+          test -f "$BLOCKSDSEXT/nitro-engine/include/NEMain.h"
+          test -f "$BLOCKSDSEXT/nitro-engine/lib/libNE.a"
+          test -f "$BLOCKSDSEXT/nitro-engine/tools/obj2dl/obj2dl.py"
       - name: Convert a synthetic verified source pair via upstream Nitro Engine obj2dl
         run: |
           python3 tests/c335_official_nitro_tool_smoke.py \
-            /opt/blocksds/external/nitro-engine/tools/obj2dl/obj2dl.py
+            "$BLOCKSDSEXT/nitro-engine/tools/obj2dl/obj2dl.py"
       - name: Build native ROM linked with actual Nitro Engine and DSMA
         run: |
           make -f Makefile.native P3D_NITRO_ENGINE=1 NITROFSDIR=nitrofs rom
