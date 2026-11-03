@@ -10,9 +10,16 @@ int p3dDexPrefixMatches(const char *name,const char *prefix){
 int p3dDexFindPrefix(const char *query,int start,int direction){
  P3DDexText t;
  if(!query||!*query||!direction)return -1;
- for(int n=0;n<P3D_NATIONAL_SPECIES_COUNT;n++){
-  int i=(start+(direction>0?n+1:-(n+1))+P3D_NATIONAL_SPECIES_COUNT*3)%P3D_NATIONAL_SPECIES_COUNT;
-  if(p3dDexTextRead(i,&t)&&p3dDexPrefixMatches(t.name,query))return i;
+ /* A saved cursor may be any signed int, including INT_MIN. Normalize
+  * before adding a step; never add to the untrusted cursor directly. */
+ const int count=P3D_NATIONAL_SPECIES_COUNT;
+ int cursor=start%count;
+ if(cursor<0)cursor+=count;
+ for(int n=0;n<count;n++){
+  cursor=direction>0?(cursor+1==count?0:cursor+1):
+                     (cursor==0?count-1:cursor-1);
+  if(p3dDexTextRead(cursor,&t)&&p3dDexPrefixMatches(t.name,query))
+   return cursor;
  }
  return -1;
 }
