@@ -98,6 +98,16 @@ int main(int argc,char **argv){
      assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
      assert(u==4096&&v==0);
      g.meshes[0].xyz=original;}
+    /* C297: paired reads reject incomplete whole-model metadata. */
+    {unsigned original=uv.vertex_count;uv.vertex_count--;
+     assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
+     assert(u==4096&&v==0);uv.vertex_count=original;}
+    {size_t original=g.mesh_count;g.mesh_count++;
+     assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
+     assert(u==4096&&v==0);g.mesh_count=original;}
+    {size_t original=uv.size;uv.size--;
+     assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
+     assert(u==4096&&v==0);uv.size=original;}
     assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,1,0,&u,&v));
     assert(p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
     /* Corrupted staged UV coordinates must fail without modifying outputs. */
