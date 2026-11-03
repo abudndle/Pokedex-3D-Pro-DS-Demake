@@ -68,6 +68,19 @@ int main(int argc,char **argv){
      assert(u==4096&&v==0);
      uv.bytes[24]=(uint8_t)first;uv.bytes[25]=(uint8_t)(first>>8);
      uv.bytes[26]=(uint8_t)(first>>16);uv.bytes[27]=(uint8_t)(first>>24);}
+    /* C294: a UV read is valid only for the exact live geometry. */
+    assert(p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
+    {uint8_t original=g.vx[24];g.vx[24]^=1;
+     assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
+     assert(u==4096&&v==0);g.vx[24]=original;}
+    {uint16_t original=g.model;g.model=15;
+     assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
+     assert(u==4096&&v==0);g.model=original;}
+    {uint16_t original=g.meshes[0].mesh_id;g.meshes[0].mesh_id=8;
+     assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
+     assert(u==4096&&v==0);g.meshes[0].mesh_id=original;}
+    assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,1,0,&u,&v));
+    assert(p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
     /* Corrupted staged UV coordinates must fail without modifying outputs. */
     {uint8_t original=uv.bytes[32];
      uv.bytes[32]=1; /* U=4097 */
