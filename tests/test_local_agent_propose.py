@@ -27,6 +27,8 @@ with tempfile.TemporaryDirectory() as directory:
         {"summary": good["summary"], "changes": [
             good["changes"][0], dict(good["changes"][1], new="no assertion")]},
         {"summary": good["summary"], "changes": [
+            good["changes"][0], dict(good["changes"][1], new="assert(1);\nassert(1);")]},
+        {"summary": good["summary"], "changes": [
             dict(good["changes"][0], old="snippet missing"), good["changes"][1]]},
     ]
     for bad in invalid:
