@@ -236,6 +236,8 @@ jobs:
         run: sh tests/run_ds_texture_upload.sh
       - name: C300 manifest-bound DS material texture upload cache
         run: sh tests/run_c300_ds_material_texture_cache.sh
+      - name: C304 native material texture preflight and rollback
+        run: sh tests/run_c304_native_material_transaction.sh
       - name: C301 native geometry paired UV draw adapter
         run: sh tests/run_c289_native_vertex_uv.sh
 
