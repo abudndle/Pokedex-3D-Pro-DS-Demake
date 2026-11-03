@@ -36,7 +36,8 @@ cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
     source/model_material_texture.c source/source_material_map.c \
     source/source_material_texture_match.c \
     source/source_shader_caps.c source/verified_primitive_uv_bridge.c \
-    source/verified_geometry_pair.c source/verified_vertex_uv.c \
+    source/verified_geometry_pair.c source/verified_primitive_bridge.c \
+    source/verified_vertex_uv.c \
     source/verified_vertex_stream.c source/verified_primitive_stream.c \
     source/verified_material_uv_draw.c \
     tests/test_c109_original_material_refs.c -o "$tmp/c109"
