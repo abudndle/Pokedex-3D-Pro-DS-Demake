@@ -27,4 +27,9 @@ int p3dVerifiedVertexUvLoad(P3DVerifiedVertexUv *uv,const char *path,
 int p3dVerifiedVertexUvGet(const P3DVerifiedVertexUv *uv,
                            unsigned mesh_index,unsigned vertex_index,
                            int16_t *u,int16_t *v);
+/* C294: do not expose UVs if the geometry backing the staged data changed.
+ * Pairing is a byte-identity safety gate, not original-material provenance. */
+int p3dVerifiedVertexUvGetPaired(const P3DVerifiedVertexUv *uv,
+    const P3DVerifiedGeometryPair *geometry,unsigned mesh_index,
+    unsigned vertex_index,int16_t *u,int16_t *v);
 #endif
