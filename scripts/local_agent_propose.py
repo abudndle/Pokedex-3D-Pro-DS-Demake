@@ -46,7 +46,7 @@ def validate_and_apply(root: Path, focus: str, plan: object) -> list[str]:
     if set(proposed) != allowed:
         raise ValueError("Both source and regression must be modified")
     # Duplicate existing assertions do not test a new behavior.
-    assertion_pattern = r"\\bassert\\s*\\([^;\\n]*\\)\\s*;"
+    assertion_pattern = r"\bassert\s*\([^;\n]*\)\s*;"
     previous_asserts = set(re.findall(assertion_pattern, originals[task["test"]]))
     next_asserts = set(re.findall(assertion_pattern, proposed[task["test"]]))
     if not next_asserts - previous_asserts:
