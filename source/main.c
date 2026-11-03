@@ -575,9 +575,14 @@ static void render_model(void){
                 &source_geometry_pair,&source_geometry_uv,
                 &native_source_materials,&native_materials,&native_textures,
                 &native_shader_caps,&native_texture_cache,&preview_pixels,&drawn);
-            glDisable(GL_TEXTURE_2D);
-            glBindTexture(0,0);
             if(!native_draw_ok){
+                /* C306: texturing is a GPU-wide display control. Turning
+                 * it off immediately after submitting polygon commands
+                 * makes the deferred rasterizer sample solid white.
+                 * Retain mapping through glFlush and the displayed frame;
+                 * only clear it for a real untextured fallback. */
+                glDisable(GL_TEXTURE_2D);
+                glBindTexture(0,0);
                 /* C305: a failed upload invalidates the entire texture cache.
                  * Disable repeated attempts until the next model reload,
                  * leaving the verified untextured geometry fallback active. */
