@@ -7,7 +7,51 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
-static int ensure_dir(const char *path){struct stat st;if(mkdir(path,0777)==0)return 1;return errno==EEXIST&&stat(path,&st)==0&&S_ISDIR(st.st_mode);}
+/* Never follow a host symlink for the album directory. FAT has no symlinks,
+ * but this also protects desktop tooling using the same album code. */
+#ifndef __NDS__
+/* Inspect every existing ancestor, not just the immediate parent. */
+static int host_path_has_no_symlinks(const char *path){
+ char prefix[P3D_PHOTO_PATH_MAX];size_t n=strlen(path);
+ struct stat st;
+ if(n==0||n>=sizeof(prefix))return 0;
+ for(size_t i=0;i<=n;i++){
+  if(path[i]!='/'&&path[i]!='\0')continue;
+  if(i==0)continue; /* absolute filesystem root */
+  memcpy(prefix,path,i);prefix[i]='\0';
+  if(lstat(prefix,&st)==0){
+   if(!S_ISDIR(st.st_mode))return 0;
+  }else if(errno!=ENOENT)return 0;
+ }
+ return 1;
+}
+#endif
+static int ensure_dir(const char *path){
+ struct stat st;
+#ifndef __NDS__
+ if(!host_path_has_no_symlinks(path))return 0;
+#endif
+ if(mkdir(path,0777)==0)return 1;
+ if(errno!=EEXIST)return 0;
+#ifdef __NDS__
+ return stat(path,&st)==0&&S_ISDIR(st.st_mode);
+#else
+ return lstat(path,&st)==0&&S_ISDIR(st.st_mode);
+#endif
+}
+/* Reject relative traversal components before any mkdir or deletion. */
+static int safe_album_path(const char *path){
+ const char *p=path;
+ if(!p||!*p)return 0;
+ while(*p){
+  const char *begin=p;
+  while(*p&&*p!='/')p++;
+  size_t n=(size_t)(p-begin);
+  if((n==1&&begin[0]=='.')||(n==2&&begin[0]=='.'&&begin[1]=='.'))return 0;
+  if(*p)p++;
+ }
+ return 1;
+}
 static int valid_name(const char *s){
  if(!s||strlen(s)!=11||strncmp(s,"AR_",3)||strcmp(s+7,".png"))return 0;
  for(int i=3;i<7;i++)if(s[i]<'0'||s[i]>'9')return 0;
@@ -31,7 +75,7 @@ int p3dPhotoAlbumOpen(P3DPhotoAlbum *a,const char *folder){
  if(!a)return 0;
  /* Copy first, so a caller may safely reopen using its own folder field.
   * A failed mount/path must never leave the previous SD folder deletable. */
- if(!folder||(n=strlen(folder))==0||n>=sizeof(a->folder)){
+ if(!folder||(n=strlen(folder))==0||n>=sizeof(a->folder)||!safe_album_path(folder)){
    a->folder[0]=0;return 0;
  }
  memcpy(parent,folder,n+1);

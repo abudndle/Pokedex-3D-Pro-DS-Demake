@@ -28,6 +28,9 @@ jobs:
       - name: C260 native P3SV/P3RV cross-process save and torn-slot recovery (host only)
         run: sh tests/run_c260_save_process_resume.sh
 
+      - name: C314 photo album path traversal and symlink host regressions
+        run: python3 -m unittest discover -s tests -p 'test_c314_album_path_containment.py' -v
+
       - name: C268 fail-closed synthetic FAT Album roster and deletion
         run: python3 -m unittest discover -s tests -p 'test_c268_fat_album_gate.py' -v
 
