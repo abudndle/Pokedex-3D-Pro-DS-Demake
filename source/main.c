@@ -2049,7 +2049,7 @@ int main(void) {
                 /* C230: controls are visible ONLY on the fallback text Dex UI.
                  * Block combined keypad/touch input and source geometry without
                  * independently verified skeletal animation. */
-                if(state.page==P3D_PAGE_DEX &&
+                if(state.page==P3D_PAGE_DEX && !dex_detail_tab &&
                    !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|
                            KEY_UP|KEY_DOWN|KEY_SELECT|KEY_START)) &&
                    p3dPlaybackTouch(&animation_playback,&preview_animation,
