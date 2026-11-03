@@ -49,6 +49,10 @@ def valid_resume_slots(root: Path):
             crc_at = 140
             if data[76] != 1 or any(data[130:140]):
                 continue
+        elif len(data) == 96 and data[:5] == b"P3RV\x05":
+            crc_at = 92
+            if not 1 <= data[76] <= 4 or any(data[77:92]):
+                continue
         else:
             continue
         if any(data[37:44]) or any(data[63:76]):
