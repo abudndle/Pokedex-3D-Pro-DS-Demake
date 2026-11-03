@@ -71,6 +71,12 @@ int main(int argc,char **argv){
     FILE *f=fopen(argv[3],"ab");assert(f);assert(fputc(0,f)!=EOF);assert(!fclose(f));
     denied(argv[3]);
     denied("/nonexistent/source.p3vu");
+    /* Oversized file must fail without retaining any partial UV state. */
+    write_file(argv[3],vu,sizeof(vu));
+    {FILE *extra=fopen(argv[3],"ab");assert(extra);
+     for(unsigned i=0;i<P3D_VERTEX_UV_MAX_BYTES;i++)assert(fputc(0,extra)!=EOF);
+     assert(!fclose(extra));}
+    denied(argv[3]);
     p3dVerifiedGeometryPairClear(&g);
     write_file(argv[3],vu,sizeof(vu));denied(argv[3]);
     puts("C289: CRC-bound native per-vertex UV staging (synthetic): PASS");
