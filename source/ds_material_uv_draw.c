@@ -34,10 +34,22 @@ static int draw_material_triangle(void *opaque,uint16_t mesh,unsigned triangle,
         if(ctx)ctx->failed=1;
         return 0;
     }
+    /* P3VU stores normalized 4.12 UVs (0..4096), but libnds
+     * glTexCoord2t16 accepts 12.4 TEXEL coordinates, not normalized
+     * coordinates. Multiply by the actual verified texture dimensions
+     * before submitting any polygon. A whole-image U=1 becomes width*16. */
+    const P3DTextureEntry *entry=p3dTextureFind(ctx->cache->manifest,texture_id);
+    if(!entry||!entry->width||!entry->height){
+        ctx->failed=1;
+        return 0;
+    }
     P3D_MATERIAL_BEGIN(hardware_id);
-    P3D_MATERIAL_UV(a->u,a->v);P3D_MATERIAL_VERTEX(a->xyz);
-    P3D_MATERIAL_UV(b->u,b->v);P3D_MATERIAL_VERTEX(b->xyz);
-    P3D_MATERIAL_UV(c->u,c->v);P3D_MATERIAL_VERTEX(c->xyz);
+    P3D_MATERIAL_UV((int16_t)((int32_t)a->u*entry->width/256),
+                    (int16_t)((int32_t)a->v*entry->height/256));P3D_MATERIAL_VERTEX(a->xyz);
+    P3D_MATERIAL_UV((int16_t)((int32_t)b->u*entry->width/256),
+                    (int16_t)((int32_t)b->v*entry->height/256));P3D_MATERIAL_VERTEX(b->xyz);
+    P3D_MATERIAL_UV((int16_t)((int32_t)c->u*entry->width/256),
+                    (int16_t)((int32_t)c->v*entry->height/256));P3D_MATERIAL_VERTEX(c->xyz);
     P3D_MATERIAL_END();
     ctx->count++;
     return 1;
