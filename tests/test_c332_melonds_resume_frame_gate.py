@@ -30,7 +30,11 @@ class C332FrameTests(unittest.TestCase):
             verify_same_question(self.before, self.after)
 
     def test_top_only_save_status_change_ignored(self):
-        make_frame(self.after, stage=1, top_only=True)
+        data = bytearray(self.before.read_bytes())
+        for y in range(70, 105):
+            for x in range(50, 95):
+                data[100 + (y*256+x)*4] = 250
+        self.after.write_bytes(data)
         self.assertTrue(verify_same_question(self.before, self.after)
                         ['asset_free_second_question_continuity'])
 
