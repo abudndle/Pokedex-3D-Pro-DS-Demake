@@ -13,6 +13,23 @@ import urllib.request
 TASKS = {"menu":{"source":"source/menu_navigation.c","test":"tests/test_menu_navigation.c","goal":"Fix a demonstrable menu touch or navigation boundary defect, and add an assertion.","command":["sh","tests/run_menu_navigation.sh"]},"dsi":{"source":"source/dsi_features.c","test":"tests/test_dsi_feature_gating.c","goal":"Improve DS/DSi feature gating on a documented edge case, add regression; never claim DSi camera runtime without emulator evidence.","command":["sh","tests/run_dsi_feature_gating.sh"]},"layout":{"source":"source/menu_layout.c","test":"tests/test_menu_layout_smoke.c","goal":"Fix menu layout bounds edge case with regression; preserve original UI positions.","command":["sh","tests/run_menu_layout_smoke.sh"]}}
 ENDPOINT = "http://127.0.0.1:11434/api/generate"
 
+# Compare C tokens rather than raw text: comments and whitespace are not fixes.
+# Preserve quoted strings and character constants so meaningful literal changes count.
+_C_TOKEN = re.compile(r'''(?P<skip>\s+|//[^\n]*|/\*[\s\S]*?\*/)|(?P<token>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[A-Za-z_]\w*|(?:0[xX][0-9A-Fa-f]+|\d+(?:\.\d+)?)|[^\s])''')
+
+def c_tokens(source: str) -> tuple[str, ...]:
+    tokens = []
+    offset = 0
+    for match in _C_TOKEN.finditer(source):
+        if match.start() != offset:
+            raise ValueError("Unrecognized C token span")
+        offset = match.end()
+        if match.lastgroup == "token":
+            tokens.append(match.group())
+    if offset != len(source):
+        raise ValueError("Unrecognized C source suffix")
+    return tuple(tokens)
+
 def validate_and_apply(root: Path, focus: str, plan: object) -> list[str]:
     if focus not in TASKS or not isinstance(plan, dict):
         raise ValueError("Unknown focus or malformed response")
@@ -45,6 +62,8 @@ def validate_and_apply(root: Path, focus: str, plan: object) -> list[str]:
         proposed[path] = before.replace(old, new, 1)
     if set(proposed) != allowed:
         raise ValueError("Both source and regression must be modified")
+    if c_tokens(originals[task["source"]]) == c_tokens(proposed[task["source"]]):
+        raise ValueError("Comment-only or formatting-only source edit")
     # Duplicate existing assertions do not test a new behavior.
     assertion_pattern = r"(?m)^[ \t]*assert\s*\([^;\n]*\)\s*;[ \t]*(?://[^\n]*)?$"
     previous_asserts = set(re.findall(assertion_pattern, originals[task["test"]]))
