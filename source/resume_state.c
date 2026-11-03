@@ -101,6 +101,17 @@ int p3dResumeStateValid(const P3DResumeState *s){
         s->type_defend2_plus_one<=17&&s->favorites_selected<P3D_FAVORITES_MAX&&
         s->quiz_active<=1 && valid_quiz(s);
 }
+/* P3RC wins if it already contains a completed round newer than the
+ * live review's recorded-round generation. P3SV may lag behind a review
+ * checkpoint, but can never roll the counters backwards on restore. */
+int p3dResumeCanRestoreQuiz(const P3DResumeState *s,
+                            uint32_t progress_correct,uint32_t progress_answers,
+                            uint32_t recorded_rounds){
+ return s && s->quiz_active && p3dResumeStateValid(s) &&
+        s->challenge_recorded_rounds==recorded_rounds &&
+        s->challenge_answer_total>=progress_answers &&
+        s->challenge_correct_total>=progress_correct;
+}
 static int file_path(char path[256],const char *base,int slot){
     int n;
     if(!base||!*base)return 0;
@@ -140,6 +151,7 @@ static unsigned pack(unsigned char b[P3RV_V4_SIZE],const P3DResumeState *s,uint3
         w32(b+114,q->seed);
         w32(b+118,s->challenge_answer_total);
         w32(b+122,s->challenge_correct_total);
+        w32(b+126,s->challenge_recorded_rounds);
         w32(b+140,checksum(b,140));
     }else w32(b+76,checksum(b,76));
     return size;
@@ -161,7 +173,7 @@ static int unpack(const unsigned char *b,unsigned size,
         for(unsigned i=63;i<76;i++)if(b[i]!=0)return 0;
         if(version==4){
           if(b[76]!=1)return 0; /* v4 must actually contain a quiz */
-          for(unsigned i=126;i<140;i++)if(b[i]!=0)return 0;
+          for(unsigned i=130;i<140;i++)if(b[i]!=0)return 0;
         }
         crc_offset=version==4?140:76;
     }else return 0;
@@ -201,6 +213,7 @@ static int unpack(const unsigned char *b,unsigned size,
         q->seed=r32(b+114);
         s->challenge_answer_total=r32(b+118);
         s->challenge_correct_total=r32(b+122);
+        s->challenge_recorded_rounds=r32(b+126);
     }
     return p3dResumeStateValid(s);
 }
