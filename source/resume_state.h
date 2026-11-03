@@ -1,6 +1,7 @@
 #ifndef P3D_RESUME_STATE_H
 #define P3D_RESUME_STATE_H
 #include "feature_menu.h"
+#include "challenge.h"
 #include <stdint.h>
 /* Separate dual-slot P3RV, preserves legacy P3SV/P3RC formats unchanged. */
 typedef struct {
@@ -16,6 +17,11 @@ typedef struct {
     uint8_t search_letter,challenge_mode;
     uint8_t type_attack,type_defend,type_defend2_plus_one;
     uint8_t favorites_selected;
+    /* P3RV v4: optional exact active Challenge checkpoint. Inactive saves
+     * retain the compact v3 file on disk for legacy interoperability. */
+    uint8_t quiz_active;
+    P3DChallenge quiz;
+    uint32_t challenge_correct_total, challenge_answer_total;
 } P3DResumeState;
 int p3dResumeStateValid(const P3DResumeState *state);
 int p3dResumeLoad(const char *base,P3DResumeState *out);
