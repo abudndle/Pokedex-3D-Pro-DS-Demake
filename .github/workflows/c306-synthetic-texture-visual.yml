@@ -1,0 +1,73 @@
+name: C306 real synthetic native textured preview visual gate
+on:
+  push:
+    paths:
+      - 'source/**'
+      - 'tests/c306_*'
+      - 'tests/test_c306_*'
+      - 'tests/run_c306_*'
+      - 'Makefile.native'
+      - '.github/workflows/c306-synthetic-texture-visual.yml'
+  pull_request:
+    paths:
+      - 'source/**'
+      - 'tests/c306_*'
+      - 'tests/test_c306_*'
+      - 'tests/run_c306_*'
+      - 'Makefile.native'
+      - '.github/workflows/c306-synthetic-texture-visual.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: c306-texture-visual-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-synthetic-texture-visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test deterministic, public-safe texture and frame fixtures
+        run: python3 -m unittest discover -s tests -p 'test_c306_synthetic_texture_visual.py' -v
+      - name: Stage two fully synthetic red/blue source-indexed species outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage_root="$(mktemp -d)"
+          echo "C306_STAGE_ROOT=$stage_root" >> "$GITHUB_ENV"
+          python3 tests/c306_synthetic_texture_stage.py "$stage_root"
+          test -s "$stage_root/staged/geometry/p002.p3vu"
+          test -s "$stage_root/staged/materials/p003.p3sw"
+          test -s "$stage_root/staged/textures/p002/t007.p3px"
+          test -s "$stage_root/staged/textures/p003/t008.p3px"
+      - name: Compile a genuine native BlocksDS ROM containing only synthetic assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/work" -v "$C306_STAGE_ROOT/staged:/nitro:ro" \
+            -w /work skylyrac/blocksds:slim-latest \
+            make -f Makefile.native NITROFSDIR=/nitro \
+              EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS rom
+          test -s Pokedex3D_DS_BlocksDS.nds
+          python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
+          python3 tools/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
+      - name: Install independent emulator and virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y desmume xvfb x11-apps x11-utils xdotool
+      - name: Verify native red/blue texture frame difference in real DeSmuME
+        shell: bash
+        run: |
+          xvfb-run -a -s '-screen 0 1024x768x24' timeout 90s \
+            bash tests/run_c306_synthetic_texture_emulator.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds"
+      - name: Publish only public-safe PNGs of authored synthetic content
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c306-synthetic-native-material-png-only
+          path: c306-*.png
+          retention-days: 3
+          if-no-files-found: ignore
