@@ -30,7 +30,7 @@ int p3dDsTextureUpload(const P3DTexturePixels *pixels,int *texture_id){
  glBindTexture(0,id);
  /* C107: GL_RGB forces bit15 opaque, silently erasing transparency\n  * from original-derived P3PX v2 A1RGB555 assets. Use GL_RGBA for v2\n  * to preserve each source alpha bit. Legacy P3PX v1 is opaque RGB555\n  * and intentionally retains the libnds GL_RGB conversion. */
  if(!glTexImage2D(0,0,pixels->version==2?GL_RGBA:GL_RGB,sx,sy,0,
-                  TEXGEN_TEXCOORD,(const void *)pixels->pixels)){
+                  TEXGEN_OFF,(const void *)pixels->pixels)){
     glDeleteTextures(1,&id);
     glBindTexture(0,0);
     return 0;

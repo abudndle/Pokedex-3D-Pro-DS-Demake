@@ -339,6 +339,19 @@ static void reload_preview(void){
                             native_material_ready=p3dDsMaterialTextureCacheInit(
                                 &native_texture_cache,&native_textures,
                                 native_texture_resolve,NULL);
+                            /* C312: copy the entire validated material set
+                             * during model loading rather than while GX
+                             * rasterizes its first textured model frame. */
+                            if(native_material_ready &&
+                               !p3dDsMaterialUvPrepare(
+                                   &source_geometry_pair,&source_geometry_uv,
+                                   &native_source_materials,&native_materials,
+                                   &native_textures,&native_shader_caps,
+                                   &native_texture_cache,&preview_pixels)){
+                                p3dDsMaterialTextureCacheDestroy(
+                                    &native_texture_cache);
+                                native_material_ready=0;
+                            }
                         }
                     }
                 }
@@ -562,6 +575,8 @@ static void render_model(void){
                 &source_geometry_pair,&source_geometry_uv,
                 &native_source_materials,&native_materials,&native_textures,
                 &native_shader_caps,&native_texture_cache,&preview_pixels,&drawn);
+            glDisable(GL_TEXTURE_2D);
+            glBindTexture(0,0);
             if(!native_draw_ok){
                 /* C305: a failed upload invalidates the entire texture cache.
                  * Disable repeated attempts until the next model reload,
@@ -571,11 +586,6 @@ static void render_model(void){
             }
         }
         if(!native_draw_ok){
-            /* The fallback must explicitly reset texture state before its
-             * untextured vertices, but a successful native draw keeps its
-             * texture state intact through the GX frame flush. */
-            glDisable(GL_TEXTURE_2D);
-            glBindTexture(0,0);
             drawn=0;
             glColor3b(192,224,232);
             native_draw_ok=source_geometry_uv_ready
@@ -592,27 +602,7 @@ static void render_model(void){
             source_geometry_ready=0;
             if(previewStreamHasModel())previewStreamDraw();
         }
-#ifdef P3D_EMULATOR_DIAGNOSTICS
-        /* Read the real DS texture-attribute command and display-enable bit
-         * *before* flushing/unbinding; no synthetic pass is inferred. */
-        unsigned long c306_tex_format=(unsigned long)GFX_TEX_FORMAT;
-        int c306_tex_enabled=(GFX_CONTROL&GL_TEXTURE_2D)!=0;
-#endif
         glFlush(0);
-        glDisable(GL_TEXTURE_2D);
-        glBindTexture(0,0);
-#ifdef P3D_EMULATOR_DIAGNOSTICS
-        /* C306: emulator-only indicator of whether native source material
-         * passed all gates and actually reached a textured draw. Never
-         * enable this status overlay in normal gameplay/release builds. */
-        consoleSelect(&bottom_console);
-        printf("\x1b[19;0HC306 material:%d UV:%d cache:%u draw:%lu  ",
-               native_material_ready,source_geometry_uv_ready,
-               native_texture_cache.count,(unsigned long)drawn);
-        printf("\x1b[20;0HTEX:%08lx EN:%d ID:%d   ",c306_tex_format,
-               c306_tex_enabled,native_texture_cache.count
-                 ?native_texture_cache.texture_ids[0]:0);
-#endif
         return;
     }
     if(preview_gl_textures.ready){
@@ -870,7 +860,7 @@ static void render(void) {
             else printf("Effect: normal (1x)\n");
             printf("Arrows: change types\n");
             printf("X: second type ON/OFF\n");
-            printf("Y: open Challenge\n");
+            printf("A: Pokemon Search  Y: Challenge\n");
             printf("L/R: second type\n");
         } else if(state.page==P3D_PAGE_SETTINGS){
             printf("Automatic model rotation: %s\n",state.rotate?"ON":"OFF");
@@ -1074,6 +1064,7 @@ static void render(void) {
             else if(effect==40)printf("\x1b[17;1HEffect: 4x");
             else printf("\x1b[17;1HEffect: 1x");
             printf("\x1b[20;1HX: 2nd type  L/R: change");
+            printf("\x1b[22;1HA: Search  Y: Challenge");
         }else if(state.page==P3D_PAGE_RECORDS){
             printf("\x1b[9;1HRecords: %s",records_tab==0?"REGIONS":records_tab==1?"RECENT":"QUIZZES");
             if(records_tab==0){
@@ -1758,6 +1749,19 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_TYPES){
+                /* Source-backed original text Search is reachable from the
+                 * Type Chart without losing the selected national species.
+                 * Clear stale region, scope and description filters so the
+                 * destination never displays a different old query result.
+                 * Consume the key to prevent same-frame search actions. */
+                if((down&KEY_A) && !(down&(KEY_Y|KEY_X|KEY_TOUCH)) &&
+                   p3dTypeChartOpenSearch(&state,dex_index)){
+                    search_region=P3D_DEX_SCOPE_ALL;
+                    search_scope=P3D_DEX_SCOPE_ALL;
+                    search_field=P3D_DEX_SEARCH_NAME;
+                    down=0;
+                    redraw=1;
+                }
                 if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
                     state.page=P3D_PAGE_CHALLENGE;
                     p3dChallengeReset(&quiz);

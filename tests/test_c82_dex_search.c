@@ -3,6 +3,7 @@
 #include "records.h"
 #include "feature_menu.h"
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 int main(int argc,char **argv){
@@ -19,6 +20,17 @@ int main(int argc,char **argv){
     assert(p3dDexPrefixMatches("Pikachu","pIk"));
     assert(p3dDexContains("This creature glows at night","GLOWS"));
     assert(p3dDexFindPrefix("pik",0,1)==24);
+    /* C309: restoring corrupt or arbitrary signed cursors cannot overflow,
+     * and the search still wraps to the actual original-text species. */
+    assert(p3dDexFindPrefix("pik",INT_MAX,1)==24);
+    assert(p3dDexFindPrefix("pik",INT_MIN,1)==24);
+    assert(p3dDexFindPrefix("pik",INT_MAX,-1)==24);
+    assert(p3dDexFindPrefix("pik",INT_MIN,-1)==24);
+    assert(p3dDexFindPrefix("PIK",-1,1)==24);
+    assert(p3dDexFindPrefix("PIK",649*5+24,-1)==24);
+    assert(p3dDexFindPrefix("PIK",0,0)==-1);
+    assert(p3dDexFindPrefix(NULL,INT_MIN,1)==-1);
+    assert(p3dDexFindPrefix("UNAVAILABLE",INT_MAX,1)==-1);
     assert(p3dDexFindFiltered("seed",150,1,P3D_DEX_SEARCH_DESCRIPTION,1)==0);
     assert(p3dDexFindFiltered("pik",20,1,P3D_DEX_SEARCH_NAME,1)==24);
     assert(p3dDexFindFiltered("pik",20,1,P3D_DEX_SEARCH_NAME,2)==-1);

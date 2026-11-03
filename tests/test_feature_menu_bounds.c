@@ -86,5 +86,29 @@ int main(void) {
     assert(p3dTypeEffectDual(1,4,-2)==-1);
     assert(p3dTypeEffectDual(-1,4,2)==-1);
     assert(p3dTypeEffectDual(1,4,17)==-1);
+    /* C311: Type Chart's original Pokémon Search path must reject bad
+     * source pages and IDs without damaging a restored saved selection. */
+    p3dMenuReset(&state);
+    state.selected_dex=42;
+    strcpy(state.search_query,"STALE");
+    assert(!p3dTypeChartOpenSearch(&state,25));
+    assert(state.page==P3D_PAGE_HOME && state.selected_dex==42);
+    state.page=P3D_PAGE_TYPES;
+    assert(!p3dTypeChartOpenSearch(NULL,25));
+    assert(!p3dTypeChartOpenSearch(&state,-1));
+    assert(!p3dTypeChartOpenSearch(&state,649));
+    assert(state.page==P3D_PAGE_TYPES && state.selected_dex==42);
+    assert(!strcmp(state.search_query,"STALE"));
+    assert(p3dTypeChartOpenSearch(&state,648));
+    assert(state.page==P3D_PAGE_SEARCH && state.selected_dex==648);
+    assert(state.search_query[0]==0 && state.search_number_mode==0);
+    assert(!p3dTypeChartOpenSearch(&state,100));
+    state.page=P3D_PAGE_TYPES;
+    strcpy(state.search_query,"OLD");
+    state.search_number_mode=1;
+    state.cursor=7;
+    assert(p3dTypeChartOpenSearch(&state,0));
+    assert(state.selected_dex==0 && state.cursor==0 &&
+           !state.search_number_mode && !state.search_query[0]);
     return 0;
 }
