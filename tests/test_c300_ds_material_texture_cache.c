@@ -31,6 +31,52 @@ int main(void){
     p3dDsMaterialTextureCacheDestroy(&cache);
     assert(cache.count==0&&!cache.ready);
     free(scratch);
+    /* C303: distinct textures consume the VRAM bank once each; duplicate
+     * ranges do not count as duplicate uploads. No proprietary fixtures. */
+    {
+        P3DMaterialMap materials={0};
+        P3DTextureManifest textures={0};
+        materials.ready=1;materials.count=2;
+        materials.ranges[0].first_triangle=0;
+        materials.ranges[0].triangle_count=1;
+        materials.ranges[0].texture_id=7;
+        materials.ranges[1].first_triangle=1;
+        materials.ranges[1].triangle_count=1;
+        materials.ranges[1].texture_id=7;
+        textures.ready=1;textures.count=1;
+        textures.entries[0].id=7;
+        textures.entries[0].width=256;
+        textures.entries[0].height=256;
+        textures.entries[0].format=1;
+        assert(p3dDsMaterialTextureBudgetValid(&materials,&textures,2));
+        assert(!p3dDsMaterialTextureBudgetValid(&materials,&textures,3));
+        /* One extra 8x8 ID exceeds the 128 KiB budget. */
+        textures.count=2;textures.entries[1].id=8;
+        textures.entries[1].width=8;
+        textures.entries[1].height=8;
+        textures.entries[1].format=1;
+        materials.ranges[1].texture_id=8;
+        assert(!p3dDsMaterialTextureBudgetValid(&materials,&textures,2));
+        textures.entries[0].width=128;
+        assert(p3dDsMaterialTextureBudgetValid(&materials,&textures,2));
+        textures.entries[0].width=8;
+        /* Nine distinct textures exceed the eight-allocation limit. */
+        materials.count=9;textures.count=9;
+        for(unsigned i=0;i<9;i++){
+            materials.ranges[i].first_triangle=(uint16_t)i;
+            materials.ranges[i].triangle_count=1;
+            materials.ranges[i].texture_id=(uint16_t)(i+1);
+            textures.entries[i].id=(uint16_t)(i+1);
+            textures.entries[i].width=8;
+            textures.entries[i].height=8;
+            textures.entries[i].format=1;
+        }
+        assert(!p3dDsMaterialTextureBudgetValid(&materials,&textures,9));
+        materials.count=8;textures.count=8;
+        assert(p3dDsMaterialTextureBudgetValid(&materials,&textures,8));
+        textures.entries[0].format=2;
+        assert(!p3dDsMaterialTextureBudgetValid(&materials,&textures,8));
+    }
     remove("texture.p3px");
     return 0;
 }
