@@ -23,6 +23,8 @@ typedef struct {
     P3DChallenge quiz;
     uint32_t challenge_correct_total, challenge_answer_total;
     uint32_t challenge_recorded_rounds; /* P3RC rounds at checkpoint time */
+    /* C333: optional P3RV v5 detail-tab state (only live Pokédex page). */
+    uint8_t dex_detail_tab;
 } P3DResumeState;
 int p3dResumeStateValid(const P3DResumeState *state);
 /* A previously completed round must never be resurrected by a stale
