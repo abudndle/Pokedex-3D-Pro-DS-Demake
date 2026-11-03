@@ -104,6 +104,26 @@ class AlbumPathTests(unittest.TestCase):
             self.assertEqual(self.lib.p3dPhotoAlbumDelete(ctypes.byref(album), b"AR_0001.png"), 0)
             self.assertEqual(photo.read_bytes(), b"protected")
 
+    def test_descriptor_anchored_delete_regular_file_and_reject_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            album = Album()
+            folder = root / "Photos"
+            self.assertEqual(self.open_album(album, folder), 1)
+            valid = folder / "AR_0001.png"
+            valid.write_bytes(b"synthetic")
+            outside = root / "protected"
+            outside.write_bytes(b"keep")
+            (folder / "AR_0002.png").symlink_to(outside)
+            self.assertEqual(self.lib.p3dPhotoAlbumDelete(
+                ctypes.byref(album), b"AR_0002.png"), 0)
+            self.assertEqual(outside.read_bytes(), b"keep")
+            self.assertEqual(self.lib.p3dPhotoAlbumDelete(
+                ctypes.byref(album), b"AR_0001.png"), 1)
+            self.assertFalse(valid.exists())
+            self.assertEqual(self.lib.p3dPhotoAlbumDelete(
+                ctypes.byref(album), b"AR_0001.png"), 0)
+
     def test_symlinked_album_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
