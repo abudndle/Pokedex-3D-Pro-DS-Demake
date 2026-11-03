@@ -49,6 +49,15 @@ int p3dChallengeBegin(P3DChallenge *q,int mode,uint32_t seed,int cumulative_answ
  q->stage=P3D_CHALLENGE_QUESTION;q->seed=seed?seed:0xBA5EBA11u;
  make_question(q);return 1;
 }
+/* Advance a caller-owned session seed only after a valid start.
+ * The initial question consumes RNG draws and leaves a nonzero state;
+ * a replay then begins after those draws instead of resetting the same
+ * fixed seed on every visit to the same Challenge mode. */
+int p3dChallengeBeginSession(P3DChallenge *q,int mode,uint32_t *next_seed,int cumulative_answers){
+ if(!next_seed||!p3dChallengeBegin(q,mode,*next_seed,cumulative_answers))return 0;
+ *next_seed=q->seed;
+ return 1;
+}
 int p3dChallengeAnswer(P3DChallenge *q,int choice){
  int success;
  if(!q||q->stage!=P3D_CHALLENGE_QUESTION||choice<0||

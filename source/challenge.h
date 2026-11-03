@@ -21,6 +21,10 @@ int p3dChallengeCluePages(const char *text);
 void p3dChallengeClue(const char *text,int page,char line1[29],char line2[29]);
 void p3dChallengeReset(P3DChallenge *quiz);
 int p3dChallengeBegin(P3DChallenge *quiz,int mode,uint32_t seed,int cumulative_answers);
+/* Start a new round from the next session seed. A successful start advances
+ * the caller seed so replaying the same mode does not reset the questions.
+ * Invalid requests leave the seed unchanged. */
+int p3dChallengeBeginSession(P3DChallenge *quiz,int mode,uint32_t *next_seed,int cumulative_answers);
 /* Answer once and retain the source-backed question for review.
  * Returns correct(1), incorrect(0), or rejected(-1). */
 int p3dChallengeAnswer(P3DChallenge *quiz,int choice);
