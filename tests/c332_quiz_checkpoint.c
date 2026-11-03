@@ -29,12 +29,14 @@ static void start(P3DResumeState *state){
  assert(p3dChallengeBegin(&state->quiz,1,0x12345678u,0));
  state->challenge_answer_total=8;
  state->challenge_correct_total=5;
+ state->challenge_recorded_rounds=3;
 }
 static void verify_quiz(const P3DResumeState *state,int review){
  P3DChallenge original;
  assert(p3dChallengeBegin(&original,1,0x12345678u,0));
  if(review)assert(p3dChallengeAnswer(&original,original.correct)==1);
  assert(state->quiz_active==1 && state->page==P3D_PAGE_CHALLENGE);
+ assert(state->challenge_recorded_rounds==3);
  assert(memcmp(&state->quiz,&original,sizeof original)==0);
  assert(state->quiz.stage==(review?P3D_CHALLENGE_REVIEW:P3D_CHALLENGE_QUESTION));
  assert(state->challenge_answer_total==(unsigned)(review?9:8));
@@ -56,6 +58,10 @@ int main(int argc,char **argv){
   assert(!memcmp(bytes,"P3RV",4) && bytes[4]==4);
  }else if(!strcmp(argv[1],"check-first")){
   assert(p3dResumeLoad(argv[2],&loaded));verify_quiz(&loaded,0);
+  assert(p3dResumeCanRestoreQuiz(&loaded,5,8,3));
+  assert(!p3dResumeCanRestoreQuiz(&loaded,5,8,4));
+  assert(!p3dResumeCanRestoreQuiz(&loaded,6,8,3));
+  assert(!p3dResumeCanRestoreQuiz(&loaded,5,9,3));
   assert(p3dResumeApply(&loaded,p3dCapabilities(0,1,0),
             &(int){0},&(P3DMenu){0},&(int){0}));
  }else if(!strcmp(argv[1],"review")){
@@ -65,6 +71,9 @@ int main(int argc,char **argv){
   assert(p3dResumeStore(argv[2],&state));
  }else if(!strcmp(argv[1],"check-review")){
   assert(p3dResumeLoad(argv[2],&loaded));verify_quiz(&loaded,1);
+  assert(p3dResumeCanRestoreQuiz(&loaded,5,8,3));
+  /* A prior completed P3RC write means this review was already finalized. */
+  assert(!p3dResumeCanRestoreQuiz(&loaded,5,8,4));
   orig=loaded;
   assert(p3dChallengeAnswer(&loaded.quiz,loaded.quiz.correct)==-1);
   assert(memcmp(&loaded,&orig,sizeof loaded)==0);
@@ -147,6 +156,7 @@ int main(int argc,char **argv){
   assert(p3dResumeLoad(argv[2],&state));
   assert(state.quiz_active && state.quiz.question==9 &&
          state.quiz.stage==P3D_CHALLENGE_REVIEW && state.quiz.score==10);
+  assert(!p3dResumeCanRestoreQuiz(&state,5,8,4));
   assert(state.challenge_answer_total==18 && state.challenge_correct_total==15);
   orig=state;
   assert(p3dChallengeAnswer(&state.quiz,state.quiz.correct)==-1);
