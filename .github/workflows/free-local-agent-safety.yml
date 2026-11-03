@@ -1,0 +1,34 @@
+name: Free local coding-agent safety regressions
+
+on:
+  push:
+    paths:
+      - scripts/local_agent_propose.py
+      - tests/test_local_agent_propose.py
+      - .github/workflows/local-linux-agent.yml
+      - .github/workflows/guarded-local-agent-merge.yml
+      - .github/workflows/free-local-agent-safety.yml
+  pull_request:
+    paths:
+      - scripts/local_agent_propose.py
+      - tests/test_local_agent_propose.py
+      - .github/workflows/local-linux-agent.yml
+      - .github/workflows/guarded-local-agent-merge.yml
+      - .github/workflows/free-local-agent-safety.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  safety-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile the free agent controller and independently verify rejection gates
+        run: |
+          python3 -m py_compile scripts/local_agent_propose.py tests/test_local_agent_propose.py
+          python3 tests/test_local_agent_propose.py
