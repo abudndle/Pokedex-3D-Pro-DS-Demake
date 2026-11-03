@@ -137,17 +137,26 @@ int p3dVerifiedVertexUvGetPaired(const P3DVerifiedVertexUv *uv,
        uv->mesh_count>P3D_VERTEX_MAX_MESHES||
        mesh_index>=geometry->mesh_count||
        uv->size<UV_HEADER+(size_t)uv->mesh_count*UV_ROW)return 0;
-    const uint8_t *row=uv->bytes+UV_HEADER+(size_t)mesh_index*UV_ROW;
-    /* Rebind the live mesh to the exact packed vertex slice. A copied or
-     * redirected pointer must not borrow otherwise valid staged UVs. */
-    uint32_t first=rd32(row+4);
-    unsigned vertices=rd16(row+2);
-    if(first>uv->vertex_count||vertices>uv->vertex_count-first||
-       first>P3D_VERTEX_MAX_VERTICES||
-       vertices>P3D_VERTEX_MAX_VERTICES-first||
-       rd16(row)!=geometry->meshes[mesh_index].mesh_id||
-       vertices!=geometry->meshes[mesh_index].vertex_count||
-       geometry->meshes[mesh_index].xyz!=geometry->xyz+(size_t)first*3u)
+    /* Preflight the complete mesh table, not only the requested row. A
+     * partially stale model must never expose UVs for one apparently-good
+     * mesh while another mesh has been rebound or truncated. */
+    unsigned cursor=0;
+    for(unsigned i=0;i<uv->mesh_count;i++){
+        const uint8_t *row=uv->bytes+UV_HEADER+(size_t)i*UV_ROW;
+        unsigned vertices=rd16(row+2);
+        uint32_t first=rd32(row+4);
+        if(first!=cursor||vertices<3||
+           first>uv->vertex_count||vertices>uv->vertex_count-first||
+           vertices>P3D_VERTEX_MAX_VERTICES-cursor||
+           rd16(row)!=geometry->meshes[i].mesh_id||
+           vertices!=geometry->meshes[i].vertex_count||
+           geometry->meshes[i].xyz!=geometry->xyz+(size_t)cursor*3u)
+            return 0;
+        cursor+=vertices;
+    }
+    if(cursor!=uv->vertex_count||
+       uv->size!=UV_HEADER+(size_t)uv->mesh_count*UV_ROW+
+                    (size_t)cursor*4u)
         return 0;
     return p3dVerifiedVertexUvGet(uv,mesh_index,vertex_index,u,v);
 }
