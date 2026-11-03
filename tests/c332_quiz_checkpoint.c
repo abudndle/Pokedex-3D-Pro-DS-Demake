@@ -171,6 +171,32 @@ int main(int argc,char **argv){
   assert(fread(record,1,80,f)==80 && fgetc(f)==EOF && fclose(f)==0);
   assert(record[4]==3);
  }
+ else if(!strcmp(argv[1],"text-question")){
+  start(&state);
+  assert(p3dChallengeBegin(&state.quiz,P3D_CHALLENGE_TEXT_MODE,0x87654321u,50));
+  state.challenge_mode=P3D_CHALLENGE_TEXT_MODE;
+  state.challenge_answer_total=50;state.challenge_correct_total=20;
+  state.quiz.clue_page=2;state.quiz.selected=3;
+  assert(p3dResumeStore(argv[2],&state));
+ }else if(!strcmp(argv[1],"text-answer")){
+  assert(p3dResumeLoad(argv[2],&state));
+  assert(state.quiz_active && state.quiz.mode==P3D_CHALLENGE_TEXT_MODE &&
+         state.quiz.clue_page==2 && state.quiz.selected==3);
+  assert(state.challenge_answer_total==50 && state.challenge_correct_total==20);
+  int wrong=(state.quiz.correct+1)%P3D_CHALLENGE_OPTIONS;
+  assert(p3dChallengeAnswer(&state.quiz,wrong)==0);
+  state.challenge_answer_total++;
+  assert(p3dResumeStore(argv[2],&state));
+ }else if(!strcmp(argv[1],"text-review")){
+  assert(p3dResumeLoad(argv[2],&state));
+  assert(state.quiz.stage==P3D_CHALLENGE_REVIEW && state.quiz.score==0);
+  assert(state.quiz.selected!=state.quiz.correct && state.quiz.clue_page==2);
+  assert(state.challenge_answer_total==51 && state.challenge_correct_total==20);
+  assert(p3dChallengeAnswer(&state.quiz,state.quiz.correct)==-1);
+  assert(p3dChallengeContinue(&state.quiz));
+  assert(state.quiz.stage==P3D_CHALLENGE_QUESTION &&
+         state.quiz.question==1 && state.quiz.clue_page==0);
+ }
  else assert(!"unknown C332 test mode");
  puts("C332 exact active Challenge P3RV v4 cross-process checkpoint: PASS");
  return 0;
