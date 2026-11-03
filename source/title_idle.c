@@ -48,7 +48,9 @@ unsigned p3dTitleIdleChooseSpecies(P3DTitleIdle *idle){
 }
 int p3dTitleIdleSceneDue(P3DTitleIdle *idle){
     if(!idle||!idle->active||!idle->has_species)return 0;
-    /* Compare before increment: a saturated or restored counter must not\n     * wrap to zero and postpone the next scene by another full interval. */\n    if(idle->scene_ticks>=P3D_TITLE_SCENE_TICKS-1u){
+    /* Compare before increment: a saturated or restored counter must not
+     * wrap to zero and postpone the next scene by another full interval. */
+    if(idle->scene_ticks>=P3D_TITLE_SCENE_TICKS-1u){
         idle->scene_ticks=0;
         return 1;
     }
