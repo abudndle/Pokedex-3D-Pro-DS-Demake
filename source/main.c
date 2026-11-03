@@ -339,6 +339,19 @@ static void reload_preview(void){
                             native_material_ready=p3dDsMaterialTextureCacheInit(
                                 &native_texture_cache,&native_textures,
                                 native_texture_resolve,NULL);
+                            /* C312: copy the entire validated material set
+                             * during model loading rather than while GX
+                             * rasterizes its first textured model frame. */
+                            if(native_material_ready &&
+                               !p3dDsMaterialUvPrepare(
+                                   &source_geometry_pair,&source_geometry_uv,
+                                   &native_source_materials,&native_materials,
+                                   &native_textures,&native_shader_caps,
+                                   &native_texture_cache,&preview_pixels)){
+                                p3dDsMaterialTextureCacheDestroy(
+                                    &native_texture_cache);
+                                native_material_ready=0;
+                            }
                         }
                     }
                 }
