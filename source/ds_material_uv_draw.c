@@ -64,13 +64,20 @@ int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
      * A missing private asset therefore fails before any partial model draw. */
     if(!p3dDsMaterialTextureBudgetValid(materials,textures,
           (unsigned)geometry->triangles))return 0;
+    /* Invalid source geometry, UVs or sampler roles must fail without even
+     * allocating texture VRAM. The source walk is side-effect free here. */
+    if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
+        shader_caps,preflight_triangle,NULL))return 0;
     for(unsigned i=0;i<materials->count;i++){
         int hardware_id=0;
         if(!p3dDsMaterialTextureCacheGet(cache,
-             materials->ranges[i].texture_id,scratch,&hardware_id))return 0;
+             materials->ranges[i].texture_id,scratch,&hardware_id)){
+            /* Roll back previous successful uploads if a later private file
+             * is missing/corrupt or VRAM upload fails. Never leak the set. */
+            p3dDsMaterialTextureCacheDestroy(cache);
+            return 0;
+        }
     }
-    if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
-        shader_caps,preflight_triangle,NULL))return 0;
     ctx.cache=cache;ctx.scratch=scratch;ctx.count=0;ctx.failed=0;
     if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
        shader_caps,draw_material_triangle,&ctx)||ctx.failed)return 0;
