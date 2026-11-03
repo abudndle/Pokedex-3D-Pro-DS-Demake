@@ -47,6 +47,7 @@
 #include "move_text_view.h"
 #include "dex_text.h"
 #include "species_details.h"
+#include "nitro_source_bridge.h"
 #include "dex_search.h"
 #include "search_touch.h"
 #include "photo_album.h"
@@ -281,6 +282,9 @@ static void reload_preview(void){
             dex_details_ready=p3dSpeciesDetailsLoad(
                 details_path,dex_index,selected_form,&dex_details);
     }
+    /* Source-locked Nitro Engine/DSMA model is released before switching
+     * form/species; never carry an old Pokémon into the new entry. */
+    p3dNitroBridgeUnload();
     /* Free all prior per-material VRAM allocations on species/form changes. */
     p3dPreviewTextureSetRelease(&preview_gl_textures);
     p3dDsMaterialTextureCacheDestroy(&native_texture_cache);
@@ -321,6 +325,13 @@ static void reload_preview(void){
         }
     }
     preview_found=legacy_preview_found||source_geometry_ready;
+    /* Reuse verified original P3VX/P3IX, not procedural geometry.
+     * A private P3NE sidecar binds the Nitro Engine display-list/DSMA
+     * conversion to these exact pair bytes; absence is harmless. */
+    if(source_geometry_ready)
+        (void)p3dNitroBridgeLoad((uint16_t)resource,
+            source_geometry_pair.vx,source_geometry_pair.vx_size,
+            source_geometry_pair.ix,source_geometry_pair.ix_size);
     /* Native material indices must cover exact P3VX/P3IX source triangles,
      * not the independently reduced DS3M order. The conservative source
      * draw gate currently supports at most 600 triangles. */
@@ -580,6 +591,13 @@ static void render_model(void){
     }
     glPolyFmt(POLY_ALPHA(31)|POLY_CULL_NONE);
     if(source_geometry_ready){
+        /* Optional Nitro Engine/DSMA uses the converted ORIGINAL source
+         * geometry. Keep verified source-material texturing ahead of a
+         * converted untextured display list, and retain old GL fallback. */
+        if(!native_material_ready && p3dNitroBridgeDraw()){
+            glFlush(0);
+            return;
+        }
         /* Source indices and 4.12 XYZ were validated as one private pair.
          * No source sampler, skin weights or animation role is inferred. */
         uint32_t drawn=0;
@@ -1281,6 +1299,9 @@ int main(void) {
     P3DCapabilities caps=p3dCapabilities(isDSiMode()?1:0,0,0);
     videoSetMode(MODE_0_3D);
     glInit();
+    /* Only Nitro Engine model + DSMA animation subsystems; NE_Init3D()
+     * would reset the existing top 3D/bottom text screen layout. */
+    (void)p3dNitroBridgeInit();
     glEnable(GL_ANTIALIAS);
     glEnable(GL_BLEND);
     glClearDepth(GL_MAX_DEPTH);
@@ -1445,6 +1466,7 @@ int main(void) {
     if(last_checkpoint_valid || !show_original_title())render();
     while(1) {
         swiWaitForVBlank();
+        p3dNitroBridgeFrame();
         challenge_seed+=0x9E3779B9u; /* Vary each game session's quiz sequence. */
         scanKeys();
         unsigned down=keysDown();
