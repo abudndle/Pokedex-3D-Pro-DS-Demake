@@ -18,6 +18,10 @@ jobs:
           test -s README.md
           test -s docs/PROJECT_HANDOFF.md
           test -s docs/MODEL_RESTORATION_STATUS.md
+      - name: C318 release evidence positive and negative regressions
+        run: |
+          python3 tests/test_c318_release_evidence.py
+          python3 tools/check_feature_parity.py
       - name: Check Python scripts if present
         run: |
           python3 - <<'PY'
