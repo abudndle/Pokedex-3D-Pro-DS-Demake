@@ -4,8 +4,36 @@ import argparse
 import json
 import pathlib
 import sys
+import re
 VALID={"missing","partial","implemented_baseline","verified_complete"}
 REQUIRED_FEATURE_IDS=['animations','challenges','cries_music_speech','dsi_camera_ar','dual_screen_menus','favorites','move_dex','nds_melonds_hardware_validation','original_localizations','original_pokemon_models','original_text_search_filters','original_texture_materials','photo_album','pokedex_entries_forms','pokemon_stats_evolutions_learnsets','progress_saves','records','settings_custom_art','touch_and_buttons','type_chart']
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
+def has_release_evidence(row):
+    """Release evidence must be concrete, not a boolean or placeholder label.
+
+    Public CI URLs may prove source tests, but private original-game assets and
+    hardware captures must stay outside this repository. Only evidence metadata
+    and independently reviewable references belong in this manifest.
+    """
+    evidence = row.get("release_evidence")
+    if not isinstance(evidence, list) or len(evidence) < 3:
+        return False
+    kinds = set()
+    for item in evidence:
+        if not isinstance(item, dict):
+            return False
+        kind, reference, digest = (item.get("kind"), item.get("reference"),
+                                   item.get("sha256"))
+        if kind not in ("original_source", "emulator", "hardware") or kind in kinds:
+            return False
+        if not isinstance(reference, str) or len(reference.strip()) < 12:
+            return False
+        if not isinstance(digest, str) or not SHA256.fullmatch(digest):
+            return False
+        kinds.add(kind)
+    return kinds == {"original_source", "emulator", "hardware"}
+
 def check(path, root):
     data=json.loads(path.read_text(encoding="utf-8"))
     if data.get("schema_version")!=1 or not isinstance(data.get("features"),list):
@@ -26,7 +54,8 @@ def check(path, root):
             raise ValueError("missing gap statement for "+identifier)
         if row["status"]=="verified_complete" and (
             row.get("verified_end_to_end") is not True or
-            not row.get("emulator_test") or not row.get("hardware_or_documented_exception")):
+            not row.get("emulator_test") or not row.get("hardware_or_documented_exception") or
+            not has_release_evidence(row)):
             raise ValueError("unsubstantiated completion claim for "+identifier)
     if ids != set(REQUIRED_FEATURE_IDS):
         raise ValueError("mandatory features missing or unexpected: %s"%sorted(ids.symmetric_difference(REQUIRED_FEATURE_IDS)))
