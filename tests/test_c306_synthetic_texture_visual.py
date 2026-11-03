@@ -39,7 +39,7 @@ class C306SyntheticTextureVisualTests(unittest.TestCase):
         self.assertEqual(len(list(out.rglob("*.p3mr"))), 2)
         mapping = (out / "models/species_map.p3sm").read_bytes()
         self.assertEqual(struct.unpack_from("<2H", mapping, 8), (2, 3))
-        for model, texture, pixel in ((2, 7, 31), (3, 8, 0x7c00)):
+        for model, texture, pixel in ((2, 7, 0x801f), (3, 8, 0xfc00)):
             name = f"p{model:03d}"
             vx = (out / "geometry" / (name + ".p3vx")).read_bytes()
             vu = (out / "geometry" / (name + ".p3vu")).read_bytes()
