@@ -61,7 +61,7 @@ jobs:
         run: |
           python3 -m py_compile scripts/local_agent_propose.py
           python3 tests/test_local_agent_propose.py
-      - name: Start local open-source coding model
+      - name: Start stronger local open-source coding model
         shell: bash
         run: |
           set -euo pipefail
@@ -73,12 +73,12 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:11434/api/tags >/dev/null
-          ollama pull qwen2.5-coder:1.5b
+          ollama pull qwen2.5-coder:3b
       - name: Generate one small source and regression fix
         id: generate
         shell: bash
         env:
-          LOCAL_AGENT_MODEL: qwen2.5-coder:1.5b
+          LOCAL_AGENT_MODEL: qwen2.5-coder:3b
         run: |
           set -euo pipefail
           echo 'ready=false' >> "$GITHUB_OUTPUT"
