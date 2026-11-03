@@ -43,9 +43,9 @@ jobs:
           from datetime import datetime, timezone
           from urllib.parse import quote
 
-          CONFIG = json.loads(r'''{"allowedPrefixes":["agent/free-"],"allowedPairs":[["source/menu_navigation.c","tests/test_menu_navigation.c"],["source/dsi_features.c","tests/test_dsi_feature_gating.c"],["source/menu_layout.c","tests/test_menu_layout_smoke.c"]],"requiredWorkflows":["port-source-tests.yml","native-blocksds.yml"]}''')
+          CONFIG = json.loads(r'''{"allowedPrefixes":["agent/free-","agent/run-"],"allowedPairs":[["source/menu_navigation.c","tests/test_menu_navigation.c"],["source/dsi_features.c","tests/test_dsi_feature_gating.c"],["source/menu_layout.c","tests/test_menu_layout_smoke.c"]],"requiredWorkflows":["port-source-tests.yml","native-blocksds.yml"]}''')
           repo = os.environ['GH_REPO']
-          tracking_issue = 1
+          tracking_issue = 300
 
           def gh(*args):
               return subprocess.run(['gh', *args], check=True,
