@@ -1,6 +1,7 @@
 #include "ds_material_texture_cache.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 static const char *resolve(void *ctx,unsigned id){
     (void)ctx;return id==7?"texture.p3px":NULL;
