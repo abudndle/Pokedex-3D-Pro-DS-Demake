@@ -26,6 +26,41 @@ def valid_slots(root: Path, stem: str, magic: bytes, size: int, crc_at: int):
     return max(valid, key=lambda item: item[0])[1]
 
 
+
+def valid_resume_slots(root: Path):
+    """Accept CRC-verified v3 inactive or v4 active P3RV FAT exports.
+
+    Unlike the original fixed-80-byte gate, this never truncates an active
+    checkpoint to fit the older header or accepts unknown extension bytes.
+    """
+    valid = []
+    for slot in "AB":
+        target = f"pokedex3d_resume_{slot}.sav".lower()
+        paths = [p for p in root.rglob("*")
+                 if p.is_file() and p.name.lower() == target]
+        if len(paths) > 1:
+            raise ValueError("ambiguous exported slot: " + target)
+        if not paths:
+            continue
+        data = paths[0].read_bytes()
+        if len(data) == 80 and data[:5] == b"P3RV\\x03":
+            crc_at = 76
+        elif len(data) == 144 and data[:5] == b"P3RV\\x04":
+            crc_at = 140
+            if data[76] != 1 or any(data[130:140]):
+                continue
+        else:
+            continue
+        if any(data[37:44]) or any(data[63:76]):
+            continue
+        if struct.unpack_from("<I", data, crc_at)[0] != zlib.crc32(data[:crc_at]):
+            continue
+        valid.append((struct.unpack_from("<I", data, 8)[0], data))
+    if not valid:
+        raise ValueError("no valid P3RV FAT slot")
+    return max(valid, key=lambda item: item[0])[1]
+
+
 def check(root: Path):
     if not root.is_dir():
         raise ValueError("missing FAT export directory")
