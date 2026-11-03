@@ -1469,7 +1469,7 @@ int main(void) {
                     if((down&KEY_A) && !(down&KEY_TOUCH)){
                         /* Preserve region selected in picker / replay. */
                         int mode=quiz.mode_cursor;
-                        if(p3dChallengeBegin(&quiz,mode,challenge_seed,
+                        if(p3dChallengeBeginSession(&quiz,mode,&challenge_seed,
                                              challenge_answer_total))
                             redraw=1;
                     }
