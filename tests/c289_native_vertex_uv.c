@@ -5,6 +5,7 @@
 #include "verified_geometry_pair.h"
 #include "verified_vertex_uv.h"
 #include "verified_primitive_uv_bridge.h"
+#include "verified_primitive_uv_draw.h"
 static P3DVerifiedGeometryPair g;
 static P3DVerifiedVertexUv uv;
 static uint8_t vx[16+8+18];
@@ -13,6 +14,13 @@ static uint8_t ix[]={ 'P','3','I','X',1,0,14,0,1,0,
 static uint8_t vu[20+8+12];
 
 static unsigned uv_triangles;
+static unsigned native_uv_draw_triangles;
+int p3dTestUvTriangle(uint16_t mesh,const P3DPrimitiveUvVertex *a,
+    const P3DPrimitiveUvVertex *b,const P3DPrimitiveUvVertex *c){
+    assert(mesh==7&&a->u==0&&b->u==4096&&c->v==4096);
+    native_uv_draw_triangles++;
+    return 1;
+}
 static int uv_sink(void *ctx,uint16_t mesh,
     const P3DPrimitiveUvVertex *a,const P3DPrimitiveUvVertex *b,
     const P3DPrimitiveUvVertex *c){
@@ -98,6 +106,10 @@ int main(int argc,char **argv){
     uv_triangles=0;
     assert(p3dVerifiedPrimitiveUvBridge(&g,&uv,uv_sink,NULL));
     assert(uv_triangles==1);
+    /* C301: native DS draw adapter receives verified paired UV triangles. */
+    native_uv_draw_triangles=0;
+    {uint32_t drawn=0;assert(p3dVerifiedPrimitiveUvDraw(&g,&uv,&drawn));
+     assert(drawn==1&&native_uv_draw_triangles==1);}
     /* C298: bad UV payload must be rejected before any triangle is emitted. */
     {uint8_t original=uv.bytes[32];uv.bytes[32]^=1;
      uv_triangles=0;
