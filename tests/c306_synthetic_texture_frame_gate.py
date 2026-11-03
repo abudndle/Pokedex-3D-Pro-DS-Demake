@@ -97,7 +97,15 @@ if __name__ == "__main__":
     if len(sys.argv) != 5:
         raise SystemExit("usage: c306_synthetic_texture_frame_gate.py HOME RED BLUE BACK")
     paths = sys.argv[1:]
-    result = verify(*paths)
+    # Preserve only the authored synthetic captures even when the strict
+    # color gate fails; no native ROM or private original bytes are uploaded.
     for key, path in zip(("home", "red", "blue", "back"), paths):
         safe_png(path, f"c306-{key}.png")
+    for key, path in zip(("red", "blue"), paths[1:3]):
+        frame = frame_rgb(path)
+        print("C306 diagnostic:", key,
+              "top-screen red", count_dominant(frame, 0, (0, 0, 256, 192)),
+              "blue", count_dominant(frame, 2, (0, 0, 256, 192)),
+              flush=True)
+    result = verify(*paths)
     print(json.dumps(result, sort_keys=True))
