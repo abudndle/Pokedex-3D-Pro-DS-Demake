@@ -68,6 +68,14 @@ int main(int argc,char **argv){
      assert(u==4096&&v==0);
      uv.bytes[24]=(uint8_t)first;uv.bytes[25]=(uint8_t)(first>>8);
      uv.bytes[26]=(uint8_t)(first>>16);uv.bytes[27]=(uint8_t)(first>>24);}
+    /* C295: in-range edits still invalidate the signed payload CRC. */
+    {uint8_t original=uv.bytes[28];uv.bytes[28]=1;
+     assert(!p3dVerifiedVertexUvGet(&uv,0,0,&u,&v));
+     assert(u==4096&&v==0);uv.bytes[28]=original;}
+    {uint8_t original=uv.bytes[20];uv.bytes[20]=8;
+     assert(!p3dVerifiedVertexUvGet(&uv,0,1,&u,&v));
+     assert(u==4096&&v==0);uv.bytes[20]=original;}
+    assert(p3dVerifiedVertexUvGet(&uv,0,1,&u,&v));
     /* C294: a UV read is valid only for the exact live geometry. */
     assert(p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
     {uint8_t original=g.vx[24];g.vx[24]^=1;

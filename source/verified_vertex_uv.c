@@ -102,6 +102,7 @@ int p3dVerifiedVertexUvGet(const P3DVerifiedVertexUv *uv,
        uv->vertex_count>P3D_VERTEX_MAX_VERTICES||
        uv->size>sizeof(uv->bytes)||
        uv->size<UV_HEADER+(size_t)uv->mesh_count*UV_ROW||
+       crc32_bytes(uv->bytes+UV_HEADER,uv->size-UV_HEADER)!=rd32(uv->bytes+16)||
        mesh_index>=uv->mesh_count)return 0;
     row=uv->bytes+UV_HEADER+(size_t)mesh_index*UV_ROW;
     if(vertex_index>=rd16(row+2))return 0;
