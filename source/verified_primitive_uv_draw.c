@@ -5,9 +5,9 @@ static int draw_triangle(void *context,uint16_t mesh,
     const P3DPrimitiveUvVertex *a,const P3DPrimitiveUvVertex *b,
     const P3DPrimitiveUvVertex *c){
     (void)context;(void)mesh;
-    glTexCoord2t16((t16)a->u,(t16)a->v);glVertex3v16((const v16 *)a->xyz);
-    glTexCoord2t16((t16)b->u,(t16)b->v);glVertex3v16((const v16 *)b->xyz);
-    glTexCoord2t16((t16)c->u,(t16)c->v);glVertex3v16((const v16 *)c->xyz);
+    glTexCoord2t16((t16)a->u,(t16)a->v);glVertex3v16((v16)a->xyz[0],(v16)a->xyz[1],(v16)a->xyz[2]);
+    glTexCoord2t16((t16)b->u,(t16)b->v);glVertex3v16((v16)b->xyz[0],(v16)b->xyz[1],(v16)b->xyz[2]);
+    glTexCoord2t16((t16)c->u,(t16)c->v);glVertex3v16((v16)c->xyz[0],(v16)c->xyz[1],(v16)c->xyz[2]);
     return 1;
 }
 #else
