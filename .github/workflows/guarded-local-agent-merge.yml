@@ -43,7 +43,7 @@ jobs:
           from datetime import datetime, timezone
           from urllib.parse import quote
 
-          CONFIG = json.loads(r'''{"allowedPrefixes":["agent/free-"],"allowedPairs":[["source/menu_navigation.c","tests/test_menu_navigation.c"],["source/dsi_features.c","tests/test_dsi_feature_gating.c"],["source/menu_layout.c","tests/test_menu_layout_smoke.c"]],"requiredWorkflows":["port-source-tests.yml","native-blocksds.yml"]}''')
+          CONFIG = json.loads(r'''{"allowedPrefixes":["agent/free-","agent/run-"],"allowedPairs":[["source/menu_navigation.c","tests/test_menu_navigation.c"],["source/dsi_features.c","tests/test_dsi_feature_gating.c"],["source/menu_layout.c","tests/test_menu_layout_smoke.c"],["source/title_idle.c","tests/test_c119_resume_title_idle.c"],["source/animation_playback.c","tests/test_c230_playback_controls.c"],["source/challenge.c","tests/test_c232_challenge_review.c"]],"requiredWorkflows":["port-source-tests.yml","native-blocksds.yml"]}''')
           repo = os.environ['GH_REPO']
           tracking_issue = 1
 
