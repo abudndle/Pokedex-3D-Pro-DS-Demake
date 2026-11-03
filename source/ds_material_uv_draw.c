@@ -62,7 +62,7 @@ int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
        !cache||!cache->ready||!scratch)return 0;
     /* Preload every material texture before emitting the first triangle.
      * A missing private asset therefore fails before any partial model draw. */
-    if(!p3dModelMaterialTexturesMatchMesh(materials,textures,
+    if(!p3dDsMaterialTextureBudgetValid(materials,textures,
           (unsigned)geometry->triangles))return 0;
     for(unsigned i=0;i<materials->count;i++){
         int hardware_id=0;
