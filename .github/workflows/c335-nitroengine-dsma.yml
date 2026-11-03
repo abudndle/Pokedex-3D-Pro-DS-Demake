@@ -36,12 +36,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout pinned upstream Nitro Engine conversion scripts (no models)
+        uses: actions/checkout@v4
+        with:
+          repository: AntonioND/nitro-engine
+          ref: a89917d908e49ab6df1c6762101c240a536bd308
+          path: upstream-nitro-engine
+          persist-credentials: false
       - name: C335 real C manifest and DSMA bounds, host build
         run: sh tests/run_c335_nitro_bridge.sh
       - name: C335 native source conversion (synthetic P3VX/P3IX, no Nintendo data)
         run: python3 -m unittest discover -s tests -p 'test_c335_nitro_converter.py' -v
       - name: C335 no-replica and existing renderer ownership checks
         run: python3 -m unittest discover -s tests -p 'test_c335_native_bridge_wiring.py' -v
+      - name: C335 convert synthetic ordered source using actual pinned upstream obj2dl
+        run: python3 tests/c335_official_nitro_tool_smoke.py upstream-nitro-engine/tools/obj2dl/obj2dl.py
   native-nitro-engine:
     needs: source-preflight
     runs-on: ubuntu-latest
@@ -58,14 +67,9 @@ jobs:
           test -f "$BLOCKSDSEXT/nitro-engine/include/NEMain.h"
           test -f "$BLOCKSDSEXT/nitro-engine/lib/libNE.a"
           test -f "$BLOCKSDSEXT/nitro-engine/tools/obj2dl/obj2dl.py"
-      - name: Convert a synthetic verified source pair via upstream Nitro Engine obj2dl
-        run: |
-          python3 tests/c335_official_nitro_tool_smoke.py \
-            "$BLOCKSDSEXT/nitro-engine/tools/obj2dl/obj2dl.py"
       - name: Build native ROM linked with actual Nitro Engine and DSMA
         run: |
           make -f Makefile.native P3D_NITRO_ENGINE=1 NITROFSDIR=nitrofs rom
-          python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
       - name: Preserve optional Nitro Engine-linked asset-free ROM
         uses: actions/upload-artifact@v4
         with:
@@ -73,3 +77,13 @@ jobs:
           path: Pokedex3D_DS_BlocksDS.nds
           if-no-files-found: error
           retention-days: 3
+  verify-linked-rom:
+    needs: native-nitro-engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: c335-nitro-engine-dsma-asset-free-native-rom
+      - name: Independently verify Nitro Engine-linked ARM9/ARM7 ROM sections
+        run: python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
