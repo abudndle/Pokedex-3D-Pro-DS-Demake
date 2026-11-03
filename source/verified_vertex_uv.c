@@ -70,7 +70,15 @@ int p3dVerifiedVertexUvLoad(P3DVerifiedVertexUv *uv,const char *path,
     if(!path||!geometry||!geometry->ready)return 0;
     f=fopen(path,"rb");
     if(!f)return 0;
-    uv->size=fread(uv->bytes,1,sizeof(uv->bytes),f);
+    /* Header first: reject oversized and truncated input before a bulk read. */
+    uv->size=fread(uv->bytes,1,UV_HEADER,f);
+    if(uv->size!=UV_HEADER){fclose(f);p3dVerifiedVertexUvClear(uv);return 0;}
+    unsigned count=rd16(uv->bytes+8);
+    if(count==0||count>P3D_VERTEX_MAX_MESHES){
+        fclose(f);p3dVerifiedVertexUvClear(uv);return 0;
+    }
+    size_t remaining=sizeof(uv->bytes)-UV_HEADER;
+    uv->size+=fread(uv->bytes+UV_HEADER,1,remaining,f);
     trailing=fgetc(f);
     bad=ferror(f)||trailing!=EOF;
     if(fclose(f)!=0)bad=1;
