@@ -851,8 +851,9 @@ static void render(void) {
                         printf("\x1b[12;1HNo verified learnset refs");
                 }else printf("\x1b[12;1HOriginal learnset unavailable");
             }
-            printf("\x1b[21;1HL/R: tabs  START/B: close");
-            printf("\x1b[23;1HLEFT/RIGHT: species");
+            printf("\x1b[19;1HSTART/B: entry  L/R: tabs");
+            printf("\x1b[21;1H< PREV TAB      NEXT TAB >");
+            printf("\x1b[23;1H< SPECIES       SPECIES >");
         }else if(state.page==P3D_PAGE_DEX){
             if(dex_text_ready){
                 P3DDexText entry;
@@ -2056,12 +2057,14 @@ int main(void) {
                                     point.px,point.py))
                     redraw=1;
                 if(state.page==P3D_PAGE_DEX && dex_detail_tab &&
-                   point.py>=112 && point.py<150){
+                   point.py>=160 && point.py<176){
                     int delta=point.px>=128?1:-1;
                     dex_detail_tab=(dex_detail_tab+delta+3)%4+1;
                     art_page=-1;redraw=1;
                 }
-                if(point.py>=150 && point.py<192){
+                if(point.py>=150 && point.py<192 &&
+                   (state.page!=P3D_PAGE_DEX || !dex_detail_tab ||
+                    point.py>=176)){
                     int direction=point.px<64?-1:(point.px>=192?1:0);
                     if(state.page==P3D_PAGE_DEX && direction){
                         if(p3dDexNavigateSync(&dex_index,&state.selected_dex,direction)){
