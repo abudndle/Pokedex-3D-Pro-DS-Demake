@@ -25,6 +25,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: C331 recovered P3DX Challenge clue and fail-closed answer regressions
+        run: sh tests/run_c331_challenge_text.sh
       - name: C330 Challenge replay and existing ten-question review regressions
         run: sh tests/run_challenge_smoke.sh
       - name: C260 native P3SV/P3RV cross-process save and torn-slot recovery (host only)
