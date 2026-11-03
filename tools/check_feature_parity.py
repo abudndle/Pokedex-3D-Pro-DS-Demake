@@ -47,7 +47,7 @@ def check(path, root):
         if row.get("status") not in VALID or row.get("required_for_release") is not True:
             raise ValueError("invalid status/mandatory flag for "+identifier)
         source=row.get("source")
-        if not isinstance(source,str) or not source.startswith(("source/","Makefile")) or not (root/source).is_file():
+        if not isinstance(source,str) or not source.startswith(("source/","tools/","Makefile")) or not (root/source).is_file():
             raise ValueError("missing source evidence for "+identifier)
         gap=row.get("gap")
         if not isinstance(gap,str) or not gap:
