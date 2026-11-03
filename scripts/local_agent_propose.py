@@ -92,21 +92,35 @@ def run(root: Path, output_dir: Path, focus: str, model: str) -> bool:
     if focus not in TASKS:
         raise ValueError("Unknown focus")
     output_dir.mkdir(parents=True, exist_ok=True)
-    plan = generate_plan(root, focus, model, ENDPOINT)
-    paths = validate_and_apply(root, focus, plan)
-    # Trusted fixed commands, never commands supplied by a language model.
-    subprocess.run(TASKS[focus]["command"], cwd=root, check=True, timeout=420)
-    subprocess.run(["git", "diff", "--check"], cwd=root, check=True, timeout=20)
-    patch = subprocess.run(
-        ["git", "diff", "--", *paths], cwd=root, check=True,
-        text=True, capture_output=True, timeout=20).stdout
-    if not patch or len(patch) >= 14000:
-        raise ValueError("No bounded source/test diff to publish")
-    (output_dir / "proposal.patch").write_text(patch, encoding="utf-8")
-    (output_dir / "proposal.json").write_text(json.dumps({
-        "summary": plan["summary"], "focus": focus, "paths": paths,
-        "validated": True, "model": model}, indent=2) + "\n", encoding="utf-8")
-    return True
+    task = TASKS[focus]
+    original = {name: (root / task[name]).read_bytes() for name in ("source", "test")}
+    last_error = None
+    # Independent attempts: failed snippets must not contaminate retry inputs.
+    for attempt in range(2):
+        try:
+            plan = generate_plan(root, focus, model, ENDPOINT)
+            paths = validate_and_apply(root, focus, plan)
+            # Trusted fixed commands only; model output is never executed as commands.
+            subprocess.run(task["command"], cwd=root, check=True, timeout=420)
+            subprocess.run(["git", "diff", "--check"], cwd=root, check=True, timeout=20)
+            patch = subprocess.run(
+                ["git", "diff", "--", *paths], cwd=root, check=True,
+                text=True, capture_output=True, timeout=20).stdout
+            if not patch or len(patch) >= 14000:
+                raise ValueError("No bounded source/test diff to publish")
+            (output_dir / "proposal.patch").write_text(patch, encoding="utf-8")
+            (output_dir / "proposal.json").write_text(json.dumps({
+                "summary": plan["summary"], "focus": focus, "paths": paths,
+                "validated": True, "model": model}, indent=2) + "\n",
+                encoding="utf-8")
+            return True
+        except (ValueError, OSError, TimeoutError, json.JSONDecodeError,
+                subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            last_error = exc
+            for name, data in original.items():
+                (root / task[name]).write_bytes(data)
+            print(f"Rejected candidate {attempt + 1}/2: {exc}", file=sys.stderr)
+    raise ValueError("No passing proposal after two bounded attempts: " + str(last_error))
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
