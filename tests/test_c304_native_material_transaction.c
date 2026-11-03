@@ -9,6 +9,15 @@
 
 static int allow_source;
 static unsigned preflight_calls,draw_calls,begin_calls,uv_calls,vertices;
+static int kinds[32],vals_a[32],vals_b[32];
+static unsigned trace_count;
+static void trace(int kind,int a,int b){
+    assert(trace_count<32);
+    kinds[trace_count]=kind;
+    vals_a[trace_count]=a;
+    vals_b[trace_count]=b;
+    trace_count++;
+}
 static int16_t xyz[9]={0,0,0,4096,0,0,0,4096,0};
 int p3dVerifiedMaterialUvDraw(const P3DVerifiedGeometryPair *g,
     const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
@@ -25,12 +34,14 @@ int p3dVerifiedMaterialUvDraw(const P3DVerifiedGeometryPair *g,
     if(!sink(context,0,0,7,&a,&b,&c))return 0;
     return sink(context,0,1,8,&a,&b,&c);
 }
-int p3dTestMaterialBegin(int id){assert(id>0);begin_calls++;return 1;}
+int p3dTestMaterialBegin(int id){assert(id>0);begin_calls++;trace(1,id,0);return 1;}
 void p3dTestMaterialTexCoord(int16_t u,int16_t v){
-    assert(u==0||u==4096);assert(v==0||v==4096);uv_calls++;
+    assert(u==0||u==4096);assert(v==0||v==4096);uv_calls++;trace(2,u,v);
 }
-void p3dTestMaterialVertex(const int16_t *p){assert(p>=xyz&&p<xyz+9);vertices++;}
-void p3dTestMaterialEnd(void){draw_calls++;}
+void p3dTestMaterialVertex(const int16_t *p){
+    assert(p>=xyz&&p<xyz+9);vertices++;trace(3,p[0],p[1]);
+}
+void p3dTestMaterialEnd(void){draw_calls++;trace(4,0,0);}
 static const char *resolve(void *opaque,unsigned id){
     (void)opaque;return id==7?"t007.p3px":id==8?"t008.p3px":NULL;
 }
@@ -86,10 +97,42 @@ int main(void){
            &caps,&cache,scratch,&drawn));
     assert(drawn==2 && preflight_calls==4 && begin_calls==2 &&
            draw_calls==2 && uv_calls==6 && vertices==6 && cache.count==2);
+    /* C305 independent synthetic draw trace: two distinct binds, and
+     * exact ordered UV and XYZ events for both source-backed triangles. */
+    {
+        const int expected_kinds[16]={
+            1,2,3,2,3,2,3,4,1,2,3,2,3,2,3,4
+        };
+        const int expected_u[3]={0,4096,0};
+        const int expected_v[3]={0,0,4096};
+        const int expected_x[3]={0,4096,0};
+        const int expected_y[3]={0,0,4096};
+        assert(trace_count==16);
+        for(unsigned i=0;i<16;i++)assert(kinds[i]==expected_kinds[i]);
+        assert(vals_a[0]>0&&vals_a[8]>0&&vals_a[0]!=vals_a[8]);
+        for(unsigned tri=0;tri<2;tri++){
+            for(unsigned vertex=0;vertex<3;vertex++){
+                unsigned u=tri*8+1+vertex*2;
+                assert(vals_a[u]==expected_u[vertex] &&
+                       vals_b[u]==expected_v[vertex]);
+                assert(vals_a[u+1]==expected_x[vertex] &&
+                       vals_b[u+1]==expected_y[vertex]);
+            }
+        }
+        /* A second frame must reuse the same GPU IDs and exact trace;
+         * switching models separately calls the cache destructor. */
+        int first=vals_a[0],second=vals_a[8];
+        trace_count=0;
+        assert(p3dDsMaterialUvDraw(&g,&uv,&source,&materials,&textures,
+              &caps,&cache,scratch,&drawn));
+        assert(drawn==2&&cache.count==2&&trace_count==16);
+        assert(vals_a[0]==first&&vals_a[8]==second);
+        for(unsigned i=0;i<16;i++)assert(kinds[i]==expected_kinds[i]);
+    }
     p3dDsMaterialTextureCacheDestroy(&cache);
     assert(!cache.count&&!cache.ready);
     assert(!remove("t007.p3px")); assert(!remove("t008.p3px"));
     free(scratch);
-    puts("C304: synthetic native material preflight/rollback/draw PASS");
+    puts("C304/C305: synthetic native texture transaction and exact draw trace PASS");
     return 0;
 }
