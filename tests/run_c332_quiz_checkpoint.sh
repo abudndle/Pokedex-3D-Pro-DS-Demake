@@ -12,4 +12,7 @@ done
 for stage in write-last verify-last write-last-review verify-last-review finish verify-finish; do
  "$tmp/test" "$stage" "$tmp/final"
 done
-echo 'C332: exact active question/review through round ten, v3 finalization and dual-slot recovery: PASS'
+for stage in text-question text-answer text-review; do
+ "$tmp/test" "$stage" "$tmp/text"
+done
+echo 'C332: cross-process question/review, text clue page, ten-question finalization, and torn-slot recovery: PASS'
