@@ -72,6 +72,11 @@ int main(void){
             textures.entries[i].format=1;
         }
         assert(!p3dDsMaterialTextureBudgetValid(&materials,&textures,9));
+        /* A nine-entry manifest is legal if only eight distinct IDs are
+         * actually referenced and allocated. */
+        {P3DDsMaterialTextureCache more={0};
+         assert(p3dDsMaterialTextureCacheInit(&more,&textures,resolve,NULL));
+         p3dDsMaterialTextureCacheDestroy(&more);}
         materials.count=8;textures.count=8;
         assert(p3dDsMaterialTextureBudgetValid(&materials,&textures,8));
         textures.entries[0].format=2;
