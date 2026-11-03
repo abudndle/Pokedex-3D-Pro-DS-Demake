@@ -16,9 +16,9 @@ static int host_path_has_no_symlinks(const char *path){
  struct stat st;
  if(n==0||n>=sizeof(prefix))return 0;
  for(size_t i=0;i<=n;i++){
-  if(path[i]!='/'&&path[i]!='\\0')continue;
+  if(path[i]!='/'&&path[i]!='\0')continue;
   if(i==0)continue; /* absolute filesystem root */
-  memcpy(prefix,path,i);prefix[i]='\\0';
+  memcpy(prefix,path,i);prefix[i]='\0';
   if(lstat(prefix,&st)==0){
    if(!S_ISDIR(st.st_mode))return 0;
   }else if(errno!=ENOENT)return 0;
