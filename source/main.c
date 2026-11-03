@@ -564,6 +564,13 @@ static void render_model(void){
                 &native_shader_caps,&native_texture_cache,&preview_pixels,&drawn);
             glDisable(GL_TEXTURE_2D);
             glBindTexture(0,0);
+            if(!native_draw_ok){
+                /* C305: a failed upload invalidates the entire texture cache.
+                 * Disable repeated attempts until the next model reload,
+                 * leaving the verified untextured geometry fallback active. */
+                p3dDsMaterialTextureCacheDestroy(&native_texture_cache);
+                native_material_ready=0;
+            }
         }
         if(!native_draw_ok){
             drawn=0;
@@ -771,7 +778,7 @@ static void render(void) {
                 printf("Source mesh: %lu tris\n",
                        source_geometry_ready ? (unsigned long)source_geometry_pair.triangles
                                              : (unsigned long)previewStreamTriangleCount());
-                if(source_geometry_ready)printf("Native geometry: untextured candidate\n");
+                if(source_geometry_ready)printf("Native material: %s\n",native_material_ready?"strict candidate":"untextured fallback");
                 printf("Material refs: %s\n",material_references_ready?"verified":"unavailable");
                 printf("Texture data: %s\n",texture_payload_ready?"verified":"unavailable");
                 printf("Native textures: %u\n",preview_gl_textures.count);
