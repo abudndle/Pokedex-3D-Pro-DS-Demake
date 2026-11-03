@@ -86,7 +86,7 @@ def safe_png(xwd_path, png_path):
         bytes([0]) + b"".join(bytes(rgb(x, y)) for x in range(width))
         for y in range(height)
     )
-    out = (b"\\x89PNG\\r\\n\\x1a\\n" +
+    out = (bytes((137, 80, 78, 71, 13, 10, 26, 10)) +
            png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)) +
            png_chunk(b"IDAT", zlib.compress(scan, 9)) +
            png_chunk(b"IEND", b""))
