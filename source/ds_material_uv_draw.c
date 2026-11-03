@@ -62,6 +62,30 @@ static int preflight_triangle(void *unused,uint16_t mesh,unsigned triangle,
     (void)unused;(void)mesh;(void)triangle;(void)texture_id;
     return a&&b&&c&&a->xyz&&b->xyz&&c->xyz;
 }
+int p3dDsMaterialUvPrepare(const P3DVerifiedGeometryPair *geometry,
+    const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
+    const P3DMaterialMap *materials,const P3DTextureManifest *textures,
+    const P3DSourceShaderCaps *shader_caps,
+    P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch){
+    if(!geometry||!uv||!source||!materials||!textures||!shader_caps||
+       !cache||!cache->ready||!scratch)return 0;
+    if(!p3dDsMaterialTextureBudgetValid(materials,textures,
+          (unsigned)geometry->triangles))return 0;
+    /* Reuse the same strict no-side-effects source walk as the native drawer.
+     * No hardware drawing is permitted in this model-loading phase. */
+    if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
+        shader_caps,preflight_triangle,NULL))return 0;
+    for(unsigned i=0;i<materials->count;i++){
+        int hardware_id=0;
+        if(!p3dDsMaterialTextureCacheGet(cache,
+             materials->ranges[i].texture_id,scratch,&hardware_id)){
+            /* Atomically release the entire partially uploaded set. */
+            p3dDsMaterialTextureCacheDestroy(cache);
+            return 0;
+        }
+    }
+    return 1;
+}
 int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
     const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
     const P3DMaterialMap *materials,const P3DTextureManifest *textures,
@@ -72,24 +96,11 @@ int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
     if(drawn_triangles)*drawn_triangles=0;
     if(!geometry||!uv||!source||!materials||!textures||!shader_caps||
        !cache||!cache->ready||!scratch)return 0;
-    /* Preload every material texture before emitting the first triangle.
-     * A missing private asset therefore fails before any partial model draw. */
-    if(!p3dDsMaterialTextureBudgetValid(materials,textures,
-          (unsigned)geometry->triangles))return 0;
-    /* Invalid source geometry, UVs or sampler roles must fail without even
-     * allocating texture VRAM. The source walk is side-effect free here. */
-    if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
-        shader_caps,preflight_triangle,NULL))return 0;
-    for(unsigned i=0;i<materials->count;i++){
-        int hardware_id=0;
-        if(!p3dDsMaterialTextureCacheGet(cache,
-             materials->ranges[i].texture_id,scratch,&hardware_id)){
-            /* Roll back previous successful uploads if a later private file
-             * is missing/corrupt or VRAM upload fails. Never leak the set. */
-            p3dDsMaterialTextureCacheDestroy(cache);
-            return 0;
-        }
-    }
+    /* Legacy callers still perform guarded preparation here. Native
+     * reload_preview() calls Prepare in advance, so every cache hit in the
+     * actual frame is read-only and never writes texture VRAM. */
+    if(!p3dDsMaterialUvPrepare(geometry,uv,source,materials,textures,
+                               shader_caps,cache,scratch))return 0;
     ctx.cache=cache;ctx.scratch=scratch;ctx.count=0;ctx.failed=0;
     if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
        shader_caps,draw_material_triangle,&ctx)||ctx.failed)return 0;

@@ -93,9 +93,18 @@ int main(void){
     assert(!begin_calls && !draw_calls);
     make_texture("t008.p3px");
     assert(p3dDsMaterialTextureCacheInit(&cache,&textures,resolve,NULL));
+    /* C312: load all texture VRAM with zero polygon writes, before any
+     * model frame. Renaming the source texture files then proves that two
+     * successive frames never reopen their backing payloads. */
+    assert(p3dDsMaterialUvPrepare(&g,&uv,&source,&materials,&textures,
+                                 &caps,&cache,scratch));
+    assert(cache.ready && cache.count==2);
+    assert(!begin_calls && !draw_calls && !vertices && !uv_calls);
+    assert(!rename("t007.p3px","t007.prepared"));
+    assert(!rename("t008.p3px","t008.prepared"));
     assert(p3dDsMaterialUvDraw(&g,&uv,&source,&materials,&textures,
            &caps,&cache,scratch,&drawn));
-    assert(drawn==2 && preflight_calls==4 && begin_calls==2 &&
+    assert(drawn==2 && preflight_calls==5 && begin_calls==2 &&
            draw_calls==2 && uv_calls==6 && vertices==6 && cache.count==2);
     /* C305 independent synthetic draw trace: two distinct binds, and
      * exact ordered UV and XYZ events for both source-backed triangles. */
@@ -131,7 +140,7 @@ int main(void){
     }
     p3dDsMaterialTextureCacheDestroy(&cache);
     assert(!cache.count&&!cache.ready);
-    assert(!remove("t007.p3px")); assert(!remove("t008.p3px"));
+    assert(!remove("t007.prepared")); assert(!remove("t008.prepared"));
     free(scratch);
     puts("C304/C305: synthetic native texture transaction and exact draw trace PASS");
     return 0;
