@@ -26,6 +26,8 @@ class AlbumPathTests(unittest.TestCase):
         cls.lib = ctypes.CDLL(str(so))
         cls.lib.p3dPhotoAlbumOpen.argtypes = [ctypes.POINTER(Album), ctypes.c_char_p]
         cls.lib.p3dPhotoAlbumOpen.restype = ctypes.c_int
+        cls.lib.p3dPhotoAlbumPage.argtypes = [ctypes.POINTER(Album), ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t, ctypes.POINTER(ctypes.c_size_t)]
+        cls.lib.p3dPhotoAlbumPage.restype = ctypes.c_size_t
         cls.lib.p3dPhotoAlbumDelete.argtypes = [ctypes.POINTER(Album), ctypes.c_char_p]
         cls.lib.p3dPhotoAlbumDelete.restype = ctypes.c_int
 
@@ -80,6 +82,27 @@ class AlbumPathTests(unittest.TestCase):
             self.assertEqual(self.open_album(album, outer / "linked" / "nested" / "Photos"), 0)
             self.assertFalse((actual / "nested").exists())
             self.assertEqual(album.folder.decode(), "")
+
+    def test_parent_replaced_with_symlink_after_open(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            parent = root / "safe"
+            parent.mkdir()
+            album = Album()
+            self.assertEqual(self.open_album(album, parent / "Photos"), 1)
+            (parent / "Photos" / "AR_0001.png").write_bytes(b"synthetic")
+            parent.rename(root / "old")
+            target = root / "target"
+            (target / "Photos").mkdir(parents=True)
+            photo = target / "Photos" / "AR_0001.png"
+            photo.write_bytes(b"protected")
+            parent.symlink_to(target, target_is_directory=True)
+            count = ctypes.c_size_t(123)
+            names = (ctypes.c_char * (7 * 32))()
+            self.assertEqual(self.lib.p3dPhotoAlbumPage(ctypes.byref(album), names, 7, 0, ctypes.byref(count)), 0)
+            self.assertEqual(count.value, 0)
+            self.assertEqual(self.lib.p3dPhotoAlbumDelete(ctypes.byref(album), b"AR_0001.png"), 0)
+            self.assertEqual(photo.read_bytes(), b"protected")
 
     def test_symlinked_album_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:

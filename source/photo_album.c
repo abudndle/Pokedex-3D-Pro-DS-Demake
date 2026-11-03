@@ -96,7 +96,13 @@ size_t p3dPhotoAlbumPage(const P3DPhotoAlbum *a,char names[][32],size_t limit,si
  DIR *d;struct dirent *e;size_t count=0,filled=0,rank=0;
  if(total)*total=0;
  if(limit>P3D_ALBUM_PAGE_MAX)limit=P3D_ALBUM_PAGE_MAX;
- if(!a||!a->folder[0]||(limit&&!names)||(d=opendir(a->folder))==NULL)return 0;
+ if(!a||!a->folder[0]||(limit&&!names))return 0;
+#ifndef __NDS__
+ /* The album directory can change after Open; never enumerate a replaced
+  * symlink or one of its ancestors in host-side album tooling. */
+ if(!host_path_has_no_symlinks(a->folder))return 0;
+#endif
+ if((d=opendir(a->folder))==NULL)return 0;
  while((e=readdir(d))!=NULL){
   int id;
   if(!valid_name(e->d_name)||!regular_photo(a->folder,e->d_name))continue;
@@ -119,7 +125,12 @@ size_t p3dPhotoAlbumPage(const P3DPhotoAlbum *a,char names[][32],size_t limit,si
 }
 int p3dPhotoAlbumDelete(P3DPhotoAlbum *a,const char *name){
  char path[P3D_PHOTO_PATH_MAX+16];int n;
- if(!a||!a->folder[0]||!valid_name(name)||!regular_photo(a->folder,name))return 0;
+ if(!a||!a->folder[0]||!valid_name(name))return 0;
+#ifndef __NDS__
+ /* Reject a directory replaced with a symlink after album open. */
+ if(!host_path_has_no_symlinks(a->folder))return 0;
+#endif
+ if(!regular_photo(a->folder,name))return 0;
  n=snprintf(path,sizeof(path),"%s/%s",a->folder,name);
  return n>0&&(size_t)n<sizeof(path)&&remove(path)==0;
 }
