@@ -117,6 +117,13 @@ static P3DDsMaterialTextureCache native_texture_cache;
 static char native_texture_directory[80];
 static char native_texture_path[112];
 static int native_material_ready=0;
+#ifdef P3D_EMULATOR_DIAGNOSTICS
+/* C306: only synthetic development builds expose a limited 16-bit pixel
+ * readback. Do not run with private copyrighted image data in public CI. */
+static uint16_t c306_source_texel=0,c306_vram_texel=0;
+static unsigned c306_texture_addr=0,c306_tex_format=0,c306_gl_control=0;
+static int c306_readback_ok=0;
+#endif
 static const char *native_texture_resolve(void *opaque,unsigned texture_id){
     (void)opaque;
     int n=snprintf(native_texture_path,sizeof(native_texture_path),
@@ -352,6 +359,25 @@ static void reload_preview(void){
                                     &native_texture_cache);
                                 native_material_ready=0;
                             }
+#ifdef P3D_EMULATOR_DIAGNOSTICS
+                            c306_readback_ok=0;
+                            c306_source_texel=preview_pixels.pixels[0];
+                            if(native_material_ready &&
+                               native_texture_cache.count){
+                                int id=native_texture_cache.texture_ids[0];
+                                void *ptr=glGetTexturePointer(id);
+                                uintptr_t addr=(uintptr_t)ptr;
+                                c306_texture_addr=(unsigned)addr;
+                                if(addr>=(uintptr_t)VRAM_B &&
+                                   addr<(uintptr_t)VRAM_B+128u*1024u){
+                                    unsigned bank=VRAM_B_CR;
+                                    vramSetBankB(VRAM_B_LCD);
+                                    c306_vram_texel=*(volatile uint16_t *)ptr;
+                                    VRAM_B_CR=bank;
+                                    c306_readback_ok=1;
+                                }
+                            }
+#endif
                         }
                     }
                 }
@@ -575,6 +601,10 @@ static void render_model(void){
                 &source_geometry_pair,&source_geometry_uv,
                 &native_source_materials,&native_materials,&native_textures,
                 &native_shader_caps,&native_texture_cache,&preview_pixels,&drawn);
+#ifdef P3D_EMULATOR_DIAGNOSTICS
+            c306_tex_format=GFX_TEX_FORMAT;
+            c306_gl_control=GFX_CONTROL;
+#endif
             glDisable(GL_TEXTURE_2D);
             glBindTexture(0,0);
             if(!native_draw_ok){
@@ -603,6 +633,17 @@ static void render_model(void){
             if(previewStreamHasModel())previewStreamDraw();
         }
         glFlush(0);
+#ifdef P3D_EMULATOR_DIAGNOSTICS
+        consoleSelect(&bottom_console);
+        printf("\x1b[19;1HC306 M:%d ID:%d D:%lu  ",
+               native_material_ready,native_texture_cache.count,
+               (unsigned long)drawn);
+        printf("\x1b[20;1HPX:%04x VR:%04x R:%d  ",
+               (unsigned)c306_source_texel,(unsigned)c306_vram_texel,
+               c306_readback_ok);
+        printf("\x1b[21;1HTX:%08x EN:%x ADR:%08x  ",
+               c306_tex_format,c306_gl_control&1,c306_texture_addr);
+#endif
         return;
     }
     if(preview_gl_textures.ready){
