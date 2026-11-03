@@ -71,7 +71,7 @@ if "module" in globals():
     choose = module.select_focus
 else:
     from local_agent_propose import select_focus as choose
-keys = tuple(TASKS)
+keys = tuple(module.TASKS)
 for index, key in enumerate(keys):
     assert choose("auto", index) == key
     assert choose("auto", index + len(keys)) == key
