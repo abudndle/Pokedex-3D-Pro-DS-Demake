@@ -61,3 +61,20 @@ int p3dChallengeTextPageStep(P3DChallenge *quiz,int direction){
  quiz->clue_page+=direction;
  return 1;
 }
+
+/* Validate both the reviewed clue and the upcoming question before
+ * advancing. An unavailable private catalog must never silently advance
+ * the source-backed Challenge or commit a result. */
+int p3dChallengeTextContinue(P3DChallenge *quiz){
+ P3DChallenge next;
+ P3DChallengeText text;
+ if(!quiz || quiz->mode!=P3D_CHALLENGE_TEXT_MODE ||
+    quiz->stage!=P3D_CHALLENGE_REVIEW ||
+    !p3dChallengeTextLoad(&text,quiz))return 0;
+ next=*quiz;
+ if(!p3dChallengeContinue(&next))return 0;
+ if(next.stage==P3D_CHALLENGE_QUESTION &&
+    !p3dChallengeTextLoad(&text,&next))return 0;
+ *quiz=next;
+ return 1;
+}
