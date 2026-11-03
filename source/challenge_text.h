@@ -14,4 +14,6 @@ int p3dChallengeTextLoad(P3DChallengeText *out,const P3DChallenge *quiz);
 int p3dChallengeTextAnswer(P3DChallenge *quiz,int choice);
 /* Page a validated current text clue, without modifying scoring. */
 int p3dChallengeTextPageStep(P3DChallenge *quiz,int direction);
+/* Atomically validate current and next source-backed question on continue. */
+int p3dChallengeTextContinue(P3DChallenge *quiz);
 #endif
