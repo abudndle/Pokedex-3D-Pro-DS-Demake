@@ -113,6 +113,64 @@ int main(int argc,char **argv){
   assert(fclose(f)==0 && bytes[4]==3);
   assert(p3dResumeLoad(legacy,&loaded)&&!loaded.quiz_active);
  }
+ else if(!strcmp(argv[1],"write-last")){
+  start(&state);
+  for(int n=0;n<P3D_CHALLENGE_QUESTIONS-1;n++){
+   assert(state.quiz.question==n);
+   assert(p3dChallengeAnswer(&state.quiz,state.quiz.correct)==1);
+   assert(p3dChallengeContinue(&state.quiz));
+  }
+  assert(state.quiz.stage==P3D_CHALLENGE_QUESTION &&
+         state.quiz.question==P3D_CHALLENGE_QUESTIONS-1 &&
+         state.quiz.score==P3D_CHALLENGE_QUESTIONS-1);
+  state.challenge_answer_total+=P3D_CHALLENGE_QUESTIONS-1;
+  state.challenge_correct_total+=P3D_CHALLENGE_QUESTIONS-1;
+  assert(p3dResumeStore(argv[2],&state));
+ }else if(!strcmp(argv[1],"verify-last")){
+  P3DChallenge expected;
+  assert(p3dResumeLoad(argv[2],&loaded));
+  assert(p3dChallengeBegin(&expected,1,0x12345678u,0));
+  for(int n=0;n<P3D_CHALLENGE_QUESTIONS-1;n++){
+   assert(p3dChallengeAnswer(&expected,expected.correct)==1);
+   assert(p3dChallengeContinue(&expected));
+  }
+  assert(loaded.quiz_active && loaded.quiz.question==9 &&
+         loaded.challenge_answer_total==17 && loaded.challenge_correct_total==14);
+  assert(memcmp(&expected,&loaded.quiz,sizeof expected)==0);
+ }else if(!strcmp(argv[1],"write-last-review")){
+  assert(p3dResumeLoad(argv[2],&state));
+  assert(state.quiz.question==P3D_CHALLENGE_QUESTIONS-1);
+  assert(p3dChallengeAnswer(&state.quiz,state.quiz.correct)==1);
+  state.challenge_answer_total++;state.challenge_correct_total++;
+  assert(p3dResumeStore(argv[2],&state));
+ }else if(!strcmp(argv[1],"verify-last-review")){
+  assert(p3dResumeLoad(argv[2],&state));
+  assert(state.quiz_active && state.quiz.question==9 &&
+         state.quiz.stage==P3D_CHALLENGE_REVIEW && state.quiz.score==10);
+  assert(state.challenge_answer_total==18 && state.challenge_correct_total==15);
+  orig=state;
+  assert(p3dChallengeAnswer(&state.quiz,state.quiz.correct)==-1);
+  assert(memcmp(&state,&orig,sizeof state)==0);
+  assert(p3dChallengeContinue(&state.quiz));
+  assert(state.quiz.stage==P3D_CHALLENGE_RESULTS);
+  assert(!p3dChallengeContinue(&state.quiz));
+ }else if(!strcmp(argv[1],"finish")){
+  assert(p3dResumeLoad(argv[2],&state));
+  assert(state.quiz.stage==P3D_CHALLENGE_REVIEW);
+  assert(p3dChallengeContinue(&state.quiz));
+  state.quiz_active=0;
+  memset(&state.quiz,0,sizeof state.quiz);
+  state.challenge_answer_total=0;state.challenge_correct_total=0;
+  assert(p3dResumeStore(argv[2],&state));
+ }else if(!strcmp(argv[1],"verify-finish")){
+  assert(p3dResumeLoad(argv[2],&state));
+  assert(!state.quiz_active && state.quiz.stage==P3D_CHALLENGE_PICKER);
+  assert(state.page==P3D_PAGE_CHALLENGE && state.challenge_mode==1);
+  unsigned char record[80];
+  f=fopen(a,"rb");assert(f);
+  assert(fread(record,1,80,f)==80 && fgetc(f)==EOF && fclose(f)==0);
+  assert(record[4]==3);
+ }
  else assert(!"unknown C332 test mode");
  puts("C332 exact active Challenge P3RV v4 cross-process checkpoint: PASS");
  return 0;
