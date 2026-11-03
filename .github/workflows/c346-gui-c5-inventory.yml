@@ -1,0 +1,29 @@
+name: C346 original GUI C5 inventory (synthetic only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - tools/c346_gui_c5_inventory.py
+      - tests/test_c346_gui_c5_inventory.py
+      - .github/workflows/c346-gui-c5-inventory.yml
+  pull_request:
+    paths:
+      - tools/c346_gui_c5_inventory.py
+      - tests/test_c346_gui_c5_inventory.py
+      - .github/workflows/c346-gui-c5-inventory.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c346-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  gui-c5-source-metadata-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run C346 synthetic-only regressions (no private assets)
+        run: python3 -m unittest discover -s tests -p 'test_c346_gui_c5_inventory.py' -v
