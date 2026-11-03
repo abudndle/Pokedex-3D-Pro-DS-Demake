@@ -43,9 +43,9 @@ def valid_resume_slots(root: Path):
         if not paths:
             continue
         data = paths[0].read_bytes()
-        if len(data) == 80 and data[:5] == b"P3RV\\x03":
+        if len(data) == 80 and data[:5] == b"P3RV\x03":
             crc_at = 76
-        elif len(data) == 144 and data[:5] == b"P3RV\\x04":
+        elif len(data) == 144 and data[:5] == b"P3RV\x04":
             crc_at = 140
             if data[76] != 1 or any(data[130:140]):
                 continue
