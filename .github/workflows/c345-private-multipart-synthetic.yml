@@ -1,0 +1,29 @@
+name: C345 private multipart bridge (synthetic only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - "tools/c345_private_split_nitrofs.py"
+      - "tests/test_c345_private_split_nitrofs.py"
+      - ".github/workflows/c345-private-multipart-synthetic.yml"
+  pull_request:
+    paths:
+      - "tools/c345_private_split_nitrofs.py"
+      - "tests/test_c345_private_split_nitrofs.py"
+      - ".github/workflows/c345-private-multipart-synthetic.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c345-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  synthetic-private-package-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run asset-free multipart integrity/security tests
+        run: python3 -m unittest discover -s tests -p 'test_c345_private_split_nitrofs.py' -v
