@@ -42,6 +42,14 @@ static int draw_material_triangle(void *opaque,uint16_t mesh,unsigned triangle,
     ctx->count++;
     return 1;
 }
+/* A separate dry run must accept the complete source/UV stream before
+ * any libnds GL state is changed or a triangle is emitted. */
+static int preflight_triangle(void *unused,uint16_t mesh,unsigned triangle,
+    unsigned texture_id,const P3DPrimitiveUvVertex *a,
+    const P3DPrimitiveUvVertex *b,const P3DPrimitiveUvVertex *c){
+    (void)unused;(void)mesh;(void)triangle;(void)texture_id;
+    return a&&b&&c&&a->xyz&&b->xyz&&c->xyz;
+}
 int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
     const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
     const P3DMaterialMap *materials,const P3DTextureManifest *textures,
@@ -61,6 +69,8 @@ int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
         if(!p3dDsMaterialTextureCacheGet(cache,
              materials->ranges[i].texture_id,scratch,&hardware_id))return 0;
     }
+    if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
+        shader_caps,preflight_triangle,NULL))return 0;
     ctx.cache=cache;ctx.scratch=scratch;ctx.count=0;ctx.failed=0;
     if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
        shader_caps,draw_material_triangle,&ctx)||ctx.failed)return 0;

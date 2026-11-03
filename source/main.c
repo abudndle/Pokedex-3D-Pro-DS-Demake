@@ -37,6 +37,7 @@
 #include "source_color_ranges.h"
 #include "texture_asset.h"
 #include "preview_texture_set.h"
+#include "ds_material_uv_draw.h"
 #include "original_ui_page.h"
 #include "original_home_hotspots.h"
 #include "title_timeline.h"
@@ -105,6 +106,25 @@ static int source_face_map_ready=0;
 static P3DTexturePixels preview_pixels;
 static int texture_payload_ready=0;
 static P3DPreviewTextureSet preview_gl_textures;
+/* Native material ranges must refer to exact original-source triangle order. */
+static P3DMaterialMap native_materials;
+static P3DSourceMaterialMap native_source_materials;
+static P3DSourceShaderCaps native_shader_caps;
+static P3DSourceMaterialWords native_source_words;
+static P3DSourceColorRanges native_color_ranges;
+static P3DTextureManifest native_textures;
+static P3DDsMaterialTextureCache native_texture_cache;
+static char native_texture_directory[80];
+static char native_texture_path[112];
+static int native_material_ready=0;
+static const char *native_texture_resolve(void *opaque,unsigned texture_id){
+    (void)opaque;
+    int n=snprintf(native_texture_path,sizeof(native_texture_path),
+                   "%s/t%03u.p3px",native_texture_directory,texture_id);
+    return n>0&&(unsigned)n<sizeof(native_texture_path)
+        ?native_texture_path:NULL;
+}
+
 static P3DAnimationPlayback animation_playback;
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
@@ -244,6 +264,8 @@ static void prepare_original_art(void){
 static void reload_preview(void){
     /* Free all prior per-material VRAM allocations on species/form changes. */
     p3dPreviewTextureSetRelease(&preview_gl_textures);
+    p3dDsMaterialTextureCacheDestroy(&native_texture_cache);
+    native_material_ready=0;
     /* C120: title idle Pokémon is NOT the saved Dex entry. Its source
      * species/form preview is separate; leaving idle reloads the last
      * saved user's own Dex selection with no temporary save mutation. */
@@ -280,6 +302,49 @@ static void reload_preview(void){
         }
     }
     preview_found=legacy_preview_found||source_geometry_ready;
+    /* Native material indices must cover exact P3VX/P3IX source triangles,
+     * not the independently reduced DS3M order. The conservative source
+     * draw gate currently supports at most 600 triangles. */
+    if(nitro_ready && source_geometry_ready && source_geometry_uv_ready &&
+       source_geometry_pair.triangles<=600u){
+        unsigned count=(unsigned)source_geometry_pair.triangles;
+        P3DSourceMaterialWords *words=&native_source_words;
+        snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3mt",resource);
+        if(p3dMaterialMapLoad(&native_materials,clip_path,count)){
+            snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3tx",resource);
+            if(p3dTextureManifestLoad(&native_textures,clip_path)){
+                snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3mr",resource);
+                if(p3dSourceMaterialLoad(&native_source_materials,clip_path,
+                                         (unsigned)resource,count)){
+                    snprintf(clip_path,sizeof(clip_path),"nitro:/materials/p%03d.p3sc",resource);
+                    if(p3dSourceShaderCapsLoad(&native_shader_caps,clip_path,
+                                               (unsigned)resource)){
+                        snprintf(clip_path,sizeof(clip_path),
+                                 "nitro:/materials/p%03d.p3sw",resource);
+                        if(p3dSourceMaterialWordsLoad(words,clip_path,(unsigned)resource)
+                           && p3dSourceMaterialWordsMatch(
+                               words,&native_shader_caps,&native_source_materials,
+                               (unsigned)resource,count)
+                           && p3dSourceColorRangesBuild(
+                               &native_color_ranges,words,&native_shader_caps,
+                               &native_source_materials,&native_materials,
+                               &native_textures,(unsigned)resource,count)
+                           && native_color_ranges.approved==native_materials.count
+                           && native_color_ranges.count==native_materials.count
+                           && p3dModelMaterialTexturesMatchMesh(
+                               &native_materials,&native_textures,count)){
+                            snprintf(native_texture_directory,
+                                     sizeof(native_texture_directory),
+                                     "nitro:/textures/p%03d",resource);
+                            native_material_ready=p3dDsMaterialTextureCacheInit(
+                                &native_texture_cache,&native_textures,
+                                native_texture_resolve,NULL);
+                        }
+                    }
+                }
+            }
+        }
+    }
     p3dOriginalSkeletonClear(&preview_skeleton);
     p3dSourceTrackBindingsClear(&preview_track_bindings);
     preview_animation.ready=0;
@@ -489,13 +554,28 @@ static void render_model(void){
         glDisable(GL_TEXTURE_2D);
         glBindTexture(0,0);
         glColor3b(192,224,232);
-        int native_draw_ok=source_geometry_uv_ready
+        int native_draw_ok=0;
+        if(native_material_ready){
+            glEnable(GL_TEXTURE_2D);
+            glColor3b(255,255,255);
+            native_draw_ok=p3dDsMaterialUvDraw(
+                &source_geometry_pair,&source_geometry_uv,
+                &native_source_materials,&native_materials,&native_textures,
+                &native_shader_caps,&native_texture_cache,&preview_pixels,&drawn);
+            glDisable(GL_TEXTURE_2D);
+            glBindTexture(0,0);
+        }
+        if(!native_draw_ok){
+            drawn=0;
+            glColor3b(192,224,232);
+            native_draw_ok=source_geometry_uv_ready
             ?p3dVerifiedPrimitiveUvDraw(&source_geometry_pair,
                                         &source_geometry_uv,&drawn)
             :p3dVerifiedPrimitiveDraw(source_geometry_pair.ix,
                 source_geometry_pair.ix_size,source_geometry_pair.model,
                 source_geometry_pair.meshes,source_geometry_pair.mesh_count,
                 &drawn);
+        }
         if(!native_draw_ok){
             /* Fail closed if the verified geometry changes or cannot draw. */
             p3dVerifiedGeometryPairClear(&source_geometry_pair);
