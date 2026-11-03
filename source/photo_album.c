@@ -9,8 +9,28 @@
 #include <sys/stat.h>
 /* Never follow a host symlink for the album directory. FAT has no symlinks,
  * but this also protects desktop tooling using the same album code. */
+#ifndef __NDS__
+/* Inspect every existing ancestor, not just the immediate parent. */
+static int host_path_has_no_symlinks(const char *path){
+ char prefix[P3D_PHOTO_PATH_MAX];size_t n=strlen(path);
+ struct stat st;
+ if(n==0||n>=sizeof(prefix))return 0;
+ for(size_t i=0;i<=n;i++){
+  if(path[i]!='/'&&path[i]!='\\0')continue;
+  if(i==0)continue; /* absolute filesystem root */
+  memcpy(prefix,path,i);prefix[i]='\\0';
+  if(lstat(prefix,&st)==0){
+   if(!S_ISDIR(st.st_mode))return 0;
+  }else if(errno!=ENOENT)return 0;
+ }
+ return 1;
+}
+#endif
 static int ensure_dir(const char *path){
  struct stat st;
+#ifndef __NDS__
+ if(!host_path_has_no_symlinks(path))return 0;
+#endif
  if(mkdir(path,0777)==0)return 1;
  if(errno!=EEXIST)return 0;
 #ifdef __NDS__
