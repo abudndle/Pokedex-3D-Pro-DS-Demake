@@ -89,6 +89,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb x11-apps x11-utils xdotool libegl1 libgl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-xinerama0
+      - name: C333 synthetic detail view render and restart frame gates
+        run: python3 -m unittest discover -s tests -p 'test_c333_melonds_detail_frame_gate.py' -v
       - name: C333 strict synthetic FAT source-detail checkpoint gates
         run: python3 -m unittest discover -s tests -p 'test_c333_fat_detail_gate.py' -v
       - name: Verify real DLDI FAT writes and Pokédex resume across two emulator launches
