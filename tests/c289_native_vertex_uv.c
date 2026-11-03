@@ -98,6 +98,13 @@ int main(int argc,char **argv){
     uv_triangles=0;
     assert(p3dVerifiedPrimitiveUvBridge(&g,&uv,uv_sink,NULL));
     assert(uv_triangles==1);
+    /* C298: bad UV payload must be rejected before any triangle is emitted. */
+    {uint8_t original=uv.bytes[32];uv.bytes[32]^=1;
+     uv_triangles=0;
+     assert(!p3dVerifiedPrimitiveUvBridge(&g,&uv,uv_sink,NULL));
+     assert(uv_triangles==0);
+     uv.bytes[32]=original;}
+
 
     {uint8_t original=g.vx[24];g.vx[24]^=1;
      assert(!p3dVerifiedVertexUvGetPaired(&uv,&g,0,1,&u,&v));
