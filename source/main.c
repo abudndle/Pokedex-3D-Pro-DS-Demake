@@ -807,54 +807,7 @@ static void render(void) {
         printf("A: OPEN\n");
     } else {
         printf("%s\n\n", p3dPageName(state.page));
-        if(state.page==P3D_PAGE_DEX && dex_detail_tab){
-            printf("\x1b[10;1H%s %d/4 - #%03d",
-                   p3dSpeciesDetailTabName(dex_detail_tab),
-                   dex_detail_tab,dex_index+1);
-            if(!dex_details_ready){
-                printf("\x1b[12;1HOriginal detail unavailable");
-                printf("\x1b[14;1HNo source-verified P3SD");
-                printf("\x1b[15;1Hfor this species/form");
-            }else if(dex_detail_tab==1){
-                if(dex_details.fields&P3D_DETAIL_STATS){
-                    printf("\x1b[12;1HHP:%3u   ATK:%3u  DEF:%3u",
-                           dex_details.stats[0],dex_details.stats[1],dex_details.stats[2]);
-                    printf("\x1b[14;1HSPA:%3u  SPD:%3u  SPE:%3u",
-                           dex_details.stats[3],dex_details.stats[4],dex_details.stats[5]);
-                }else printf("\x1b[12;1HOriginal stats unavailable");
-            }else if(dex_detail_tab==2){
-                if(dex_details.fields&P3D_DETAIL_ABILITIES){
-                    for(unsigned i=0;i<dex_details.abilities_count;i++)
-                        printf("\x1b[%u;1HAbility ID %u",12u+i*2u,
-                               dex_details.ability_ids[i]);
-                    if(!dex_details.abilities_count)
-                        printf("\x1b[12;1HNo verified ability IDs");
-                }else printf("\x1b[12;1HOriginal abilities unavailable");
-            }else if(dex_detail_tab==3){
-                if(dex_details.fields&P3D_DETAIL_EVOLUTIONS){
-                    for(unsigned i=0;i<dex_details.evolutions_count;i++)
-                        printf("\x1b[%u;1HTo Pokemon #%03u",12u+i*2u,
-                               dex_details.evolutions[i]+1);
-                    if(!dex_details.evolutions_count)
-                        printf("\x1b[12;1HNo listed evolutions");
-                }else printf("\x1b[12;1HOriginal evolution unavailable");
-            }else if(dex_detail_tab==4){
-                if(dex_details.fields&P3D_DETAIL_MOVES){
-                    for(unsigned i=0;i<dex_details.moves_count;i++){
-                        unsigned index=dex_details.move_indices[i];
-                        P3DMove move;
-                        if(move_catalog_ready&&p3dMoveDexRead((int)index,&move))
-                            printf("\x1b[%u;1H%03u %.23s",12u+i*2u,index+1,move.name);
-                        else printf("\x1b[%u;1HMove reference #%03u",12u+i*2u,index+1);
-                    }
-                    if(!dex_details.moves_count)
-                        printf("\x1b[12;1HNo verified learnset refs");
-                }else printf("\x1b[12;1HOriginal learnset unavailable");
-            }
-            printf("\x1b[19;1HSTART/B: entry  L/R: tabs");
-            printf("\x1b[21;1H< PREV TAB      NEXT TAB >");
-            printf("\x1b[23;1H< SPECIES       SPECIES >");
-        }else if(state.page==P3D_PAGE_DEX){
+        if(state.page==P3D_PAGE_DEX){
             if(dex_text_ready){
                 P3DDexText entry;
                 if(p3dDexTextRead(dex_index,&entry)){
@@ -1101,7 +1054,54 @@ static void render(void) {
         printf("\x1b[24;1HUse A to open selected");
     } else {
         printf("\x1b[9;1H%s",p3dPageName(state.page));
-        if(state.page==P3D_PAGE_DEX){
+        if(state.page==P3D_PAGE_DEX && dex_detail_tab){
+            printf("\x1b[10;1H%s %d/4 - #%03d",
+                   p3dSpeciesDetailTabName(dex_detail_tab),
+                   dex_detail_tab,dex_index+1);
+            if(!dex_details_ready){
+                printf("\x1b[12;1HOriginal detail unavailable");
+                printf("\x1b[14;1HNo source-verified P3SD");
+                printf("\x1b[15;1Hfor this species/form");
+            }else if(dex_detail_tab==1){
+                if(dex_details.fields&P3D_DETAIL_STATS){
+                    printf("\x1b[12;1HHP:%3u   ATK:%3u  DEF:%3u",
+                           dex_details.stats[0],dex_details.stats[1],dex_details.stats[2]);
+                    printf("\x1b[14;1HSPA:%3u  SPD:%3u  SPE:%3u",
+                           dex_details.stats[3],dex_details.stats[4],dex_details.stats[5]);
+                }else printf("\x1b[12;1HOriginal stats unavailable");
+            }else if(dex_detail_tab==2){
+                if(dex_details.fields&P3D_DETAIL_ABILITIES){
+                    for(unsigned i=0;i<dex_details.abilities_count;i++)
+                        printf("\x1b[%u;1HAbility ID %u",12u+i*2u,
+                               dex_details.ability_ids[i]);
+                    if(!dex_details.abilities_count)
+                        printf("\x1b[12;1HNo verified ability IDs");
+                }else printf("\x1b[12;1HOriginal abilities unavailable");
+            }else if(dex_detail_tab==3){
+                if(dex_details.fields&P3D_DETAIL_EVOLUTIONS){
+                    for(unsigned i=0;i<dex_details.evolutions_count;i++)
+                        printf("\x1b[%u;1HTo Pokemon #%03u",12u+i*2u,
+                               dex_details.evolutions[i]+1);
+                    if(!dex_details.evolutions_count)
+                        printf("\x1b[12;1HNo listed evolutions");
+                }else printf("\x1b[12;1HOriginal evolution unavailable");
+            }else if(dex_detail_tab==4){
+                if(dex_details.fields&P3D_DETAIL_MOVES){
+                    for(unsigned i=0;i<dex_details.moves_count;i++){
+                        unsigned index=dex_details.move_indices[i];
+                        P3DMove move;
+                        if(move_catalog_ready&&p3dMoveDexRead((int)index,&move))
+                            printf("\x1b[%u;1H%03u %.23s",12u+i*2u,index+1,move.name);
+                        else printf("\x1b[%u;1HMove reference #%03u",12u+i*2u,index+1);
+                    }
+                    if(!dex_details.moves_count)
+                        printf("\x1b[12;1HNo verified learnset refs");
+                }else printf("\x1b[12;1HOriginal learnset unavailable");
+            }
+            printf("\x1b[19;1HSTART/B: entry  L/R: tabs");
+            printf("\x1b[21;1H< PREV TAB      NEXT TAB >");
+            printf("\x1b[23;1H< SPECIES       SPECIES >");
+        }else if(state.page==P3D_PAGE_DEX){
             if(dex_text_ready){
                 P3DDexText entry;
                 if(p3dDexTextRead(dex_index,&entry)){
