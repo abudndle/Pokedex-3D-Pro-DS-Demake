@@ -4,6 +4,10 @@
 #include "photo_album.h"
 #include <dirent.h>
 #include <errno.h>
+#ifndef __NDS__
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -124,13 +128,30 @@ size_t p3dPhotoAlbumPage(const P3DPhotoAlbum *a,char names[][32],size_t limit,si
  return filled;
 }
 int p3dPhotoAlbumDelete(P3DPhotoAlbum *a,const char *name){
+#ifdef __NDS__
  char path[P3D_PHOTO_PATH_MAX+16];int n;
+#endif
  if(!a||!a->folder[0]||!valid_name(name))return 0;
 #ifndef __NDS__
  /* Reject a directory replaced with a symlink after album open. */
  if(!host_path_has_no_symlinks(a->folder))return 0;
 #endif
+#ifndef __NDS__
+ /* Pin the checked directory while inspecting and removing the entry.
+  * A swapped filename cannot redirect unlinkat outside this directory.
+  * This does not make the earlier ancestor check race-free: a full
+  * component-by-component openat walk is still required for that. */
+ int fd=open(a->folder,O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);
+ struct stat st;
+ int ok=0;
+ if(fd<0)return 0;
+ if(fstatat(fd,name,&st,AT_SYMLINK_NOFOLLOW)==0&&S_ISREG(st.st_mode))
+  ok=unlinkat(fd,name,0)==0;
+ close(fd);
+ return ok;
+#else
  if(!regular_photo(a->folder,name))return 0;
  n=snprintf(path,sizeof(path),"%s/%s",a->folder,name);
  return n>0&&(size_t)n<sizeof(path)&&remove(path)==0;
+#endif
 }
