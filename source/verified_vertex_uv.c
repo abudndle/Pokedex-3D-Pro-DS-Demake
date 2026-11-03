@@ -97,12 +97,18 @@ int p3dVerifiedVertexUvGet(const P3DVerifiedVertexUv *uv,
                            int16_t *u,int16_t *v){
     const uint8_t *row;
     size_t idx,offset;
-    if(!uv||!uv->ready||!u||!v||mesh_index>=uv->mesh_count)return 0;
+    if(!uv||!uv->ready||!u||!v||!uv->mesh_count||
+       uv->mesh_count>P3D_VERTEX_MAX_MESHES||
+       uv->vertex_count>P3D_VERTEX_MAX_VERTICES||
+       uv->size>sizeof(uv->bytes)||
+       uv->size<UV_HEADER+(size_t)uv->mesh_count*UV_ROW||
+       mesh_index>=uv->mesh_count)return 0;
     row=uv->bytes+UV_HEADER+(size_t)mesh_index*UV_ROW;
     if(vertex_index>=rd16(row+2))return 0;
     idx=(size_t)rd32(row+4)+vertex_index;
     if(idx>=uv->vertex_count)return 0;
     offset=UV_HEADER+(size_t)uv->mesh_count*UV_ROW+idx*4u;
+    if(offset>uv->size||uv->size-offset<4u)return 0;
     *u=(int16_t)rd16(uv->bytes+offset);
     *v=(int16_t)rd16(uv->bytes+offset+2);
     return 1;

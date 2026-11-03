@@ -54,6 +54,13 @@ int main(int argc,char **argv){
     assert(!p3dVerifiedVertexUvGet(&uv,0,3,&u,&v));
     assert(!p3dVerifiedVertexUvGet(&uv,1,0,&u,&v));
     assert(!p3dVerifiedVertexUvGet(&uv,0,0,NULL,&v));
+    /* Getter must reject damaged in-memory metadata without touching outputs. */
+    {size_t original=uv.size;uv.size=20;
+     assert(!p3dVerifiedVertexUvGet(&uv,0,1,&u,&v));
+     assert(u==4096&&v==0);uv.size=original;}
+    {unsigned original=uv.mesh_count;uv.mesh_count=P3D_VERTEX_MAX_MESHES+1u;
+     assert(!p3dVerifiedVertexUvGet(&uv,0,1,&u,&v));
+     assert(u==4096&&v==0);uv.mesh_count=original;}
     assert(u==4096&&v==0);
     /* Exact byte identity of the original vertex transport is required. */
     wr32(vu+12,0);write_file(argv[3],vu,sizeof(vu));denied(argv[3]);
