@@ -52,8 +52,8 @@ class AlbumPathTests(unittest.TestCase):
             album = Album()
             good = root / "Photos"
             self.assertEqual(self.open_album(album, good), 1)
-            for bad in (str(root / ".." / "elsewhere" / "Photos"),
-                        str(root / "." / "Photos")):
+            for bad in (str(root) + "/../elsewhere/Photos",
+                        str(root) + "/./Photos"):
                 self.assertEqual(self.open_album(album, bad), 0)
                 self.assertEqual(album.folder.decode(), "")
                 self.assertEqual(self.lib.p3dPhotoAlbumDelete(ctypes.byref(album), b"AR_0001.png"), 0)
