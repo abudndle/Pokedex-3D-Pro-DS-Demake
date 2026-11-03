@@ -1,0 +1,183 @@
+name: Free bounded on-runner coding agent
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+# Short-lived disposable GitHub runner, not an always-on service.
+concurrency:
+  group: free-local-coding-agent-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check-queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      proceed: ${{ steps.queue.outputs.proceed }}
+    steps:
+      - id: queue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pending="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open \
+            --limit 100 --json headRefName \
+            --jq '[.[] | select(.headRefName | startswith("agent/"))] | length')"
+          if [[ "$pending" == 0 ]]; then
+            echo 'proceed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'proceed=false' >> "$GITHUB_OUTPUT"
+            echo "Existing agent PR blocks duplicate model generation."
+          fi
+
+  propose:
+    needs: check-queue
+    if: needs.check-queue.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      ready: ${{ steps.generate.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run public-source safety regressions
+        run: |
+          python3 -m py_compile scripts/local_agent_propose.py
+          python3 tests/test_local_agent_propose.py
+      - name: Start local open-source coding model
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No paid API key, Nintendo assets or write token here.
+          curl -fsSL https://ollama.com/install.sh | sh
+          OLLAMA_HOST=127.0.0.1:11434 ollama serve >/tmp/ollama-agent.log 2>&1 &
+          for attempt in {1..60}; do
+            if curl -fsS http://127.0.0.1:11434/api/tags >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:11434/api/tags >/dev/null
+          ollama pull qwen2.5-coder:1.5b
+      - name: Generate one small source and regression fix
+        id: generate
+        shell: bash
+        env:
+          LOCAL_AGENT_MODEL: qwen2.5-coder:1.5b
+        run: |
+          set -euo pipefail
+          echo 'ready=false' >> "$GITHUB_OUTPUT"
+          FOCI=("menu" "dsi" "layout")
+          focus="${FOCI[$(( GITHUB_RUN_NUMBER % ${#FOCI[@]} ))]}"
+          if python3 scripts/local_agent_propose.py --focus "$focus" --output-dir agent-output; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo "No passing patch; main remains unchanged."
+          fi
+      - uses: actions/upload-artifact@v4
+        if: steps.generate.outputs.ready == 'true'
+        with:
+          name: free-local-proposal
+          path: |
+            agent-output/proposal.patch
+            agent-output/proposal.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-draft:
+    needs: propose
+    if: needs.propose.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: free-local-proposal
+          path: agent-output
+      - name: Revalidate patch allowlist without executing proposed code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from scripts.local_agent_propose import TASKS
+          report=json.loads(Path('agent-output/proposal.json').read_text())
+          assert report['validated'] is True
+          assert report['focus'] in TASKS
+          task=TASKS[report['focus']]
+          allowed={task['source'],task['test']}
+          assert set(report['paths'])==allowed
+          patch=Path('agent-output/proposal.patch').read_text()
+          assert 0<len(patch)<14000 and 'GIT binary patch' not in patch
+          changed=[]
+          for line in patch.splitlines():
+              if line.startswith('diff --git '):
+                  words=line.split()
+                  assert len(words)==4 and words[2].startswith('a/')
+                  assert words[3].startswith('b/') and words[2][2:]==words[3][2:]
+                  changed.append(words[2][2:])
+          assert set(changed)==allowed and len(changed)==2
+          print('PASS: patch constrained to approved C source and regression test')
+          PY
+          git apply --check agent-output/proposal.patch
+          git apply agent-output/proposal.patch
+          git diff --check
+          python3 - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          report=json.loads(Path('agent-output/proposal.json').read_text())
+          changed=set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())
+          assert changed==set(report['paths']), changed
+          PY
+      - name: Create bot-owned draft PR and dispatch independent read-only CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="agent/free-${{ github.run_id }}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          python3 - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          report=json.loads(Path('agent-output/proposal.json').read_text())
+          subprocess.run(['git','add','--',*report['paths']],check=True)
+          Path('agent-output/pr-body.md').write_text(
+             'Automatically proposed by a free local Ollama model on GitHub Actions.\n\n'
+             'Candidate: '+report['summary']+'\n\n'
+             'Model-generated code was tested in a READ-ONLY job and is NOT '
+             'executed in the privileged publisher. Independent host and ROM '
+             'CI plus exact source/test allowlist and mergeability are required '
+             'before the separately configured guarded merge gate can squash '
+             'this draft into main. No Nintendo private assets or paid API used. '
+             'Do not interpret this as proof of full 3DS compatibility.\n')
+          PY
+          git commit -m 'agent: bounded free local-model DS code and regression proposal'
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" \
+            push "https://github.com/${{ github.repository }}.git" "HEAD:refs/heads/$branch"
+          gh pr create --repo "$GITHUB_REPOSITORY" --draft --base main --head "$branch" \
+            --title "Free local coding agent: bounded DS source and test fix" \
+            --body-file agent-output/pr-body.md
+          # Dispatch workflow since GITHUB_TOKEN-created PRs may not trigger CI.
+          gh workflow run port-source-tests.yml --ref "$branch"
+          gh workflow run native-blocksds.yml --ref "$branch"
