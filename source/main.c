@@ -70,7 +70,7 @@ static int records_dirty=0;
 static int records_tab=0;
 static int records_recent_cursor=0;
 static int challenge_correct_total=0, challenge_answer_total=0;
-static unsigned int challenge_seed=0x13579BDFu;
+static uint32_t challenge_seed=0x13579BDFu;
 static int favorite_index=0;
 static int storage_ready=0;
 static int nitro_ready=0;
