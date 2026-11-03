@@ -30,7 +30,7 @@ def stage(root):
         mapping[0], mapping[1] = 2, 3
         put(destination / "models/species_map.p3sm",
             struct.pack("<4sHH649H", b"P3SM", 1, 649, *mapping))
-        for model, tex_id, color in ((2, 7, 0x001f), (3, 8, 0x7c00)):
+        for model, tex_id, color in ((2, 7, 0x801f), (3, 8, 0xfc00)):
             mesh = struct.pack("<HHI", 0, 3, 0)
             coords = struct.pack("<9h", 0, 0, 0, 4096, 0, 0, 0, 4096, 0)
             vx = struct.pack("<4sHHHHI", b"P3VX", 1, model, 1, 0,
@@ -61,7 +61,7 @@ def stage(root):
             put(destination / "materials" / (stem + ".p3sw"),
                 pack_crc_header(b"P3SW", 1, model, 1, 0, words))
             put(destination / "textures" / stem / f"t{tex_id:03d}.p3px",
-                struct.pack("<4sHHH", b"P3PX", 1, 8, 8) +
+                struct.pack("<4sHHH", b"P3PX", 2, 8, 8) +
                 struct.pack("<64H", *([color] * 64)))
         return destination
     except Exception:
