@@ -234,6 +234,8 @@ jobs:
 
       - name: Verify DS texture upload interface
         run: sh tests/run_ds_texture_upload.sh
+      - name: C300 manifest-bound DS material texture upload cache
+        run: sh tests/run_c300_ds_material_texture_cache.sh
 
       - name: Verify RGB555 texture payload against manifest
         run: sh tests/run_texture_asset.sh
