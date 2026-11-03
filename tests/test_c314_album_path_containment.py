@@ -68,6 +68,19 @@ class AlbumPathTests(unittest.TestCase):
             self.assertEqual(self.open_album(album, root / "linked" / "Photos"), 0)
             self.assertFalse((actual / "Photos").exists())
 
+    def test_nested_symlink_ancestor_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            actual = root / "actual"
+            actual.mkdir()
+            outer = root / "outer"
+            outer.mkdir()
+            (outer / "linked").symlink_to(actual, target_is_directory=True)
+            album = Album()
+            self.assertEqual(self.open_album(album, outer / "linked" / "nested" / "Photos"), 0)
+            self.assertFalse((actual / "nested").exists())
+            self.assertEqual(album.folder.decode(), "")
+
     def test_symlinked_album_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
