@@ -2,6 +2,7 @@
 #define P3D_DS_MATERIAL_TEXTURE_CACHE_H
 #include "ds_texture_upload.h"
 #include "model_textures.h"
+#include "model_materials.h"
 /* Match the native preview's bounded texture bank and allocation count. */
 #define P3D_DS_TEXTURE_CACHE_MAX 8u
 #define P3D_DS_TEXTURE_VRAM_BYTES (128u*1024u)
