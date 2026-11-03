@@ -7,6 +7,7 @@
 #include "menu_navigation.h"
 #include "menu_layout.h"
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 int main(void){
  for(int count=0;count<20;count++)
@@ -26,6 +27,22 @@ int main(void){
  assert(p3dMenuTouchIndex(256,100,8,0)==-1);
  assert(p3dMenuScroll(7,8,1)==7);
  assert(p3dMenuScroll(0,8,-1)==0);
+ /* C310: corrupted save cursors and unusual controller deltas must never
+  * overflow signed 32-bit arithmetic or return a position outside menu. */
+ assert(p3dMenuScroll(INT_MAX,8,INT_MAX)==7);
+ assert(p3dMenuScroll(INT_MIN,8,INT_MIN)==0);
+ assert(p3dMenuScroll(INT_MAX,8,INT_MIN)==0);
+ assert(p3dMenuScroll(INT_MIN,8,INT_MAX)==0);
+ assert(p3dMenuScroll(INT_MAX,8,1)==7);
+ assert(p3dMenuScroll(INT_MIN,8,-1)==0);
+ assert(p3dMenuScroll(2,8,INT_MAX)==7);
+ assert(p3dMenuScroll(2,8,INT_MIN)==0);
+ assert(p3dMenuScroll(2,8,0)==2);
+ assert(p3dMenuScroll(0,0,INT_MAX)==-1);
+ assert(p3dMenuScroll(INT_MAX,-1,1)==-1);
+ assert(p3dMenuTouchIndex(120,88,8,INT_MAX)==2);
+ assert(p3dMenuTouchIndex(120,88,8,INT_MIN)==0);
+
  assert(p3dDexNavigate(0,-1)==0);
  assert(p3dDexNavigate(0,1)==1);
  assert(p3dDexNavigate(648,1)==648);
