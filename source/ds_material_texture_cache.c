@@ -34,7 +34,7 @@ int p3dDsMaterialTextureCacheInit(P3DDsMaterialTextureCache *cache,
     if(!cache)return 0;
     memset(cache,0,sizeof(*cache));
     if(!manifest||!manifest->ready||!manifest->count||
-       manifest->count>P3D_DS_TEXTURE_CACHE_MAX||!resolver)return 0;
+       manifest->count>P3D_TEXTURE_MAX||!resolver)return 0;
     cache->manifest=manifest;
     cache->resolve_path=resolver;
     cache->resolver_context=resolver_context;
