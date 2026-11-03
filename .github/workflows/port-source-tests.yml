@@ -25,6 +25,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: C332 exact active Challenge checkpoint and torn-slot regressions
+        run: sh tests/run_c332_quiz_checkpoint.sh
       - name: C331 recovered P3DX Challenge clue and fail-closed answer regressions
         run: sh tests/run_c331_challenge_text.sh
       - name: C330 Challenge replay and existing ten-question review regressions
