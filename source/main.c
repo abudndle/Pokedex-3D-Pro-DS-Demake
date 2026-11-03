@@ -590,6 +590,15 @@ static void render_model(void){
             if(previewStreamHasModel())previewStreamDraw();
         }
         glFlush(0);
+#ifdef P3D_EMULATOR_DIAGNOSTICS
+        /* C306: emulator-only indicator of whether native source material
+         * passed all gates and actually reached a textured draw. Never
+         * enable this status overlay in normal gameplay/release builds. */
+        consoleSelect(&bottom_console);
+        printf("\x1b[19;0HC306 material:%d UV:%d cache:%u draw:%lu  ",
+               native_material_ready,source_geometry_uv_ready,
+               native_texture_cache.count,(unsigned long)drawn);
+#endif
         return;
     }
     if(preview_gl_textures.ready){
