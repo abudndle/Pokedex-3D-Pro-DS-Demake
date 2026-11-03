@@ -143,18 +143,25 @@ close_cleanly
 if [[ "$full_round" == 1 ]]; then
   python3 tests/c264_fat_completed_round_gate.py "$sd_root/export"
 else
-  python3 tests/c261_fat_challenge_gate.py "$sd_root/export"
+  python3 tests/c261_fat_challenge_gate.py --require-active "$sd_root/export"
 fi
 # Third real emulator launch must restore Challenge from the FAT checkpoint.
 launch
 capture c261-melonds-challenge-resumed.xwd
 python3 tests/c253_melonds_frame_gate.py c260-melonds-fat-home.xwd c261-melonds-challenge-resumed.xwd
+if [[ "$full_round" == 0 ]]; then
+  # C332: same exact source-backed answer options / selected question
+  # must survive real FAT media teardown and the third melonDS launch.
+  python3 tests/c332_melonds_resume_frame_gate.py \
+    c261-melonds-challenge-continued.xwd \
+    c261-melonds-challenge-resumed.xwd
+fi
 close_cleanly
 if [[ "$full_round" == 1 ]]; then
   python3 tests/c264_fat_completed_round_gate.py "$sd_root/export"
   echo 'C264 real melonDS complete ten-question Challenge, P3RC round and third-boot FAT persistence: PASS (asset-free DS mode only)'
 else
-  python3 tests/c261_fat_challenge_gate.py "$sd_root/export"
+  python3 tests/c261_fat_challenge_gate.py --require-active "$sd_root/export"
   # C263: real P3RC Records visit must survive the third emulator boot.
   python3 tests/c263_fat_records_gate.py "$sd_root/export"
   echo 'C261 real melonDS FAT Challenge progress, favorite retention and cross-boot resume: PASS (asset-free DS mode only)'
