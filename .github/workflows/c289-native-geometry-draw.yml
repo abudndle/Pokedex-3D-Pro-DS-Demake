@@ -1,0 +1,21 @@
+name: C289 native geometry draw preflight (synthetic)
+on:
+  push:
+    branches: [main, 'c289-*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c289-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Geometry and draw preflight regressions
+        run: |
+          sh tests/run_c176_native_primitive_draw.sh
+          sh tests/run_c178_native_geometry_pair.sh
+          sh tests/run_c289_geometry_draw_preflight.sh
