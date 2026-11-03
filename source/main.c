@@ -592,6 +592,12 @@ static void render_model(void){
             source_geometry_ready=0;
             if(previewStreamHasModel())previewStreamDraw();
         }
+#ifdef P3D_EMULATOR_DIAGNOSTICS
+        /* Read the real DS texture-attribute command and display-enable bit
+         * *before* flushing/unbinding; no synthetic pass is inferred. */
+        unsigned long c306_tex_format=(unsigned long)GFX_TEX_FORMAT;
+        int c306_tex_enabled=(REG_DISP3DCNT&GL_TEXTURE_2D)!=0;
+#endif
         glFlush(0);
         glDisable(GL_TEXTURE_2D);
         glBindTexture(0,0);
@@ -603,6 +609,9 @@ static void render_model(void){
         printf("\x1b[19;0HC306 material:%d UV:%d cache:%u draw:%lu  ",
                native_material_ready,source_geometry_uv_ready,
                native_texture_cache.count,(unsigned long)drawn);
+        printf("\x1b[20;0HTEX:%08lx EN:%d ID:%d   ",c306_tex_format,
+               c306_tex_enabled,native_texture_cache.count
+                 ?native_texture_cache.texture_ids[0]:0);
 #endif
         return;
     }
