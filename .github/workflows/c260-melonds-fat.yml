@@ -117,11 +117,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          stage="$(mktemp -d "$PWD/build/c334-synthetic-XXXXXX")"
+          stage="$(mktemp -d)"
           python3 tests/c334_synthetic_learnset.py "$stage"
-          docker run --rm -v "$PWD:/work" -w /work \
+          docker run --rm -v "$PWD:/work" -v "$stage:/c334-fixture:ro" -w /work \
             skylyrac/blocksds:slim-latest \
-            make -f Makefile.native NITROFSDIR="/work/${stage#"$PWD/"}" rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
+            make -f Makefile.native NITROFSDIR=/c334-fixture rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
           python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
           C334_LEARNSET_ONLY=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
             bash tests/run_c260_melonds_fat.sh \
