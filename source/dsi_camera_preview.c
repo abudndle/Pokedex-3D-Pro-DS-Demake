@@ -35,3 +35,20 @@ int p3dCameraPreviewStage(const P3DCameraFrame *f,
     }
     return 1;
 }
+
+/* Failures never publish a new frame. A bad destination is rejected before
+ * consuming a sensor frame; an unsafe sensor-owned buffer ends the session. */
+int p3dCameraCapturePreview(P3DCameraSession *session,
+                            uint16_t *destination,size_t destination_pixels){
+    P3DCameraFrame frame;
+    if(!session || !destination || destination_pixels<P3D_PREVIEW_PIXELS)
+        return 0;
+    if(!p3dCameraSessionRead(session,&frame))
+        return 0;
+    if(!p3dCameraPreviewStage(&frame,destination,destination_pixels)){
+        p3dCameraSessionClose(session);
+        session->state=P3D_CAMERA_ERROR;
+        return 0;
+    }
+    return 1;
+}
