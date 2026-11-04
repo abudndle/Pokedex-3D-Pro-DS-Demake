@@ -47,6 +47,7 @@
 #include "move_text_view.h"
 #include "dex_text.h"
 #include "species_details.h"
+#include "species_learnset.h"
 #include "dex_search.h"
 #include "search_touch.h"
 #include "photo_album.h"
@@ -138,6 +139,8 @@ static int dex_text_ready=0;
 static P3DSpeciesDetails dex_details;
 static int dex_details_ready=0;
 static int dex_detail_tab=0; /* 0 original entry, 1-4 optional details */
+static P3DLearnset dex_learnset;
+static unsigned dex_learnset_page=0;
 static int search_region=0;
 static int search_scope=0;
 static int search_field=P3D_DEX_SEARCH_NAME;
@@ -275,11 +278,15 @@ static void reload_preview(void){
      * becomes an explicitly unavailable detail screen. */
     p3dSpeciesDetailsClear(&dex_details);
     dex_details_ready=0;
+    memset(&dex_learnset,0,sizeof(dex_learnset));
+    dex_learnset_page=0;
     if(nitro_ready && !title_active && dex_index>=0 && dex_index<649){
         char details_path[80];
         if(p3dSpeciesDetailPath(details_path,dex_index,selected_form))
             dex_details_ready=p3dSpeciesDetailsLoad(
                 details_path,dex_index,selected_form,&dex_details);
+        if(p3dLearnsetPath(details_path,dex_index,selected_form))
+            p3dLearnsetLoad(details_path,dex_index,selected_form,&dex_learnset);
     }
     /* Free all prior per-material VRAM allocations on species/form changes. */
     p3dPreviewTextureSetRelease(&preview_gl_textures);
@@ -735,6 +742,11 @@ static P3DResumeState current_resume(void){
     view.favorites_selected=(uint8_t)favorite_index;
     view.dex_detail_tab=(uint8_t)(!home && state.page==P3D_PAGE_DEX?
                                   dex_detail_tab:0);
+    if(view.dex_detail_tab==4 && dex_learnset.ready){
+        view.dex_learnset_valid=1;
+        view.dex_learnset_page=(uint8_t)dex_learnset_page;
+        view.dex_learnset_checksum=dex_learnset.checksum;
+    }
     /* An active question/review is a real resume state, not just a mode.
      * The exact seed, asked set, choices and already-counted totals travel
      * together in the CRC-protected optional P3RV v4 checkpoint. */
@@ -1058,7 +1070,24 @@ static void render(void) {
             printf("\x1b[10;1H%s %d/4 - #%03d",
                    p3dSpeciesDetailTabName(dex_detail_tab),
                    dex_detail_tab,dex_index+1);
-            if(!dex_details_ready){
+            if(dex_detail_tab==4 && dex_learnset.ready){
+                unsigned start=dex_learnset_page*P3D_LEARNSET_PAGE_ROWS;
+                printf("\x1b[11;1HComplete sidecar %u/%u",
+                       dex_learnset_page+1,
+                       dex_learnset.count?(dex_learnset.count+3u)/4u:1u);
+                for(unsigned i=0;i<4 && start+i<dex_learnset.count;i++){
+                    const P3DLearnsetRow *row=&dex_learnset.rows[start+i];
+                    P3DMove move;
+                    if(move_catalog_ready&&p3dMoveDexRead(row->move,&move))
+                        printf("\x1b[%u;1H%-6s%3u %.19s",12u+i,
+                               p3dLearnsetMethod(row->method),row->level,move.name);
+                    else printf("\x1b[%u;1H%-6s%3u Move #%03u",12u+i,
+                                p3dLearnsetMethod(row->method),row->level,row->move+1u);
+                }
+                if(!dex_learnset.count)printf("\x1b[12;1HNo listed moves");
+                printf("\x1b[17;1H< PAGE UP      PAGE DOWN >");
+                printf("\x1b[18;1HUP/DOWN: learnset pages");
+            }else if(!dex_details_ready){
                 printf("\x1b[12;1HOriginal detail unavailable");
                 printf("\x1b[14;1HNo source-verified P3SD");
                 printf("\x1b[15;1Hfor this species/form");
@@ -1086,6 +1115,7 @@ static void render(void) {
                         printf("\x1b[12;1HNo listed evolutions");
                 }else printf("\x1b[12;1HOriginal evolution unavailable");
             }else if(dex_detail_tab==4){
+                printf("\x1b[11;1HSummary only (max 4 refs)");
                 if(dex_details.fields&P3D_DETAIL_MOVES){
                     for(unsigned i=0;i<dex_details.moves_count;i++){
                         unsigned index=dex_details.move_indices[i];
@@ -1438,6 +1468,11 @@ int main(void) {
         records.recent[records_recent_cursor]==P3D_RECORD_NO_SPECIES))
         records_recent_cursor=0;
     reload_preview();
+    if(last_checkpoint_valid && !home && state.page==P3D_PAGE_DEX &&
+       dex_detail_tab==4 && last_checkpoint.dex_learnset_valid &&
+       last_checkpoint.dex==dex_index && last_checkpoint.selected_form==selected_form)
+        dex_learnset_page=p3dLearnsetRestorePage(&dex_learnset,
+            last_checkpoint.dex_learnset_page,last_checkpoint.dex_learnset_checksum);
     count=(int)p3dMenuEntries(caps,pages);
     /* Reset/power-on with a valid checkpoint opens that same active page,
      * bypassing title. New games still use the genuine original 3DS title
@@ -2012,7 +2047,13 @@ int main(void) {
                 }
                 /* Cycle only existing verified optional animation files;
                  * reset playback at the new keyframe sequence. */
-                if(preview_found && preview_animation_library.ready &&
+                if(dex_detail_tab==4 &&
+                   ((down&KEY_UP)!=0)!=((down&KEY_DOWN)!=0)){
+                    dex_learnset_page=p3dLearnsetPage(&dex_learnset,
+                        dex_learnset_page,(down&KEY_DOWN)?1:-1);
+                    redraw=1;
+                }
+                if(!dex_detail_tab && preview_found && preview_animation_library.ready &&
                    ((down&KEY_UP)!=0)!=((down&KEY_DOWN)!=0)){
                     int direction=(down&KEY_DOWN)?1:-1;
                     if(p3dAnimationLibraryStep(&preview_animation_library,
@@ -2048,6 +2089,14 @@ int main(void) {
             if(!showing_original_art && (down&KEY_TOUCH) && state.page!=P3D_PAGE_SEARCH){
                 touchPosition point;
                 touchRead(&point);
+                if(state.page==P3D_PAGE_DEX && dex_detail_tab==4 &&
+                   !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|
+                           KEY_UP|KEY_DOWN|KEY_SELECT|KEY_START|KEY_L|KEY_R)) &&
+                   point.py>=128 && point.py<144){
+                    dex_learnset_page=p3dLearnsetPage(&dex_learnset,
+                        dex_learnset_page,point.px<128?-1:1);
+                    redraw=1;
+                }
                 /* C230: controls are visible ONLY on the fallback text Dex UI.
                  * Block combined keypad/touch input and source geometry without
                  * independently verified skeletal animation. */

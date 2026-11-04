@@ -111,6 +111,21 @@ jobs:
           C264_FULL_ROUND=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 250s \
             bash tests/run_c260_melonds_fat.sh \
             "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C260_APP_RUN"
+      - name: C334 exact synthetic learnset FAT checkpoint regressions
+        run: python3 -m unittest discover -s tests -p 'test_c334_fat_learnset_gate.py' -v
+      - name: C334 compile synthetic learnset ROM and verify real pagination and reboot
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$(mktemp -d "$PWD/build/c334-synthetic-XXXXXX")"
+          python3 tests/c334_synthetic_learnset.py "$stage"
+          docker run --rm -v "$PWD:/work" -w /work \
+            skylyrac/blocksds:slim-latest \
+            make -f Makefile.native NITROFSDIR="/work/${stage#"$PWD/"}" rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
+          python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
+          C334_LEARNSET_ONLY=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
+            bash tests/run_c260_melonds_fat.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C260_APP_RUN"
       - name: Preserve only synthetic development-ROM dual-screen captures
         if: always()
         uses: actions/upload-artifact@v4
@@ -121,6 +136,7 @@ jobs:
             c261-melonds-*.xwd
             c264-melonds-*.xwd
             c333-melonds-*.xwd
+            c334-melonds-*.xwd
             c260-melonds-windows.txt
           if-no-files-found: ignore
           retention-days: 3
