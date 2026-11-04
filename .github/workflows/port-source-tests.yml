@@ -29,6 +29,8 @@ jobs:
         run: sh tests/run_c355_photo_viewer.sh
       - name: C355 address and undefined-behavior sanitizer coverage
         run: P3D_HOST_SANITIZERS='-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer' sh tests/run_c355_photo_viewer.sh
+      - name: C355 isolated native builder retains licensed PNG source dependencies
+        run: python3 -m unittest discover -s tests -p 'test_c272_private_rom_build.py' -v
       - name: Run the complete canonical host suite on a POSIX filesystem
         run: make check-host
       - name: C334 bounded learnset loading, pagination and exact resume
