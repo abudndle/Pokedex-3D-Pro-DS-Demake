@@ -16,6 +16,7 @@ int main(void){
     int expected=count?(int)p3dMenuVisibleStart((size_t)count,cursor)+row:-1;
     if(expected>=count)expected=-1;
     assert(p3dMenuTouchIndex(120,88+16*row,count,cursor)==expected);
+ assert(p3dMenuTouchIndex(120,88+16*row,count,cursor)<count);
    }
  assert(p3dMenuTouchIndex(10,88,8,0)==0);
  assert(p3dMenuTouchIndex(10,104,8,0)==1);
