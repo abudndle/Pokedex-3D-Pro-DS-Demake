@@ -1353,7 +1353,9 @@ static void render(void) {
            (quiz.stage==P3D_CHALLENGE_QUESTION ||
             quiz.stage==P3D_CHALLENGE_REVIEW))
             printf("\x1b[24;1HB: Return to menu");
-        else if(state.page!=P3D_PAGE_ALBUM)printf("\x1b[17;1HPress B to go back");
+        else if(state.page!=P3D_PAGE_ALBUM &&
+                (state.page!=P3D_PAGE_DEX || dex_detail_tab!=3))
+            printf("\x1b[17;1HPress B to go back");
     }
 }
 int main(void) {
