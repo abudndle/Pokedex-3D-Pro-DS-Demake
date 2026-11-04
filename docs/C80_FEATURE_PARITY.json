@@ -72,7 +72,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/photo_album.c",
-      "gap": "C355 adds bounded PNG opening, aspect-preserving RGB555 photo viewing, keypad/touch browsing across pages and return to the retained list selection. C356 adds source-bound exact-photo restart and safe list fallback for changed/missing media; original photo associations, slideshow, camera capture and physical DS/DSi validation remain pending",
+      "gap": "C355 adds bounded PNG opening, aspect-preserving RGB555 photo viewing, keypad/touch browsing across pages and return to the retained list selection. C356 adds source-bound exact-photo restart and safe list fallback for changed/missing media; C357 adds timed button/touch slideshow playback, pause, looping and paused restart as a DS adaptation; original timing/artwork, photo associations, camera capture and physical DS/DSi validation remain pending",
       "verified_end_to_end": false
     },
     {

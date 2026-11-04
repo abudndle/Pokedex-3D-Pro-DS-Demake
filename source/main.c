@@ -1280,6 +1280,8 @@ static void render(void) {
                     printf("\x1b[13;1HPhoto %u x %u",album_view.width,album_view.height);
                 else printf("\x1b[13;1HPhoto unavailable or invalid");
                 printf("\x1b[16;1HLEFT / RIGHT: browse photos");
+                printf("\x1b[18;1HA: %s slideshow",album_view.playing?"pause":"play");
+                printf("\x1b[19;1H%s",album_view.playing?"Playing (5 sec / photo)":"Paused");
                 printf("\x1b[20;1HB: return to Album list");
                 printf("\x1b[22;1H< PREV     LIST     NEXT >");
             }else {
@@ -1889,16 +1891,26 @@ int main(void) {
                 if(!shown)album_selected=0;
                 else if(album_selected>=shown)album_selected=shown-1;
                 if(album_view.active){
+                    if((down&KEY_A) &&
+                       !(down&(KEY_B|KEY_X|KEY_Y|KEY_TOUCH|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN))){
+                        (void)p3dPhotoViewerPlay(&album_view);redraw=1;
+                    }
                     int direction=((down&KEY_LEFT)!=0)!=((down&KEY_RIGHT)!=0)?
                         ((down&KEY_LEFT)?-1:1):0;
                     if((down&KEY_TOUCH) &&
                        !(down&(KEY_A|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN))){
                         touchPosition point;touchRead(&point);
+                        if(point.py>=136 && point.py<152){
+                            (void)p3dPhotoViewerPlay(&album_view);redraw=1;
+                        }
                         if(point.py>=160 && point.py<184){
                             if(point.px>=64 && point.px<192){
                                 p3dPhotoViewerClose(&album_view);art_page=-1;redraw=1;
                             }else direction=point.px<64?-1:1;
                         }
+                    }
+                    if(direction){
+                        album_view.playing=0;album_view.dwell_frames=0;redraw=1;
                     }
                     if(direction && p3dPhotoAlbumStep(&album_offset,&album_selected,total,direction)){
                         shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
@@ -2269,6 +2281,11 @@ int main(void) {
                 }
             }
             } /* Do not process page-specific input after B returns home. */
+        }
+        if(!title_active && !home && state.page==P3D_PAGE_ALBUM &&
+           p3dPhotoViewerTick(&album_view)){
+            (void)p3dPhotoViewerAdvance(&album_view,&photo_album,&album_offset,&album_selected);
+            art_page=-1;redraw=1;
         }
         /* Update page/model state before issuing 3D commands.  Previously
          * render_model() ran with the prior frame's display_preview flag:
