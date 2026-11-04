@@ -172,6 +172,7 @@ static size_t album_selected=0;
 static int album_confirm_delete=0;
 static P3DPhotoViewer album_view;
 static int showing_album_photo=0;
+static int album_resume_unavailable=0;
 /* C81 viewed species, regional totals and per-mode high scores are stored in
  * separate dual-slot P3RC saves; P3SV legacy progress remains compatible. */
 static size_t records_photo_total(void){
@@ -745,6 +746,11 @@ static P3DResumeState current_resume(void){
         999:(album_offset/P3D_ALBUM_PAGE_MAX));
     view.selected_form=(uint16_t)selected_form;
     view.album_selected=(uint8_t)album_selected;
+    if(!home && state.page==P3D_PAGE_ALBUM && album_view.active && album_view.ready){
+        view.album_view_active=1;view.album_photo_id=album_view.photo_id;
+        view.album_photo_checksum=album_view.identity.checksum;
+        view.album_photo_bytes=album_view.identity.bytes;
+    }
     view.records_recent_cursor=(uint8_t)records_recent_cursor;
     view.move_show_effect=(uint8_t)(move_show_effect!=0);
     view.search_region=(uint8_t)search_region;
@@ -1281,6 +1287,8 @@ static void render(void) {
                 char names[P3D_ALBUM_PAGE_MAX][32];
                 size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
                 printf("\x1b[11;1HPhotos: %u",(unsigned)total);
+                if(album_resume_unavailable)
+                    printf("\x1b[12;1HSaved photo changed/unavailable");
                 size_t first=album_selected>=5?album_selected-4:0;
                 for(size_t row=0;row<5 && first+row<shown;row++){
                     size_t i=first+row;
@@ -1486,6 +1494,15 @@ int main(void) {
         /* Moves must remain available even if a model preview is missing. */
         move_catalog_ready=p3dMoveDexInit("nitro:/moves.p3dm");
         dex_text_ready=p3dDexTextInit("nitro:/data/dex_en.p3dx");
+    }
+    if(last_checkpoint_valid && !home && state.page==P3D_PAGE_ALBUM &&
+       last_checkpoint.album_view_active){
+        P3DPhotoIdentity identity={last_checkpoint.album_photo_checksum,
+                                   last_checkpoint.album_photo_bytes};
+        if(!album_ready || !p3dPhotoViewerRestore(&album_view,&photo_album,
+               last_checkpoint.album_photo_id,identity,&album_offset,&album_selected))
+            album_resume_unavailable=1;
+        art_page=-1;
     }
     if(last_checkpoint_valid && state.page==P3D_PAGE_MOVES){
         /* Prevent a stale saved scroll after the private move text changes. */
@@ -1864,6 +1881,8 @@ int main(void) {
                 if(search_navigation)down=0;
             }
             if(state.page==P3D_PAGE_ALBUM && album_ready){
+                if(down&(KEY_A|KEY_X|KEY_UP|KEY_DOWN|KEY_LEFT|KEY_RIGHT|KEY_L|KEY_R|KEY_TOUCH))
+                    album_resume_unavailable=0;
                 char names[P3D_ALBUM_PAGE_MAX][32];
                 size_t total=0;
                 size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);

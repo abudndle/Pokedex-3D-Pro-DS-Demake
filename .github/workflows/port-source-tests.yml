@@ -25,6 +25,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: C356 exact photo checkpoint, identity and changed-media recovery
+        run: |
+          sh tests/run_c356_photo_resume.sh
+          sh tests/run_c356_photo_identity.sh
+          P3D_HOST_SANITIZERS='-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer' sh tests/run_c356_photo_identity.sh
       - name: C355 bounded Album PNG pixels, corruption, alpha and navigation
         run: sh tests/run_c355_photo_viewer.sh
       - name: C355 address and undefined-behavior sanitizer coverage

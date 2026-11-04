@@ -28,7 +28,7 @@ def valid_slots(root: Path, stem: str, magic: bytes, size: int, crc_at: int):
 
 
 def valid_resume_slots(root: Path):
-    """Accept CRC-verified v3 inactive or v4 active P3RV FAT exports.
+    """Accept CRC-verified v3-v7 P3RV FAT exports.
 
     Unlike the original fixed-80-byte gate, this never truncates an active
     checkpoint to fit the older header or accepts unknown extension bytes.
@@ -57,6 +57,13 @@ def valid_resume_slots(root: Path):
             crc_at = 92
             if (data[76] != 4 or data[77] >= 64 or any(data[78:80])
                     or any(data[84:92]) or data[12] != 0 or data[13] != 1):
+                continue
+        elif len(data) == 96 and data[:5] == b"P3RV\x07":
+            crc_at = 92
+            if (data[76] != 1 or data[77] or any(data[88:92])
+                    or data[12:14] != bytes((0, 8))
+                    or struct.unpack_from('<H', data, 78)[0] >= 10000
+                    or not 1 <= struct.unpack_from('<I', data, 84)[0] <= 2*1024*1024):
                 continue
         else:
             continue

@@ -2,8 +2,10 @@
 #define P3D_PHOTO_PNG_H
 #include <stdint.h>
 #include <stdio.h>
+#define P3D_PHOTO_FILE_MAX (2u*1024u*1024u)
+typedef struct {uint32_t checksum,bytes;} P3DPhotoIdentity;
 /* Bounded 640x480 noninterlaced PNG -> letterboxed DS RGB555.
  * Output is not ready until the caller receives success. */
 int p3dPhotoPngDecode(FILE *file,uint16_t pixels[256u*192u],
-                      unsigned *width,unsigned *height);
+                      unsigned *width,unsigned *height,P3DPhotoIdentity *identity);
 #endif
