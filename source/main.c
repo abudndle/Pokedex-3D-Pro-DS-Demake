@@ -1072,7 +1072,7 @@ static void render(void) {
                    dex_detail_tab,dex_index+1);
             if(dex_detail_tab==4 && dex_learnset.ready){
                 unsigned start=dex_learnset_page*P3D_LEARNSET_PAGE_ROWS;
-                printf("\x1b[11;1HComplete sidecar %u/%u",
+                printf("\x1b[11;1HComplete list %u/%u",
                        dex_learnset_page+1,
                        dex_learnset.count?(dex_learnset.count+3u)/4u:1u);
                 for(unsigned i=0;i<4 && start+i<dex_learnset.count;i++){
