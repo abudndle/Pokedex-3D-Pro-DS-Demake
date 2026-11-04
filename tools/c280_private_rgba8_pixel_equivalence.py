@@ -57,7 +57,9 @@ def compare_candidate(source, width, height, p3px):
     return width * height
 
 
-def audit(private_root, c73_csv, p3px_zip, require_full=False):
+def audit(private_root, c73_csv, p3px_zip, require_full=False, *,
+          density="32_BPP_STORAGE_ONLY", comparator=compare_candidate, schema=SCHEMA,
+          allow_unanchored=False):
     catalog = read_catalog(c73_csv)
     with zipfile.ZipFile(p3px_zip) as textures:
         infos = textures.infolist()
@@ -78,7 +80,7 @@ def audit(private_root, c73_csv, p3px_zip, require_full=False):
             available[info.filename] = info
         seen = set()
         consumed = 0
-        matched = resized = pixel_count = 0
+        matched = resized = pixel_count = unanchored = 0
         records = []
         for part in (1, 2, 3):
             path = Path(private_root) / f"Pokedex3D_C56_Decoded_C5_Part_{part}_of_3.zip"
@@ -105,10 +107,13 @@ def audit(private_root, c73_csv, p3px_zip, require_full=False):
                     raw = archive.read(info)
                     metadata = source_descriptor_metadata(raw)
                     for index, row in enumerate(metadata):
-                        if row["byte_density"] != "32_BPP_STORAGE_ONLY":
+                        if row["byte_density"] != density:
                             continue
                         if index not in catalog.get(mid, {}):
-                            raise ValueError("32-bpp C5 texture lacks independent C73 SHA anchor")
+                            if allow_unanchored:
+                                unanchored += 1
+                                continue
+                            raise ValueError("source C5 texture lacks independent C73 SHA anchor")
                         if catalog[mid][index] != (row["source_offset"], row["source_bytes"], row["source_sha256"]):
                             raise ValueError("32-bpp original C73 source SHA mismatch")
                         name = f"textures/{mid}/t{index:03d}.p3px"
@@ -125,7 +130,7 @@ def audit(private_root, c73_csv, p3px_zip, require_full=False):
                             resized += 1
                             continue  # No exact-pixel claim after lossy resizing.
                         source = raw[row["source_offset"]:row["source_offset"] + row["source_bytes"]]
-                        pixels = compare_candidate(source, width, height, textures.read(available[name]))
+                        pixels = comparator(source, width, height, textures.read(available[name]))
                         matched += 1
                         pixel_count += pixels
                         records.append({"model_id": mid, "texture_index": index,
@@ -136,10 +141,11 @@ def audit(private_root, c73_csv, p3px_zip, require_full=False):
             raise ValueError("C73 model missing original C5")
         if require_full and seen != ROSTER:
             raise ValueError("expected all 730 original C5 models")
-    summary = {"schema": SCHEMA, "models": len(seen),
+    summary = {"schema": schema, "models": len(seen),
                "same_dimension_32bpp_textures_exact": matched,
                "exact_a1rgb555_pixels": pixel_count,
                "resized_32bpp_textures_excluded": resized,
+               "unanchored_source_textures_excluded": unanchored,
                "independent_3ds_gpu_format_verified": False,
                "original_sampler_roles_verified": 0,
                "asset_integrated_emulator_verified": False, "release_ready": False}
