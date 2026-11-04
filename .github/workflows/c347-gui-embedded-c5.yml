@@ -1,0 +1,28 @@
+name: C347 original GUI embedded C5 (synthetic only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - tools/c347_gui_embedded_c5.py
+      - tests/test_c347_gui_embedded_c5.py
+      - .github/workflows/c347-gui-embedded-c5.yml
+  pull_request:
+    paths:
+      - tools/c347_gui_embedded_c5.py
+      - tests/test_c347_gui_embedded_c5.py
+      - .github/workflows/c347-gui-embedded-c5.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c347-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  synthetic-c5-extraction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 -m unittest discover -s tests -p 'test_c347_gui_embedded_c5.py' -v
