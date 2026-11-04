@@ -4,6 +4,8 @@
 set -euo pipefail
 viewer_only="${C355_VIEWER_ONLY:-0}"
 resume_only="${C356_RESUME_ONLY:-0}"
+slideshow_only="${C357_SLIDESHOW_ONLY:-0}"
+if [[ "$slideshow_only" != 0 && "$slideshow_only" != 1 ]]; then exit 2; fi
 if [[ "$resume_only" != 0 && "$resume_only" != 1 ]]; then exit 2; fi
 if [[ "$viewer_only" != 0 && "$viewer_only" != 1 ]]; then exit 2; fi
 rom="${1:?asset-free BlocksDS ROM required}"
@@ -105,6 +107,42 @@ sleep 0.5
 xdotool mouseup 1
 sleep 2
 capture c268-melonds-album-first.xwd
+if [[ "$slideshow_only" == 1 ]]; then
+    press x
+    capture c357-melonds-open.xwd
+    press x
+    capture c357-melonds-playing.xwd
+    sleep 3.5
+    press x
+    capture c357-melonds-paused.xwd
+    sleep 6
+    capture c357-melonds-held.xwd
+    # Touch the visible play/pause row, then manual next must pause playback.
+    xdotool mousemove --window "$window" 128 355
+    xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
+    capture c357-melonds-touch.xwd
+    sleep 3.5
+    press x
+    capture c357-melonds-touch-advanced.xwd
+    press Right
+    capture c357-melonds-manual.xwd
+    sleep 6
+    capture c357-melonds-manual-held.xwd
+    press x
+    close_cleanly
+    launch
+    capture c357-melonds-restored.xwd
+    press x
+    sleep 3.5
+    press x
+    capture c357-melonds-restarted.xwd
+    press z
+    capture c357-melonds-list.xwd
+    close_cleanly
+    python3 tests/c357_slideshow_gate.py --fat "$sd_root/export"
+    python3 tests/c357_slideshow_gate.py c357-melonds-{open,playing,paused,held,touch,touch-advanced,manual,manual-held,restored,restarted,list}.xwd
+    exit 0
+fi
 if [[ "$resume_only" == 1 ]]; then
     press x
     press Right
