@@ -1,0 +1,31 @@
+name: C350 original GUI GPU byte recovery (synthetic only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - 'tools/c350_original_gui_gpu_payloads.py'
+      - 'tests/test_c350_original_gui_gpu_payloads.py'
+      - '.github/workflows/c350-gui-gpu-synthetic.yml'
+  pull_request:
+    paths:
+      - 'tools/c350_original_gui_gpu_payloads.py'
+      - 'tests/test_c350_original_gui_gpu_payloads.py'
+      - '.github/workflows/c350-gui-gpu-synthetic.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c350-\${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  synthetic-original-gui-gpu-boundaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Strict original C5 header boundary, language-pair and output tests
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c350_original_gui_gpu_payloads.py' -v
+          python3 -m py_compile tools/c350_original_gui_gpu_payloads.py
