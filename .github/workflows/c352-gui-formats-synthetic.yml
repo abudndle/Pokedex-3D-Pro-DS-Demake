@@ -1,0 +1,34 @@
+name: C352 all original GUI PICA textures (synthetic only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - 'tools/c352_gui_full_atlases.py'
+      - 'tests/test_c352_gui_full_atlases.py'
+      - '.github/workflows/c352-gui-formats-synthetic.yml'
+  pull_request:
+    paths:
+      - 'tools/c352_gui_full_atlases.py'
+      - 'tests/test_c352_gui_full_atlases.py'
+      - '.github/workflows/c352-gui-formats-synthetic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c352-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-original-gui-five-pica-formats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate 13 synthetic-only RGB8, LA8, L8, RGBA4 and RGBA8 tests
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c352_gui_full_atlases.py' -v
+          python3 -m py_compile tools/c352_gui_full_atlases.py
