@@ -15,14 +15,14 @@ def verify_fat(root):
         if (folder/f'AR_{n:04d}.png').read_bytes()!=synthetic_photo(n):
             raise ValueError('slideshow modified a photo')
     data=valid_resume_slots(root)
-    if data[4]!=3 or data[12:14]!=bytes((0,8)) or data[26]!=4:
+    if data[4]!=3 or data[12:14]!=bytes((0,8)) or data[26]!=0:
         raise ValueError('B did not retain the final photo list selection')
-    return {'media_unchanged':True,'final_list_selection':4}
+    return {'media_unchanged':True,'final_list_selection':0}
 
 
 def verify_frames(*paths):
-    expected=(9,9,8,8,8,7,6,6,6,5,None)
-    if len(paths)!=len(expected):raise ValueError('eleven captures required')
+    expected=(9,9,8,8,8,7,6,6,6,5,9,None)
+    if len(paths)!=len(expected):raise ValueError('twelve captures required')
     frames=[frame(p) for p in paths]
     if frames[0][:2]!=(256,403) or any(f[:4]!=frames[0][:4] for f in frames):
         raise ValueError('slideshow geometry mismatch')
@@ -43,12 +43,12 @@ def verify_frames(*paths):
             if any(abs(a-b)>10 for a,b in zip(rgb(i,x,y),color)):
                 raise ValueError(f'wrong timed/paused photo at capture {i}')
         if max(rgb(i,8,115))>8:raise ValueError('bad photo letterbox')
-    color=tuple((c>>3)*255//31 for c in (5*17%256,5*29%256,5*41%256))
-    if all(all(abs(a-b)<=10 for a,b in zip(rgb(10,x,y),color))
+    color=tuple((c>>3)*255//31 for c in (9*17%256,9*29%256,9*41%256))
+    if all(all(abs(a-b)<=10 for a,b in zip(rgb(11,x,y),color))
            for x,y in ((64,67),(128,115),(200,179))):
         raise ValueError('B did not close viewer')
     return {'timed_advance':True,'button_and_touch_pause_play':True,
-            'manual_browse_pauses':True,'restart_paused':True,
+            'manual_browse_pauses':True,'restart_paused':True,'oldest_to_newest_loop':True,
             'original_timing_verified':False,'hardware_verified':False}
 
 

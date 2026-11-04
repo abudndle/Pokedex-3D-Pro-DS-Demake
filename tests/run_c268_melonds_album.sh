@@ -136,11 +136,16 @@ if [[ "$slideshow_only" == 1 ]]; then
     sleep 3.5
     press x
     capture c357-melonds-restarted.xwd
+    # From photo5, five full dwell intervals visit4,3,2,1 then wrap to9.
+    press x
+    sleep 24.5
+    press x
+    capture c357-melonds-wrapped.xwd
     press z
     capture c357-melonds-list.xwd
     close_cleanly
     python3 tests/c357_slideshow_gate.py --fat "$sd_root/export"
-    python3 tests/c357_slideshow_gate.py c357-melonds-{open,playing,paused,held,touch,touch-advanced,manual,manual-held,restored,restarted,list}.xwd
+    python3 tests/c357_slideshow_gate.py c357-melonds-{open,playing,paused,held,touch,touch-advanced,manual,manual-held,restored,restarted,wrapped,list}.xwd
     exit 0
 fi
 if [[ "$resume_only" == 1 ]]; then
