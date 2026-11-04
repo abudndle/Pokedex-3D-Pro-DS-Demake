@@ -1,0 +1,33 @@
+name: C349 private ROM navigation (synthetic test only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - tests/c349_private_navigation_gate.py
+      - tests/c349_capture_private_navigation.py
+      - tests/test_c349_private_navigation_gate.py
+      - .github/workflows/c349-private-navigation-synthetic.yml
+  pull_request:
+    paths:
+      - tests/c349_private_navigation_gate.py
+      - tests/c349_capture_private_navigation.py
+      - tests/test_c349_private_navigation_gate.py
+      - .github/workflows/c349-private-navigation-synthetic.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c349-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  synthetic-private-menu-navigation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test synthetic only and compile capture script
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c349_private_navigation_gate.py' -v
+          python3 -m py_compile tests/c349_capture_private_navigation.py tests/c349_private_navigation_gate.py
