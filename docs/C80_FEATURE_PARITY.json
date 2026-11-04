@@ -120,7 +120,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/species_details.c",
-      "gap": "C333 adds fail-closed per-species/form P3SD v1 native reader, four tab details UI and persistent P3RV v5 detail tab. Only 649 P3DX names/descriptions/height/weight and 559 P3DM move names/effects are verified original source. The user's original private stats/ability/evolution/complete learnset records are not recovered in the accessible workspace, no original values are bundled, and the v1 sidecar supports only 4 optional move references, not full learnsets. Original-source binary extraction, provenance, full forms/data, authentic 3DS art, 3DS side-by-side comparison, DSi/hardware still missing.",
+      "gap": "C333 adds fail-closed per-species/form P3SD v1 native reader, four tab details UI and persistent P3RV v5 detail tab. Only 649 P3DX names/descriptions/height/weight and 559 P3DM move names/effects are verified original source. The user's original private stats/ability/evolution/complete learnset records are not recovered in the accessible workspace, no original values are bundled, and P3SD v1 still supports only 4 optional move references. C334 adds bounded complete-list P3SL transport (up to 256 method/level rows), four-row keypad/touch pagination and source-checksum-bound P3RV v6 page resume; original full learnset recovery/provenance and physical-hardware validation remain incomplete. Original-source binary extraction, provenance, full forms/data, authentic 3DS art, 3DS side-by-side comparison, DSi/hardware still missing.",
       "verified_end_to_end": false
     },
     {

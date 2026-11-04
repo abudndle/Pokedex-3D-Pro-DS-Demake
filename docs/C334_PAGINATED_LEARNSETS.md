@@ -68,3 +68,10 @@ compares real dual-screen captures across restart. The nine synthetic rows are
 test transport data only; they are never packaged as original game records.
 Passing host/CI checks does not establish original learnset authenticity,
 private-asset integration, DSi camera operation or physical-hardware parity.
+
+Related host-suite repairs: source chunk streams disable stdio read-ahead while
+retaining explicit 32-face batches, so draw-time CRC observes edits made through
+another file handle on MSYS. The existing draw-time mutation regression failed
+before this change and passed after. The FAT duplicate-slot fixture uses a
+distinct subfolder so it creates two real files on case-insensitive hosts, and
+the texture-alpha test explicitly includes its GL declarations.
