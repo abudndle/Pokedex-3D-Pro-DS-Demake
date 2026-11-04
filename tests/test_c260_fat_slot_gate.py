@@ -43,7 +43,11 @@ class FatSlotTests(unittest.TestCase):
         with self.assertRaises(ValueError): check(self.root)
 
     def test_duplicate_casefold_slot_fails_closed(self):
-        (self.root / 'POKEDEX3D_A.SAV').write_bytes((self.root / 'pokedex3d_A.sav').read_bytes())
+        # Distinct folders preserve the ambiguity on case-insensitive hosts,
+        # where an uppercase filename beside the original overwrites it.
+        duplicate = self.root / 'duplicate'
+        duplicate.mkdir()
+        (duplicate / 'POKEDEX3D_A.SAV').write_bytes((self.root / 'pokedex3d_A.sav').read_bytes())
         with self.assertRaises(ValueError): check(self.root)
 
     def test_newest_valid_slot_selected(self):

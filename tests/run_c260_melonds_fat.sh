@@ -4,6 +4,11 @@
 set -euo pipefail
 full_round="${C264_FULL_ROUND:-0}"
 detail_only="${C333_DETAIL_ONLY:-0}"
+learnset_only="${C334_LEARNSET_ONLY:-0}"
+if [[ "$learnset_only" != 0 && "$learnset_only" != 1 ]]; then
+  echo 'C334_LEARNSET_ONLY must be 0 or 1' >&2
+  exit 2
+fi
 if [[ "$detail_only" != 0 && "$detail_only" != 1 ]]; then
   echo 'C333_DETAIL_ONLY must be 0 or 1' >&2
   exit 2
@@ -28,6 +33,9 @@ cat > "$XDG_CONFIG_HOME/melonDS/melonDS.toml" <<TOML
 A = 88
 B = 90
 Right = 16777236
+Left = 16777234
+Up = 16777235
+Down = 16777237
 Start = 16777220
 [DLDI]
 Enable = true
@@ -101,13 +109,55 @@ sleep 0.4
 xdotool keyup x
 sleep 4
 capture c260-melonds-fat-favorite.xwd
-if [[ "$detail_only" == 1 ]]; then
+if [[ "$detail_only" == 1 || "$learnset_only" == 1 ]]; then
+  if [[ "$learnset_only" == 1 ]]; then
+    # Exercise the actual Right handler, not just its portable helper.
+    xdotool windowfocus --sync "$window"
+    xdotool keydown Right; sleep 0.3; xdotool keyup Right; sleep 2
+    capture c334-melonds-right.xwd
+    close_cleanly
+    python3 tests/c334_fat_learnset_gate.py "$sd_root/export" --navigation
+    launch
+    capture c334-melonds-right-resumed.xwd
+    xdotool windowfocus --sync "$window"
+    xdotool keydown Left; sleep 0.3; xdotool keyup Left; sleep 1
+  fi
   xdotool windowfocus --sync "$window"
   xdotool keydown Return
   sleep 0.5
   xdotool keyup Return
   sleep 2
   capture c333-melonds-detail.xwd
+  if [[ "$learnset_only" == 1 ]]; then
+    # Three visible NEXT TAB touches: STATS -> ABILITIES -> EVOLUTIONS -> LEARNSET.
+    for _ in 1 2 3; do
+      xdotool mousemove --window "$window" 210 379
+      xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 0.5
+    done
+    capture c334-melonds-learnset-first.xwd
+    # Exercise both keypad pagination and the distinct touchscreen row.
+    xdotool keydown Down; sleep 0.3; xdotool keyup Down; sleep 0.5
+    capture c334-melonds-learnset-key.xwd
+    xdotool keydown Up; sleep 0.3; xdotool keyup Up; sleep 0.5
+    capture c334-melonds-learnset-back.xwd
+    xdotool mousemove --window "$window" 210 347
+    xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 2
+    capture c334-melonds-learnset-page.xwd
+    python3 tests/c333_melonds_detail_frame_gate.py \
+      c334-melonds-learnset-first.xwd c334-melonds-learnset-key.xwd c334-melonds-learnset-page.xwd
+    python3 tests/c333_melonds_detail_frame_gate.py \
+      c334-melonds-learnset-page.xwd c334-melonds-learnset-first.xwd c334-melonds-learnset-back.xwd
+    close_cleanly
+    python3 tests/c334_fat_learnset_gate.py "$sd_root/export"
+    launch
+    capture c334-melonds-learnset-resumed.xwd
+    python3 tests/c333_melonds_detail_frame_gate.py \
+      c334-melonds-learnset-first.xwd c334-melonds-learnset-page.xwd c334-melonds-learnset-resumed.xwd
+    close_cleanly
+    python3 tests/c334_fat_learnset_gate.py "$sd_root/export"
+    echo 'C334 real melonDS keypad/touch learnset pagination and exact FAT resume: PASS (synthetic only)'
+    exit 0
+  fi
   close_cleanly
   python3 tests/c333_fat_detail_gate.py "$sd_root/export"
   launch

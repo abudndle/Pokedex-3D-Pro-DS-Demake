@@ -9,6 +9,7 @@
 #define P3RV_V3_SIZE 80u
 #define P3RV_V4_SIZE 144u /* Active Challenge only */
 #define P3RV_V5_SIZE 96u /* Exact Pokédex detail tab only */
+#define P3RV_V6_SIZE 96u /* Learnset page and source fingerprint */
 static unsigned r16(const unsigned char *p){return (unsigned)p[0]|((unsigned)p[1]<<8);}
 static uint32_t r32(const unsigned char *p){
     return (uint32_t)r16(p)|((uint32_t)r16(p+2)<<16);
@@ -102,7 +103,10 @@ int p3dResumeStateValid(const P3DResumeState *s){
         s->type_defend2_plus_one<=17&&s->favorites_selected<P3D_FAVORITES_MAX&&
         s->quiz_active<=1 && valid_quiz(s) && s->dex_detail_tab<=4 &&
         (!s->dex_detail_tab || (!s->home && !s->quiz_active &&
-         s->page==P3D_PAGE_DEX));
+         s->page==P3D_PAGE_DEX)) && s->dex_learnset_valid<=1 &&
+        (s->dex_learnset_valid?
+         (s->dex_detail_tab==4 && s->dex_learnset_page<64):
+         (!s->dex_learnset_page && !s->dex_learnset_checksum));
 }
 /* P3RC wins if it already contains a completed round newer than the
  * live review's recorded-round generation. P3SV may lag behind a review
@@ -125,7 +129,8 @@ static unsigned pack(unsigned char b[P3RV_V4_SIZE],const P3DResumeState *s,uint3
     unsigned size=s->quiz_active?P3RV_V4_SIZE:
                   (s->dex_detail_tab?P3RV_V5_SIZE:P3RV_V3_SIZE);
     memset(b,0,P3RV_V4_SIZE);
-    memcpy(b,"P3RV",4);b[4]=s->quiz_active?4:(s->dex_detail_tab?5:3);
+    memcpy(b,"P3RV",4);b[4]=s->quiz_active?4:
+        (s->dex_learnset_valid?6:(s->dex_detail_tab?5:3));
     w32(b+8,seq);
     b[12]=s->home;b[13]=s->page;b[14]=s->highlight;b[15]=s->records_tab;
     w16(b+16,s->dex);w16(b+18,s->move);
@@ -159,6 +164,10 @@ static unsigned pack(unsigned char b[P3RV_V4_SIZE],const P3DResumeState *s,uint3
         w32(b+140,checksum(b,140));
     }else if(s->dex_detail_tab){
         b[76]=s->dex_detail_tab;
+        if(s->dex_learnset_valid){
+            b[77]=s->dex_learnset_page;
+            w32(b+80,s->dex_learnset_checksum);
+        }
         w32(b+92,checksum(b,92));
     }else w32(b+76,checksum(b,76));
     return size;
@@ -176,7 +185,8 @@ static int unpack(const unsigned char *b,unsigned size,
         crc_offset=44;
     }else if((version==3 && size==P3RV_V3_SIZE) ||
              (version==4 && size==P3RV_V4_SIZE) ||
-             (version==5 && size==P3RV_V5_SIZE)){
+             (version==5 && size==P3RV_V5_SIZE) ||
+             (version==6 && size==P3RV_V6_SIZE)){
         for(unsigned i=37;i<44;i++)if(b[i]!=0)return 0;
         for(unsigned i=63;i<76;i++)if(b[i]!=0)return 0;
         if(version==4){
@@ -187,7 +197,11 @@ static int unpack(const unsigned char *b,unsigned size,
           if(b[76]<1 || b[76]>4)return 0;
           for(unsigned i=77;i<92;i++)if(b[i]!=0)return 0;
         }
-        crc_offset=version==4?140:(version==5?92:76);
+        if(version==6){
+          if(b[76]!=4||b[77]>=64||b[78]||b[79])return 0;
+          for(unsigned i=84;i<92;i++)if(b[i]!=0)return 0;
+        }
+        crc_offset=version==4?140:(version>=5?92:76);
     }else return 0;
     if(r32(b+crc_offset)!=checksum(b,crc_offset))return 0;
     memset(s,0,sizeof(*s));
@@ -210,7 +224,11 @@ static int unpack(const unsigned char *b,unsigned size,
         s->type_attack=b[59];s->type_defend=b[60];
         s->type_defend2_plus_one=b[61];s->favorites_selected=b[62];
     }
-    if(version==5)s->dex_detail_tab=b[76];
+    if(version>=5)s->dex_detail_tab=b[76];
+    if(version==6){
+        s->dex_learnset_valid=1;s->dex_learnset_page=b[77];
+        s->dex_learnset_checksum=r32(b+80);
+    }
     if(version==4){
         P3DChallenge *q=&s->quiz;
         s->quiz_active=1;

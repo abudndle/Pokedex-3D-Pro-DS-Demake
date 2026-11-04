@@ -25,6 +25,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: Run the complete canonical host suite on a POSIX filesystem
+        run: make check-host
+      - name: C334 bounded learnset loading, pagination and exact resume
+        run: |
+          sh tests/run_c334_learnsets.sh
+          sh tests/run_c334_learnset_resume.sh
+          python3 -m unittest discover -s tests -p 'test_c334_fat_learnset_gate.py' -v
       - name: C333 enforce native touchscreen detail UI routing and fail-closed source
         run: python3 -m unittest discover -s tests -p 'test_c333_native_detail_wiring.py' -v
       - name: C333 strict source-detail payload and form metadata regression
