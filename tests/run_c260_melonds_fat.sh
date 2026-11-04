@@ -33,6 +33,7 @@ cat > "$XDG_CONFIG_HOME/melonDS/melonDS.toml" <<TOML
 A = 88
 B = 90
 Right = 16777236
+Left = 16777234
 Up = 16777235
 Down = 16777237
 Start = 16777220
@@ -109,6 +110,18 @@ xdotool keyup x
 sleep 4
 capture c260-melonds-fat-favorite.xwd
 if [[ "$detail_only" == 1 || "$learnset_only" == 1 ]]; then
+  if [[ "$learnset_only" == 1 ]]; then
+    # Exercise the actual Right handler, not just its portable helper.
+    xdotool windowfocus --sync "$window"
+    xdotool keydown Right; sleep 0.3; xdotool keyup Right; sleep 2
+    capture c334-melonds-right.xwd
+    close_cleanly
+    python3 tests/c334_fat_learnset_gate.py "$sd_root/export" --navigation
+    launch
+    capture c334-melonds-right-resumed.xwd
+    xdotool windowfocus --sync "$window"
+    xdotool keydown Left; sleep 0.3; xdotool keyup Left; sleep 1
+  fi
   xdotool windowfocus --sync "$window"
   xdotool keydown Return
   sleep 0.5

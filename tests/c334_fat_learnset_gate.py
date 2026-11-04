@@ -18,5 +18,17 @@ def check(root, page=1):
     return {'version': 6, 'page': page, 'synthetic_source_bound': True}
 
 
+def check_navigation(root):
+    data = valid_resume_slots(Path(root))
+    if (data[4] != 3 or data[12:14] != bytes((0, 1))
+            or struct.unpack_from('<H', data, 16)[0] != 1
+            or struct.unpack_from('<H', data, 20)[0] != 1):
+        raise ValueError('Right input did not synchronize active and saved species')
+    return {'active_species': 1, 'saved_species': 1}
+
+
 if __name__ == '__main__':
-    print('C334 real FAT learnset resume:', check(sys.argv[1]))
+    if len(sys.argv) == 3 and sys.argv[2] == '--navigation':
+        print('C334 real Right input/save synchronization:', check_navigation(sys.argv[1]))
+    else:
+        print('C334 real FAT learnset resume:', check(sys.argv[1]))

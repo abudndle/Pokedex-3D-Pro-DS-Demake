@@ -3,7 +3,7 @@ import tempfile
 import unittest
 import zlib
 from pathlib import Path
-from c334_fat_learnset_gate import check
+from c334_fat_learnset_gate import check, check_navigation
 from c334_synthetic_learnset import payload
 
 
@@ -35,6 +35,22 @@ class LearnsetFatTests(unittest.TestCase):
                 b[offset] = value
                 with self.assertRaises(ValueError):
                     self.run_gate(b)
+
+    def test_right_navigation_requires_saved_selection_to_follow(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = bytearray(80)
+            b[:5] = b'P3RV\x03'
+            b[13] = 1
+            b[16] = 1
+            p = Path(d) / 'pokedex3d_resume_A.sav'
+            struct.pack_into('<I', b, 76, zlib.crc32(b[:76]))
+            p.write_bytes(b)
+            with self.assertRaises(ValueError):
+                check_navigation(d)
+            b[20] = 1
+            struct.pack_into('<I', b, 76, zlib.crc32(b[:76]))
+            p.write_bytes(b)
+            self.assertEqual(check_navigation(d)['saved_species'], 1)
 
     def test_reject_crc_corruption(self):
         b = self.fixture()
