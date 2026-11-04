@@ -66,7 +66,7 @@ def evidence(rom, frames, out):
     found = []
     for frame in frames:
         frame = Path(frame)
-        if not re.fullmatch(r'[a-z][a-z0-9_-]{0,40}\\.xwd', frame.name):
+        if frame.suffix != '.xwd' or not re.fullmatch(r'[a-z][a-z0-9_-]{0,40}', frame.stem):
             raise ValueError('unsafe XWD frame name')
         screens = inspect_frame(frame)
         png = xwd_to_png(frame)  # Fail closed on unsupported XWD pixel mask/orientation.
