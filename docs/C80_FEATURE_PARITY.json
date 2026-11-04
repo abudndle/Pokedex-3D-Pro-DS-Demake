@@ -16,7 +16,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/main.c",
-      "gap": "C82 original 649 P3DX names/descriptions/height/weight and C333 optional source-validated P3SD sidecar and tab viewer; no proven original 3DS stats/ability/evolution/complete learnset records yet. Source form semantics, final 3D renderer, original UI art and localization incomplete.",
+      "gap": "C82 original 649 P3DX names/descriptions/height/weight and C333 optional source-validated P3SD sidecar and tab viewer, plus C358 source-bound evolution-reference touch navigation with target names, form0 reset and exact target/tab resume; no proven original 3DS stats/ability/evolution/complete learnset records yet. Source form semantics, final 3D renderer, original UI art and localization incomplete.",
       "verified_end_to_end": false
     },
     {

@@ -32,6 +32,8 @@ check-host:
 	@sh tests/run_c356_photo_resume.sh
 	@sh tests/run_c356_photo_identity.sh
 	@sh tests/run_c357_slideshow.sh
+	@sh tests/run_c358_evolution_navigation.sh
+	@python3 -m unittest discover -s tests -p 'test_c358_evolution_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c357_slideshow_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c356_photo_resume_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c355_album_view_gate.py' -v

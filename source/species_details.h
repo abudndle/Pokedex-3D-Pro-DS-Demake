@@ -23,4 +23,10 @@ int p3dSpeciesDetailsLoad(const char *path,int species,int form,P3DSpeciesDetail
 /* Only the explicitly enumerated optional NitroFS path is attempted. */
 int p3dSpeciesDetailPath(char path[80],int species,int form);
 const char *p3dSpeciesDetailTabName(int tab);
+#define P3D_EVOLUTION_ROW_TOP 88
+#define P3D_EVOLUTION_ROW_STEP 16
+/* Canonical P3SD targets have no target-form field; follow into base form.
+ * Failures preserve all navigation outputs, including stale source records. */
+int p3dSpeciesEvolutionTouch(const P3DSpeciesDetails *details,int x,int y,
+                               int *species,int *selected_species,int *form);
 #endif
