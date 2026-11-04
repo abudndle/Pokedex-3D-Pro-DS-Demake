@@ -139,6 +139,12 @@ def build(nitro, output):
     work.mkdir(mode=0o700)
     shutil.copytree(REPO / 'source', work / 'source')
     shutil.copy2(REPO / 'Makefile.native', work / 'Makefile.native')
+    # Explicit public source dependencies, outside the private NitroFS tree.
+    # Never copy unrelated recovery data or reports into the build inputs.
+    vendor=work/'third_party'/'pngle'
+    vendor.mkdir(parents=True)
+    for name in ('pngle.c','pngle.h','miniz.c','miniz.h','LICENSE','README.md'):
+        shutil.copy2(REPO/'third_party'/'pngle'/name,vendor/name)
     subprocess.run(['make', '-f', 'Makefile.native', f'NITROFSDIR={nitro}', 'rom'],
                    cwd=work, check=True, timeout=300)
     rom = work / 'Pokedex3D_DS_BlocksDS.nds'

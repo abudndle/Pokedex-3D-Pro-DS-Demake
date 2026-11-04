@@ -51,6 +51,7 @@
 #include "dex_search.h"
 #include "search_touch.h"
 #include "photo_album.h"
+#include "photo_viewer.h"
 #include "records.h"
 #ifdef P3D_HAVE_FAT
 #include <fat.h>
@@ -169,6 +170,8 @@ static int album_ready=0;
 static size_t album_offset=0;
 static size_t album_selected=0;
 static int album_confirm_delete=0;
+static P3DPhotoViewer album_view;
+static int showing_album_photo=0;
 /* C81 viewed species, regional totals and per-mode high scores are stored in
  * separate dual-slot P3RC saves; P3SV legacy progress remains compatible. */
 static size_t records_photo_total(void){
@@ -199,6 +202,22 @@ static int title_audio_channel=-1;
 static int display_preview=0;
 static void prepare_original_top_art(void){
     int page=home?P3D_PAGE_HOME:(int)state.page;
+    if(!home && state.page==P3D_PAGE_ALBUM && album_view.active){
+        bgHide(3);
+        videoSetMode(MODE_5_3D);
+        bgInit(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
+        bgSetPriority(2,0);
+        bgShow(2);
+        DC_FlushRange(album_view.pixels,sizeof(album_view.pixels));
+        dmaCopy(album_view.pixels,bgGetGfxPtr(2),sizeof(album_view.pixels));
+        showing_original_top_art=1;
+        showing_album_photo=1;
+        return;
+    }
+    if(showing_album_photo){
+        showing_album_photo=0;
+        top_art_page=-1; /* restore the original page or its text console */
+    }
     if(page==top_art_page && display_preview==top_art_preview)return;
     top_art_page=page;
     top_art_preview=display_preview;
@@ -243,6 +262,7 @@ static void prepare_original_art(void){
     art_page=page;
     original_art_available=prefer_original_art&&nitro_ready&&
         !(page==P3D_PAGE_DEX && dex_detail_tab) &&
+        !(page==P3D_PAGE_ALBUM && album_view.active) &&
         p3dOriginalUiPageLoad(page);
     /* Source 3DS icons are not located at development text-menu rows.
      * Only authentic privately measured original art hitboxes may route
@@ -1248,14 +1268,26 @@ static void render(void) {
         }else if(state.page==P3D_PAGE_ALBUM){
             if(!storage_ready)printf("\x1b[13;1HFAT storage unavailable");
             else if(!album_ready)printf("\x1b[13;1HPhoto folder unavailable");
-            else {
+            else if(album_view.active){
+                printf("\x1b[11;1H%.11s",album_view.name);
+                if(album_view.ready)
+                    printf("\x1b[13;1HPhoto %u x %u",album_view.width,album_view.height);
+                else printf("\x1b[13;1HPhoto unavailable or invalid");
+                printf("\x1b[16;1HLEFT / RIGHT: browse photos");
+                printf("\x1b[20;1HB: return to Album list");
+                printf("\x1b[22;1H< PREV     LIST     NEXT >");
+            }else {
                 size_t total=0;
                 char names[P3D_ALBUM_PAGE_MAX][32];
                 size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
                 printf("\x1b[11;1HPhotos: %u",(unsigned)total);
-                for(size_t i=0;i<shown && i<5;i++)
-                    printf("\x1b[%d;1H%c%s",13+(int)i*2,i==album_selected?'>':' ',names[i]);
-                printf("\x1b[24;1H%s",album_confirm_delete?"A: delete  B: cancel":"X: delete  L/R: page");
+                size_t first=album_selected>=5?album_selected-4:0;
+                for(size_t row=0;row<5 && first+row<shown;row++){
+                    size_t i=first+row;
+                    printf("\x1b[%d;1H%c%s",13+(int)row*2,i==album_selected?'>':' ',names[i]);
+                }
+                printf("\x1b[23;1H%s",album_confirm_delete?"A: delete  B: cancel":"A: view photo   X: delete");
+                printf("\x1b[24;1HL/R: page   B: return");
             }
         }else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
@@ -1304,7 +1336,7 @@ static void render(void) {
            (quiz.stage==P3D_CHALLENGE_QUESTION ||
             quiz.stage==P3D_CHALLENGE_REVIEW))
             printf("\x1b[24;1HB: Return to menu");
-        else printf("\x1b[17;1HPress B to go back");
+        else if(state.page!=P3D_PAGE_ALBUM)printf("\x1b[17;1HPress B to go back");
     }
 }
 int main(void) {
@@ -1489,7 +1521,7 @@ int main(void) {
          * Capture actual ARM9 libnds key state while X11 keys are held.
          * This is a diagnostic, not proof of a correct button mapping. */
         static unsigned c237_frame=0;
-        if((++c237_frame % 5u)==0u || down){
+        if((((++c237_frame % 5u)==0u) || down) && !showing_original_top_art){
             consoleSelect(&top_console);
             printf("\x1b[23;1Hdbg f%05lu d%04X h%04X  ",
                    (unsigned long)(c237_frame%100000u),down,held);
@@ -1609,6 +1641,9 @@ int main(void) {
             if(down&KEY_B){
                 if(state.page==P3D_PAGE_DEX && dex_detail_tab){
                     dex_detail_tab=0;
+                    art_page=-1;
+                }else if(state.page==P3D_PAGE_ALBUM && album_view.active){
+                    p3dPhotoViewerClose(&album_view);
                     art_page=-1;
                 }else if(state.page==P3D_PAGE_ALBUM && album_confirm_delete){
                     album_confirm_delete=0;
@@ -1834,7 +1869,26 @@ int main(void) {
                 size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
                 if(!shown)album_selected=0;
                 else if(album_selected>=shown)album_selected=shown-1;
-                if(album_confirm_delete){
+                if(album_view.active){
+                    int direction=((down&KEY_LEFT)!=0)!=((down&KEY_RIGHT)!=0)?
+                        ((down&KEY_LEFT)?-1:1):0;
+                    if((down&KEY_TOUCH) &&
+                       !(down&(KEY_A|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN))){
+                        touchPosition point;touchRead(&point);
+                        if(point.py>=160 && point.py<184){
+                            if(point.px>=64 && point.px<192){
+                                p3dPhotoViewerClose(&album_view);art_page=-1;redraw=1;
+                            }else direction=point.px<64?-1:1;
+                        }
+                    }
+                    if(direction && p3dPhotoAlbumStep(&album_offset,&album_selected,total,direction)){
+                        shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
+                        if(shown && album_selected<shown)
+                            p3dPhotoViewerOpen(&album_view,&photo_album,names[album_selected]);
+                        else p3dPhotoViewerClose(&album_view);
+                        art_page=-1;redraw=1;
+                    }
+                }else if(album_confirm_delete){
                     /* A deletion must not be confirmed under an invisible
                      * bitmap-overlay prompt or after a simultaneous selection. */
                     if((down&KEY_A) && !showing_original_art &&
@@ -1848,6 +1902,8 @@ int main(void) {
                         album_confirm_delete=0;redraw=1;
                     }
                 }else{
+                    int open_photo=(down&KEY_A) &&
+                        !(down&(KEY_X|KEY_Y|KEY_UP|KEY_DOWN|KEY_LEFT|KEY_RIGHT|KEY_L|KEY_R|KEY_TOUCH));
                     if((down&KEY_UP) && album_selected>0){album_selected--;redraw=1;}
                     if((down&KEY_DOWN) && album_selected+1<shown){album_selected++;redraw=1;}
                     /* Never request deletion while its confirmation is hidden
@@ -1856,7 +1912,7 @@ int main(void) {
                        !(down&(KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN))){
                         album_confirm_delete=1;redraw=1;
                     }
-                    int direction=(down&KEY_LEFT)?-1:((down&KEY_RIGHT)?1:0);
+                    int direction=(down&(KEY_LEFT|KEY_L))?-1:((down&(KEY_RIGHT|KEY_R))?1:0);
                     if((down&KEY_TOUCH) && !showing_original_art){
                         touchPosition point;
                         touchRead(&point);
@@ -1865,16 +1921,24 @@ int main(void) {
                         if(point.py>=150 && point.py<192 &&
                            (point.px<64 || point.px>=192))
                             direction=point.px<64?-1:1;
-                        /* The five visible filename rows start at console row
-                         * 13, then advance two 8-pixel rows per filename. */
+                        /* Console row 13 starts at pixel 96. Keep the five
+                         * filename rows separate from the view button. */
                         if(point.px>=64 && point.px<192 &&
-                           point.py>=104 && point.py<184){
-                            int hit=((int)point.py-104)/16;
+                           point.py>=96 && point.py<176){
+                            int hit=((int)point.py-96)/16;
                             if(hit>=0 && hit<5 && (size_t)hit<shown){
-                                album_selected=(size_t)hit;redraw=1;
+                                size_t first=album_selected>=5?album_selected-4:0;
+                                if(first+(size_t)hit<shown)album_selected=first+(size_t)hit;
+                                redraw=1;
                                 direction=0;
                             }
                         }
+                        if(point.py>=176 && point.py<184 && point.px>=64 && point.px<192)
+                            open_photo=1;
+                    }
+                    if(open_photo && shown && album_selected<shown && !album_confirm_delete){
+                        p3dPhotoViewerOpen(&album_view,&photo_album,names[album_selected]);
+                        art_page=-1;redraw=1;
                     }
                     if(direction<0 && album_offset>=P3D_ALBUM_PAGE_MAX){
                         album_offset-=P3D_ALBUM_PAGE_MAX;album_selected=0;redraw=1;

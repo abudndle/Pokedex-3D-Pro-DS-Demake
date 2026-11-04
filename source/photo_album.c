@@ -127,6 +127,27 @@ size_t p3dPhotoAlbumPage(const P3DPhotoAlbum *a,char names[][32],size_t limit,si
  }
  return filled;
 }
+FILE *p3dPhotoAlbumRead(const P3DPhotoAlbum *a,const char *name){
+ if(!a||!a->folder[0]||!valid_name(name))return NULL;
+#ifndef __NDS__
+ if(!host_path_has_no_symlinks(a->folder))return NULL;
+ int dir=open(a->folder,O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);
+ if(dir<0)return NULL;
+ int fd=openat(dir,name,O_RDONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK);
+ close(dir);
+ if(fd<0)return NULL;
+ struct stat st;
+ if(fstat(fd,&st)!=0||!S_ISREG(st.st_mode)){close(fd);return NULL;}
+ FILE *f=fdopen(fd,"rb");
+ if(!f)close(fd);
+ return f;
+#else
+ char path[P3D_PHOTO_PATH_MAX+16];
+ if(!regular_photo(a->folder,name))return NULL;
+ int n=snprintf(path,sizeof(path),"%s/%s",a->folder,name);
+ return n>0&&(size_t)n<sizeof(path)?fopen(path,"rb"):NULL;
+#endif
+}
 int p3dPhotoAlbumDelete(P3DPhotoAlbum *a,const char *name){
 #ifdef __NDS__
  char path[P3D_PHOTO_PATH_MAX+16];int n;

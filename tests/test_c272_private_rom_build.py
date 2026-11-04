@@ -7,6 +7,7 @@ import struct
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zlib
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
@@ -43,6 +44,23 @@ def fixture(root):
 
 
 class C272PrivateRomBuildTests(unittest.TestCase):
+    def test_isolated_compiler_tree_contains_png_decoder_and_licenses(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);stage=fixture(root);output=root/'result'
+            nitro=prepare(stage,output)
+            with patch('c272_private_rom_build.subprocess.run',
+                       side_effect=RuntimeError('compiler boundary')):
+                with self.assertRaisesRegex(RuntimeError,'compiler boundary'):
+                    build(nitro,output)
+            vendor=output/'work'/'third_party'/'pngle'
+            self.assertTrue((vendor/'miniz.c').is_file())
+            self.assertEqual({p.name for p in vendor.iterdir()},
+                             {'miniz.c','miniz.h','pngle.c','pngle.h','LICENSE','README.md'})
+            public=Path(__file__).resolve().parents[1]/'third_party'/'pngle'
+            for p in vendor.iterdir():self.assertEqual(p.read_bytes(),(public/p.name).read_bytes())
+            self.assertEqual({p.relative_to(nitro).as_posix() for p in nitro.rglob('*') if p.is_file()},
+                             {'models/species_map.p3sm','geometry/p200.p3vx','geometry/p200.p3ix'})
+
     def test_clean_nitrofs_excludes_sha_report_and_permissions(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
