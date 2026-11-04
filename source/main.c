@@ -1134,11 +1134,18 @@ static void render(void) {
                 }else printf("\x1b[12;1HOriginal abilities unavailable");
             }else if(dex_detail_tab==3){
                 if(dex_details.fields&P3D_DETAIL_EVOLUTIONS){
-                    for(unsigned i=0;i<dex_details.evolutions_count;i++)
-                        printf("\x1b[%u;1HTo Pokemon #%03u",12u+i*2u,
-                               dex_details.evolutions[i]+1);
+                    for(unsigned i=0;i<dex_details.evolutions_count;i++){
+                        P3DDexText target;
+                        unsigned row=1u+(P3D_EVOLUTION_ROW_TOP+
+                            i*P3D_EVOLUTION_ROW_STEP)/8u;
+                        unsigned species=dex_details.evolutions[i];
+                        if(dex_text_ready && p3dDexTextRead((int)species,&target))
+                            printf("\x1b[%u;1HTo #%03u %.22s",row,species+1,target.name);
+                        else printf("\x1b[%u;1HTo Pokemon #%03u",row,species+1);
+                    }
                     if(!dex_details.evolutions_count)
                         printf("\x1b[12;1HNo listed evolutions");
+                    else printf("\x1b[17;1HTap evolution to open entry");
                 }else printf("\x1b[12;1HOriginal evolution unavailable");
             }else if(dex_detail_tab==4){
                 printf("\x1b[11;1HSummary only (max 4 refs)");
@@ -1346,7 +1353,9 @@ static void render(void) {
            (quiz.stage==P3D_CHALLENGE_QUESTION ||
             quiz.stage==P3D_CHALLENGE_REVIEW))
             printf("\x1b[24;1HB: Return to menu");
-        else if(state.page!=P3D_PAGE_ALBUM)printf("\x1b[17;1HPress B to go back");
+        else if(state.page!=P3D_PAGE_ALBUM &&
+                (state.page!=P3D_PAGE_DEX || dex_detail_tab!=3))
+            printf("\x1b[17;1HPress B to go back");
     }
 }
 int main(void) {
@@ -2185,6 +2194,13 @@ int main(void) {
             if(!showing_original_art && (down&KEY_TOUCH) && state.page!=P3D_PAGE_SEARCH){
                 touchPosition point;
                 touchRead(&point);
+                if(state.page==P3D_PAGE_DEX && dex_detail_tab==3 && dex_details_ready &&
+                   !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN|
+                           KEY_SELECT|KEY_START|KEY_L|KEY_R)) &&
+                   p3dSpeciesEvolutionTouch(&dex_details,point.px,point.py,
+                       &dex_index,&state.selected_dex,&selected_form)){
+                    reload_preview();progress_dirty=1;art_page=-1;redraw=1;
+                }
                 if(state.page==P3D_PAGE_DEX && dex_detail_tab==4 &&
                    !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|
                            KEY_UP|KEY_DOWN|KEY_SELECT|KEY_START|KEY_L|KEY_R)) &&

@@ -5,6 +5,8 @@ set -euo pipefail
 full_round="${C264_FULL_ROUND:-0}"
 detail_only="${C333_DETAIL_ONLY:-0}"
 learnset_only="${C334_LEARNSET_ONLY:-0}"
+evolution_only="${C358_EVOLUTION_ONLY:-0}"
+if [[ "$evolution_only" != 0 && "$evolution_only" != 1 ]]; then exit 2; fi
 if [[ "$learnset_only" != 0 && "$learnset_only" != 1 ]]; then
   echo 'C334_LEARNSET_ONLY must be 0 or 1' >&2
   exit 2
@@ -109,7 +111,7 @@ sleep 0.4
 xdotool keyup x
 sleep 4
 capture c260-melonds-fat-favorite.xwd
-if [[ "$detail_only" == 1 || "$learnset_only" == 1 ]]; then
+if [[ "$detail_only" == 1 || "$learnset_only" == 1 || "$evolution_only" == 1 ]]; then
   if [[ "$learnset_only" == 1 ]]; then
     # Exercise the actual Right handler, not just its portable helper.
     xdotool windowfocus --sync "$window"
@@ -128,6 +130,40 @@ if [[ "$detail_only" == 1 || "$learnset_only" == 1 ]]; then
   xdotool keyup Return
   sleep 2
   capture c333-melonds-detail.xwd
+  if [[ "$evolution_only" == 1 ]]; then
+    tap() {
+      xdotool mousemove --window "$window" "$1" "$2"
+      xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 2
+    }
+    # STATS -> ABILITIES -> EVOLUTIONS, using visible native tab controls.
+    tap 210 379; tap 210 379
+    capture c358-melonds-source.xwd
+    tap 128 307
+    capture c358-melonds-target.xwd
+    tap 128 323
+    capture c358-melonds-terminal-held.xwd
+    close_cleanly
+    python3 tests/c358_evolution_gate.py --fat "$sd_root/export" 4
+    launch
+    capture c358-melonds-target-resumed.xwd
+    xdotool windowfocus --sync "$window"
+    for _ in 1 2 3 4; do
+      xdotool keydown Left; sleep 0.3; xdotool keyup Left; sleep 0.5
+    done
+    capture c358-melonds-source-return.xwd
+    tap 128 323
+    capture c358-melonds-missing.xwd
+    tap 128 307
+    capture c358-melonds-missing-held.xwd
+    close_cleanly
+    python3 tests/c358_evolution_gate.py --fat "$sd_root/export" 648
+    launch
+    capture c358-melonds-missing-resumed.xwd
+    close_cleanly
+    python3 tests/c358_evolution_gate.py --fat "$sd_root/export" 648
+    python3 tests/c358_evolution_gate.py c358-melonds-{source,target,terminal-held,target-resumed,source-return,missing,missing-held,missing-resumed}.xwd
+    exit 0
+  fi
   if [[ "$learnset_only" == 1 ]]; then
     # Three visible NEXT TAB touches: STATS -> ABILITIES -> EVOLUTIONS -> LEARNSET.
     for _ in 1 2 3; do

@@ -10,6 +10,7 @@ on:
       - 'tests/c264_*'
       - 'tests/c332_*'
       - 'tests/c333_*'
+      - 'tests/*c358*'
       - 'tests/test_c260_*'
       - 'tests/test_c261_*'
       - 'tests/test_c262_*'
@@ -29,6 +30,7 @@ on:
       - 'tests/c264_*'
       - 'tests/c332_*'
       - 'tests/c333_*'
+      - 'tests/*c358*'
       - 'tests/test_c260_*'
       - 'tests/test_c261_*'
       - 'tests/test_c262_*'
@@ -126,6 +128,21 @@ jobs:
           C334_LEARNSET_ONLY=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
             bash tests/run_c260_melonds_fat.sh \
             "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C260_APP_RUN"
+      - name: C358 evolution checkpoint and frame gate regressions
+        run: python3 -m unittest discover -s tests -p 'test_c358_evolution_gate.py' -v
+      - name: C358 compile synthetic species records and verify real evolution flow and reboot
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$(mktemp -d)"
+          python3 tests/c358_synthetic_evolutions.py "$stage"
+          docker run --rm -v "$PWD:/work" -v "$stage:/c358-fixture:ro" -w /work \
+            skylyrac/blocksds:slim-latest \
+            make -f Makefile.native NITROFSDIR=/c358-fixture rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
+          python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
+          C358_EVOLUTION_ONLY=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
+            bash tests/run_c260_melonds_fat.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C260_APP_RUN"
       - name: Preserve only synthetic development-ROM dual-screen captures
         if: always()
         uses: actions/upload-artifact@v4
@@ -137,6 +154,7 @@ jobs:
             c264-melonds-*.xwd
             c333-melonds-*.xwd
             c334-melonds-*.xwd
+            c358-melonds-*.xwd
             c260-melonds-windows.txt
           if-no-files-found: ignore
           retention-days: 3
