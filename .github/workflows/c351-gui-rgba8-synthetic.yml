@@ -1,0 +1,29 @@
+name: C351 original GUI RGBA8 atlases (synthetic only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - 'tools/c351_gui_texture_atlases.py'
+      - 'tests/test_c351_gui_texture_atlases.py'
+      - '.github/workflows/c351-gui-rgba8-synthetic.yml'
+  pull_request:
+    paths:
+      - 'tools/c351_gui_texture_atlases.py'
+      - 'tests/test_c351_gui_texture_atlases.py'
+      - '.github/workflows/c351-gui-rgba8-synthetic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  synthetic-original-gui-morton-texel-decoding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run 11 synthetic pixel and private-integrity regression tests
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c351_gui_texture_atlases.py' -v
+          python3 -m py_compile tools/c351_gui_texture_atlases.py
