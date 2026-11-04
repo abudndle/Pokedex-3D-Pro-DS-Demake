@@ -72,7 +72,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/photo_album.c",
-      "gap": "C355 adds bounded PNG opening, aspect-preserving RGB555 photo viewing, keypad/touch browsing across pages and return to the retained list selection; original photo associations, slideshow, camera capture and physical DS/DSi validation remain pending",
+      "gap": "C355 adds bounded PNG opening, aspect-preserving RGB555 photo viewing, keypad/touch browsing across pages and return to the retained list selection. C356 adds source-bound exact-photo restart and safe list fallback for changed/missing media; original photo associations, slideshow, camera capture and physical DS/DSi validation remain pending",
       "verified_end_to_end": false
     },
     {
@@ -128,7 +128,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/records.c",
-      "gap": "C332 adds an optional 144-byte, CRC-checked P3RV v4 active Challenge checkpoint preserving exact question/review, chosen answer, four choices, ten asked species, RNG seed, clue page, and already counted answers; stores P3RC round generation to reject stale reviews after a completed round. Inactive checkpoints remain 80-byte P3RV v3; P3RV v1/v2/v3, P3SV and P3RC readers remain compatible. Dual-slot integrity and cross-process synthetic host tests exist; independent private-asset DSi save/display, exact original 3DS save-format parity, and power-loss recovery on real hardware remain unverified.",
+      "gap": "C332 adds an optional 144-byte, CRC-checked P3RV v4 active Challenge checkpoint preserving exact question/review, chosen answer, four choices, ten asked species, RNG seed, clue page, and already counted answers; stores P3RC round generation to reject stale reviews after a completed round. C356 adds optional 96-byte P3RV v7 exact Album photo ID/file CRC/size checkpoints; legacy v1-v6 readers and P3SV/P3RC remain compatible. Inactive checkpoints remain 80-byte v3. Dual-slot integrity and cross-process synthetic host tests exist; independent private-asset DSi save/display, exact original 3DS save-format parity, and power-loss recovery on real hardware remain unverified.",
       "verified_end_to_end": false
     },
     {

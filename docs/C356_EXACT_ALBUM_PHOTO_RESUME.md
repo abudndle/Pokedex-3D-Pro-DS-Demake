@@ -22,6 +22,21 @@ transitions, CRC/length mismatch, actual valid-file replacement, deletion and
 roster insertion. The C268 workflow compiles a BlocksDS ROM and runs actual
 melonDS restart/roster-change/replacement scenarios using synthetic PNGs only.
 
-Status before independent CI: implemented/unverified. Physical DS/DSi behavior,
+Independent evidence for production commit `4475db3`:
+- Linux canonical `make check-host`, C356 ASan/UBSan and legacy save tests:
+  [Port source tests](https://github.com/abudndle/Pokedex-3D-Pro-DS-Demake/actions/runs/41912750520).
+- BlocksDS dev ROM and ARM9/ARM7 header verification:
+  [native build](https://github.com/abudndle/Pokedex-3D-Pro-DS-Demake/actions/runs/41912740526).
+- Actual melonDS 1.1 DS-mode FAT restart, inserted-file relocation and valid
+  replacement rejection, plus unchanged Album viewer/deletion behavior:
+  [C268/C356 acceptance](https://github.com/abudndle/Pokedex-3D-Pro-DS-Demake/actions/runs/41912750196).
+  Artifact `13362199904` contains synthetic XWD captures only.
+- Independent reviewer reproduced the original-reader runtime failure, then
+  passed the new tests and found no actionable production defect.
+
+This bounded slice is emulator verified with synthetic media. Local Windows
+`make check-host` stops at POSIX mode-0600 assertions on NTFS (mode 0644);
+the full Linux suite above passed without relaxing those checks.
+Physical DS/DSi behavior,
 original-game asset fidelity, camera hardware and the full #301 contract remain
 unverified. No original assets, private payloads or private hashes are added.

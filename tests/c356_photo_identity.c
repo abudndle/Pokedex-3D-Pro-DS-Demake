@@ -47,6 +47,16 @@ int main(int argc,char **argv){
  assert(!view.active&&!view.ready);
  assert(!p3dPhotoAlbumLocate(&album,10000,&offset,&selected));
  assert(!p3dPhotoViewerRestore(&view,&album,10000,original,&offset,&selected));
+ /* Whole-file hashing must also include refilled stream buffers and metadata. */
+ const unsigned ids[]={13,21,22};
+ for(unsigned i=0;i<sizeof(ids)/sizeof(ids[0]);i++){
+  char name[12];snprintf(name,sizeof(name),"AR_%04u.png",ids[i]);
+  assert(p3dPhotoViewerOpen(&view,&album,name));
+  f=p3dPhotoAlbumRead(&album,name);assert(f);crc=~0u;count=0;
+  while((byte=fgetc(f))!=EOF){crc=crc_byte(crc,(unsigned char)byte);count++;}
+  assert(!ferror(f)&&!fclose(f));
+  assert(view.identity.checksum==~crc&&view.identity.bytes==count);
+ }
  puts("C356 whole-file identity, stable-ID relocation and changed/missing-photo rejection: PASS");
  return 0;
 }
