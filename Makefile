@@ -28,6 +28,8 @@ dev-rom:
 # DS-Homebrew builds similarly keep development tooling reproducible locally.
 .PHONY: check-host
 check-host:
+	@sh tests/run_c355_photo_viewer.sh
+	@python3 -m unittest discover -s tests -p 'test_c355_album_view_gate.py' -v
 	@sh tests/run_c334_learnsets.sh
 	@sh tests/run_c334_learnset_resume.sh
 	@python3 -m unittest discover -s tests -p 'test_c334_fat_learnset_gate.py' -v

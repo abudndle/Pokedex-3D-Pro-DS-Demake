@@ -2,6 +2,8 @@
 # C268: real melonDS 1.1 DLDI FolderSync Album browse/page/delete/reboot.
 # No Nintendo data, private ROMs or camera access; the PNGs are generated fixtures.
 set -euo pipefail
+viewer_only="${C355_VIEWER_ONLY:-0}"
+if [[ "$viewer_only" != 0 && "$viewer_only" != 1 ]]; then exit 2; fi
 rom="${1:?asset-free BlocksDS ROM required}"
 app_run="${2:?SHA-pinned melonDS 1.1 AppRun required}"
 test -s "$rom" && test -x "$app_run"
@@ -101,6 +103,37 @@ sleep 0.5
 xdotool mouseup 1
 sleep 2
 capture c268-melonds-album-first.xwd
+if [[ "$viewer_only" == 1 ]]; then
+    press x
+    capture c355-melonds-photo-first.xwd
+    press Right
+    capture c355-melonds-photo-next.xwd
+    press Left
+    capture c355-melonds-photo-return.xwd
+    xdotool mousemove --window "$window" 220 379
+    xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
+    capture c355-melonds-photo-touch.xwd
+    xdotool mousemove --window "$window" 128 379
+    xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
+    xdotool mousemove --window "$window" 128 391
+    xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
+    capture c355-melonds-photo-reopen.xwd
+    press z
+    capture c355-melonds-photo-list.xwd
+    close_cleanly
+    python3 tests/c355_album_view_gate.py --fat "$sd_root/export"
+    launch
+    capture c355-melonds-photo-resumed.xwd
+    close_cleanly
+    python3 tests/c355_album_view_gate.py --fat "$sd_root/export"
+    python3 tests/c355_album_view_gate.py \
+        c355-melonds-photo-first.xwd c355-melonds-photo-next.xwd \
+        c355-melonds-photo-return.xwd c355-melonds-photo-touch.xwd \
+        c355-melonds-photo-reopen.xwd c355-melonds-photo-list.xwd \
+        c355-melonds-photo-resumed.xwd
+    echo 'C355 real melonDS PNG pixels, keypad/touch, B/list and unchanged media: PASS (synthetic only)'
+    exit 0
+fi
 press Right
 capture c268-melonds-album-second.xwd
 press Left
