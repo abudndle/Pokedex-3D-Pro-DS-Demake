@@ -1,0 +1,33 @@
+name: C348 private ROM screenshots (synthetic gate only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - 'tests/c348_private_rom_frame_gate.py'
+      - 'tests/c348_capture_private_rom.py'
+      - 'tests/test_c348_private_rom_frame_gate.py'
+      - '.github/workflows/c348-private-rom-evidence-synthetic.yml'
+  pull_request:
+    paths:
+      - 'tests/c348_private_rom_frame_gate.py'
+      - 'tests/c348_capture_private_rom.py'
+      - 'tests/test_c348_private_rom_frame_gate.py'
+      - '.github/workflows/c348-private-rom-evidence-synthetic.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c348-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  synthetic-only-screenshot-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test private evidence gate without original assets or screenshots
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c348_private_rom_frame_gate.py' -v
+          python3 -m py_compile tests/c348_capture_private_rom.py tests/c348_private_rom_frame_gate.py
