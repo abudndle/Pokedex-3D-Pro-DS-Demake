@@ -25,6 +25,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: Run the complete canonical host suite on a POSIX filesystem
+        run: make check-host
       - name: C334 bounded learnset loading, pagination and exact resume
         run: |
           sh tests/run_c334_learnsets.sh
