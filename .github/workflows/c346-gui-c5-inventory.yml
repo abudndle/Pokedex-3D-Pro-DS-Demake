@@ -4,12 +4,16 @@ on:
     branches: [main, "feat/**"]
     paths:
       - tools/c346_gui_c5_inventory.py
+      - tools/c346_gui_z5_equivalence.py
       - tests/test_c346_gui_c5_inventory.py
+      - tests/test_c346_gui_z5_equivalence.py
       - .github/workflows/c346-gui-c5-inventory.yml
   pull_request:
     paths:
       - tools/c346_gui_c5_inventory.py
+      - tools/c346_gui_z5_equivalence.py
       - tests/test_c346_gui_c5_inventory.py
+      - tests/test_c346_gui_z5_equivalence.py
       - .github/workflows/c346-gui-c5-inventory.yml
   workflow_dispatch:
 permissions:
@@ -26,4 +30,6 @@ jobs:
         with:
           python-version: "3.12"
       - name: Run C346 synthetic-only regressions (no private assets)
-        run: python3 -m unittest discover -s tests -p 'test_c346_gui_c5_inventory.py' -v
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c346_gui_c5_inventory.py' -v
+          python3 -m unittest discover -s tests -p 'test_c346_gui_z5_equivalence.py' -v
