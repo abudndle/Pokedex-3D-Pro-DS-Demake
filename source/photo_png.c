@@ -16,7 +16,6 @@
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
-#define PHOTO_FILE_MAX (2u*1024u*1024u)
 typedef struct {
     uint16_t *pixels;
     unsigned width,height,drawn,dw,dh,left,top;
@@ -47,12 +46,14 @@ static void photo_draw(pngle_t *png,uint32_t x,uint32_t y,uint32_t w,uint32_t h,
             d->pixels[(dy+d->top)*256+dx+d->left]=color;
 }
 static void photo_done(pngle_t *png){((PhotoDecode *)pngle_get_user_data(png))->done=1;}
-int p3dPhotoPngDecode(FILE *file,uint16_t pixels[256u*192u],unsigned *width,unsigned *height){
+int p3dPhotoPngDecode(FILE *file,uint16_t pixels[256u*192u],unsigned *width,unsigned *height,P3DPhotoIdentity *identity){
     unsigned char buf[1024];size_t pending=0,total=0;int ok=0;
+    uint32_t source_crc=0;
     PhotoDecode d={0};pngle_t *png=NULL;
     if(width)*width=0;
     if(height)*height=0;
-    if(!file||!pixels||!width||!height)return 0;
+    if(identity)memset(identity,0,sizeof(*identity));
+    if(!file||!pixels||!width||!height||!identity)return 0;
     for(unsigned i=0;i<256u*192u;i++)pixels[i]=0x8000;
     /* Validate the actual first header before pngle can allocate a scanline. */
     if(fread(buf,1,33,file)!=33||memcmp(buf,"\x89PNG\r\n\x1a\n",8)||
@@ -69,6 +70,7 @@ int p3dPhotoPngDecode(FILE *file,uint16_t pixels[256u*192u],unsigned *width,unsi
     pngle_set_user_data(png,&d);pngle_set_draw_callback(png,photo_draw);
     pngle_set_done_callback(png,photo_done);
     pending=33;total=33;
+    source_crc=(uint32_t)mz_crc32(source_crc,buf,33);
     for(;;){
         int consumed=pngle_feed(png,buf,pending);
         if(consumed<0||(size_t)consumed>pending||d.bad)goto end;
@@ -78,16 +80,20 @@ int p3dPhotoPngDecode(FILE *file,uint16_t pixels[256u*192u],unsigned *width,unsi
             if(pending||fgetc(file)!=EOF||ferror(file)||d.drawn!=d.width*d.height)goto end;
             ok=1;break;
         }
-        if(pending==sizeof(buf)||total>=PHOTO_FILE_MAX)goto end;
+        if(pending==sizeof(buf)||total>=P3D_PHOTO_FILE_MAX)goto end;
         size_t take=sizeof(buf)-pending;
-        if(take>PHOTO_FILE_MAX-total)take=PHOTO_FILE_MAX-total;
+        if(take>P3D_PHOTO_FILE_MAX-total)take=P3D_PHOTO_FILE_MAX-total;
         size_t n=fread(buf+pending,1,take,file);
         if(!n||ferror(file))goto end;
+        source_crc=(uint32_t)mz_crc32(source_crc,buf+pending,n);
         pending+=n;total+=n;
     }
 end:
     pngle_destroy(png);
-    if(ok){*width=d.width;*height=d.height;}
+    if(ok){
+        *width=d.width;*height=d.height;
+        identity->checksum=source_crc;identity->bytes=(uint32_t)total;
+    }
     else for(unsigned i=0;i<256u*192u;i++)pixels[i]=0x8000;
     return ok;
 }

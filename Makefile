@@ -29,6 +29,9 @@ dev-rom:
 .PHONY: check-host
 check-host:
 	@sh tests/run_c355_photo_viewer.sh
+	@sh tests/run_c356_photo_resume.sh
+	@sh tests/run_c356_photo_identity.sh
+	@python3 -m unittest discover -s tests -p 'test_c356_photo_resume_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c355_album_view_gate.py' -v
 	@sh tests/run_c334_learnsets.sh
 	@sh tests/run_c334_learnset_resume.sh

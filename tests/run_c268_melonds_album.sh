@@ -3,6 +3,8 @@
 # No Nintendo data, private ROMs or camera access; the PNGs are generated fixtures.
 set -euo pipefail
 viewer_only="${C355_VIEWER_ONLY:-0}"
+resume_only="${C356_RESUME_ONLY:-0}"
+if [[ "$resume_only" != 0 && "$resume_only" != 1 ]]; then exit 2; fi
 if [[ "$viewer_only" != 0 && "$viewer_only" != 1 ]]; then exit 2; fi
 rom="${1:?asset-free BlocksDS ROM required}"
 app_run="${2:?SHA-pinned melonDS 1.1 AppRun required}"
@@ -103,6 +105,42 @@ sleep 0.5
 xdotool mouseup 1
 sleep 2
 capture c268-melonds-album-first.xwd
+if [[ "$resume_only" == 1 ]]; then
+    press x
+    press Right
+    capture c356-melonds-photo-open.xwd
+    close_cleanly
+    python3 tests/c356_photo_resume_gate.py --fat "$sd_root/export" saved
+    launch
+    capture c356-melonds-photo-resumed.xwd
+    close_cleanly
+    python3 tests/c356_photo_resume_gate.py --fat "$sd_root/export" saved
+    python3 - "$sd_root/export" <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0,'tests')
+from c355_album_view_gate import synthetic_photo
+(Path(sys.argv[1])/'Pokedex 3D Pro'/'Photos'/'AR_0010.png').write_bytes(synthetic_photo(10))
+PY
+    launch
+    capture c356-melonds-photo-reordered.xwd
+    close_cleanly
+    python3 tests/c356_photo_resume_gate.py --fat "$sd_root/export" reordered
+    python3 - "$sd_root/export" <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0,'tests')
+from c355_album_view_gate import synthetic_photo
+(Path(sys.argv[1])/'Pokedex 3D Pro'/'Photos'/'AR_0008.png').write_bytes(synthetic_photo(7))
+PY
+    launch
+    capture c356-melonds-photo-changed.xwd
+    close_cleanly
+    python3 tests/c356_photo_resume_gate.py --fat "$sd_root/export" changed
+    python3 tests/c356_photo_resume_gate.py c356-melonds-photo-{open,resumed,reordered,changed}.xwd
+    echo 'C356 real melonDS exact-photo resume, reordered roster and changed-media rejection: PASS (synthetic only)'
+    exit 0
+fi
 if [[ "$viewer_only" == 1 ]]; then
     press x
     capture c355-melonds-photo-first.xwd
