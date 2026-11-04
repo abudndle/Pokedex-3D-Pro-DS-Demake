@@ -144,7 +144,7 @@ def write_private_report(path,result):
         with os.fdopen(fd,'w',encoding='utf-8') as stream:
             os.fchmod(stream.fileno(),0o600)
             json.dump(result,stream,indent=2)
-            stream.write('\\n')
+            stream.write('\n')
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary,target)
