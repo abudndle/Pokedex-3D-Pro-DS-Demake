@@ -1,6 +1,5 @@
 #include "bookmark_session.h"
 #include "bookmark_store.h"
-void p3dBookmarkSessionLoadReset(P3DBookmarkSettings *s);
 int p3dBookmarkSessionLoad(P3DBookmarkSettings *s,const char *base){
  if(!s)return 0;
  p3dBookmarkSettingsInit(s);
