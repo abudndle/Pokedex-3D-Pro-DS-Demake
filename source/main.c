@@ -1219,7 +1219,9 @@ static void render(void) {
             printf("\x1b[18;1HCount: %u",bookmark_settings.active_list?bookmark_settings.moves.count:bookmark_settings.pokemon.count);
             printf("\x1b[19;1HSTART: save current entry");
             printf("\x1b[20;1HL/R: list  UP/DOWN: slot");
-            printf("\x1b[21;1HSELECT: open slot %u",bookmark_cursor+1);
+            printf("\x1b[21;1HSELECT: %s slot %u",
+                (bookmark_settings.active_list?bookmark_settings.moves.editing:bookmark_settings.pokemon.editing)?"delete":"open",bookmark_cursor+1);
+            printf("\x1b[22;1HY: toggle bookmark edit");
         }else if(state.page==P3D_PAGE_FAVORITES){
             printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
             printf("\x1b[15;1HChoose in Pokedex");
@@ -1919,9 +1921,21 @@ int main(void) {
                     if(count){bookmark_cursor=(bookmark_cursor+count+
                         ((down&KEY_UP)?count-1:1))%count;redraw=1;}
                 }
+                if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH))){
+                    int editing=bookmark_settings.active_list?
+                        bookmark_settings.moves.editing:bookmark_settings.pokemon.editing;
+                    p3dBookmarkSettingsEdit(&bookmark_settings,!editing);
+                    redraw=1;
+                }
                 if((down&KEY_SELECT) && storage_ready){
                     int opened=p3dBookmarkSessionSelect(&bookmark_settings,&state,
                         storage_ready?P3D_SAVE_BASE:NULL,bookmark_cursor);
+                    if(opened==2){
+                        unsigned count=bookmark_settings.active_list?
+                            bookmark_settings.moves.count:bookmark_settings.pokemon.count;
+                        if(bookmark_cursor>=count)bookmark_cursor=count?count-1:0;
+                        redraw=1;
+                    }
                     if(opened==1){
                         if(state.page==P3D_PAGE_DEX)dex_index=state.selected_dex;
                         else if(state.page==P3D_PAGE_MOVES)move_index=state.move_index;
@@ -1933,11 +1947,7 @@ int main(void) {
                     reload_preview();
                     redraw=1;
                 }
-                if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH))){
-                    state.selected_dex=dex_index;
-                    state.page=P3D_PAGE_SEARCH;
-                    redraw=1;
-                }
+
                 int toggle=(down&KEY_A)!=0;
                 if((down&KEY_TOUCH) && !showing_original_art){
                     touchPosition point;
