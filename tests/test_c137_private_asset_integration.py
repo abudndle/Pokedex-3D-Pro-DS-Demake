@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+import subprocess
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'tools'))
 from c137_private_nitrofs_preflight import audit, ROSTER
@@ -43,6 +44,48 @@ class C137Tests(unittest.TestCase):
             self.assertFalse(result['original_release_ready'])
             self.assertEqual(result['source_sidecars_missing']['source_material_ranges'],730)
             self.assertTrue(result['missing_release_ui_and_text'])
+
+    def test_runtime_species_preview_requires_present_valid_mapping(self):
+        with tempfile.TemporaryDirectory() as d:
+            package=pathlib.Path(d)/'private.zip'
+            make_zip(package)
+            result=audit(package)
+            self.assertTrue(result['native_preview_ready'])
+            self.assertFalse(result['runtime_species_preview_ready'])
+            self.assertEqual(result['runtime_species_preview_slots'],0)
+            mapping=[0xffff]*649
+            mapping[0]=0
+            with zipfile.ZipFile(package,'a') as out:
+                out.writestr('models/species_map.p3sm',
+                             struct.pack('<4sHH649H',b'P3SM',1,649,*mapping))
+            result=audit(package)
+            self.assertTrue(result['runtime_species_preview_ready'])
+            self.assertEqual(result['runtime_species_preview_slots'],1)
+            command=[sys.executable,str(pathlib.Path(__file__).resolve().parents[1]/'tools/c137_private_nitrofs_preflight.py'),
+                     '--input',str(package),'--require-runtime-preview-ready']
+            self.assertEqual(subprocess.run(command,capture_output=True).returncode,0)
+
+    def test_cli_blocks_runtime_build_without_species_mapping(self):
+        with tempfile.TemporaryDirectory() as d:
+            package=pathlib.Path(d)/'private.zip';make_zip(package)
+            command=[sys.executable,str(pathlib.Path(__file__).resolve().parents[1]/'tools/c137_private_nitrofs_preflight.py'),
+                     '--input',str(package),'--require-runtime-preview-ready']
+            result=subprocess.run(command,capture_output=True,text=True)
+            self.assertEqual(result.returncode,1)
+            self.assertIn('"runtime_species_preview_ready": false',result.stdout)
+
+    def test_runtime_species_preview_rejects_invalid_or_missing_resources(self):
+        for invalid in (b'P3SM',struct.pack('<4sHH649H',b'P3SM',1,649,*([721]*649)),
+                        struct.pack('<4sHH649H',b'P3SM',1,649,*([738]*649)),
+                        struct.pack('<4sHH649H',b'P3SM',1,649,*([0xffff]*649))):
+            with self.subTest(size=len(invalid)),tempfile.TemporaryDirectory() as d:
+                package=pathlib.Path(d)/'private.zip'
+                make_zip(package)
+                with zipfile.ZipFile(package,'a') as out:
+                    out.writestr('models/species_map.p3sm',invalid)
+                result=audit(package)
+                self.assertFalse(result['runtime_species_preview_ready'])
+                self.assertEqual(result['runtime_species_preview_slots'],0)
 
     def test_reject_native_reserved_header_and_stage_does_not_modify_target(self):
         with tempfile.TemporaryDirectory() as d:

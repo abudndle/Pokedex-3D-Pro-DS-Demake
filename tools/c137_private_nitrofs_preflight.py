@@ -165,6 +165,29 @@ def audit(path, *, full_crc=False):
                           for key,pattern in required.items()}
         missing_sidecars = {key: 730-n for key,n in sidecar_counts.items()}
         preview_ready = not issues and len(previews) == len(ROSTER)
+        # main.c resolves species through P3SM before opening any preview.
+        # Structural asset validity alone cannot prove that runtime reachability.
+        runtime_issues = []
+        runtime_slots = 0
+        mapping_path = 'models/species_map.p3sm'
+        if mapping_path not in names:
+            runtime_issues.append('species model map missing')
+        else:
+            mapping = (z.read(mapping_path) if z.getinfo(mapping_path).file_size == 8+649*2
+                       else b'')
+            if (len(mapping) != 8 + 649*2 or
+                    mapping[:8] != struct.pack('<4sHH', b'P3SM', 1, 649)):
+                runtime_issues.append('species model map format invalid')
+            else:
+                resources = struct.unpack_from('<649H', mapping, 8)
+                if any(i != 0xffff and (i >= 738 or i not in previews)
+                       for i in resources):
+                    runtime_issues.append('species model map references unavailable preview')
+                else:
+                    runtime_slots = sum(i != 0xffff for i in resources)
+                    if not runtime_slots:
+                        runtime_issues.append('species model map has no available previews')
+        runtime_ready = preview_ready and not runtime_issues
         unverified_release_features = [
             'source-exact texture sampler roles and shader operation words',
             'original Pokemon animations and cries',
@@ -185,6 +208,10 @@ def audit(path, *, full_crc=False):
             'archive_sha256': digest.hexdigest(),
             'zip_entries': len(names), 'uncompressed_bytes': size,
             'native_preview_count': len(previews), 'native_preview_ready': preview_ready,
+            'runtime_species_preview_ready': runtime_ready,
+            'runtime_species_preview_slots': runtime_slots,
+            'runtime_species_preview_issues': runtime_issues,
+            'runtime_species_identity_verified': False,
             'unit_uv_pairs_accepted': uv_count,
             'texture_payload_count': len(texture_names),
             'source_sidecars_present': sidecar_counts,
@@ -203,6 +230,7 @@ def main():
     p.add_argument('--output',type=Path)
     p.add_argument('--crc-all',action='store_true')
     p.add_argument('--require-preview-ready',action='store_true')
+    p.add_argument('--require-runtime-preview-ready',action='store_true')
     p.add_argument('--require-release-ready',action='store_true')
     args=p.parse_args()
     result=audit(args.input,full_crc=args.crc_all)
@@ -211,6 +239,8 @@ def main():
         args.output.write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps({k:v for k,v in result.items() if k != 'missing_release_ui_and_text'},indent=2))
     if args.require_preview_ready and not result['native_preview_ready']:
+        raise SystemExit(1)
+    if args.require_runtime_preview_ready and not result['runtime_species_preview_ready']:
         raise SystemExit(1)
     if args.require_release_ready and not result['original_release_ready']:
         raise SystemExit(1)
