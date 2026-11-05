@@ -5,6 +5,8 @@ import struct
 import tempfile
 import unittest
 import zipfile
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 
 from c357_gui_scene_transforms import recover, parse_scene_transforms
 
