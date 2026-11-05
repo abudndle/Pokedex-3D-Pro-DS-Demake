@@ -48,6 +48,7 @@
 #include "dex_text.h"
 #include "species_details.h"
 #include "species_learnset.h"
+#include "model_view.h"
 #include "dex_search.h"
 #include "search_touch.h"
 #include "photo_album.h"
@@ -130,6 +131,7 @@ static const char *native_texture_resolve(void *opaque,unsigned texture_id){
 }
 
 static P3DAnimationPlayback animation_playback;
+static P3DModelView model_view={P3D_ZOOM_DEFAULT};
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
 static P3DFormNames form_names;
@@ -294,6 +296,7 @@ static void prepare_original_art(void){
 }
 
 static void reload_preview(void){
+    p3dModelViewReset(&model_view);
     /* Optional form-specific metadata is never reconstructed from model
      * resources or public species databases. An absent private sidecar
      * becomes an explicitly unavailable detail screen. */
@@ -596,7 +599,7 @@ static void render_model(void){
     glMatrixMode(GL_PROJECTION);glLoadIdentity();
     gluPerspective(50,256.0/192.0,0.1,20.0);
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();
-    glTranslatef32(0,0,floattof32(-3));
+    glTranslatef32(0,0,-p3dModelViewDistance(&model_view)*1024);
     glRotateYi(model_yaw);
     if(preview_animation.ready && !source_geometry_ready){
         P3DAnimationFrame pose;
@@ -1177,6 +1180,8 @@ static void render(void) {
                 printf("\x1b[12;1H[%-6s]      [Restart]",
                        animation_playback.paused?"Resume":"Pause");
             printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
+            if(preview_found)
+                printf("\x1b[%d;1H< ZOOM OUT   RESET   ZOOM IN >",1+P3D_ZOOM_ROW_TOP/8);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
             if(selected_form){
                 const char *name=p3dFormName(&form_names,dex_index,selected_form);
@@ -2194,6 +2199,11 @@ int main(void) {
             if(!showing_original_art && (down&KEY_TOUCH) && state.page!=P3D_PAGE_SEARCH){
                 touchPosition point;
                 touchRead(&point);
+                if(state.page==P3D_PAGE_DEX && !dex_detail_tab &&
+                   !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN|
+                           KEY_SELECT|KEY_START|KEY_L|KEY_R)) &&
+                   p3dModelZoomTouch(&model_view,preview_found,1,point.px,point.py))
+                    redraw=1;
                 if(state.page==P3D_PAGE_DEX && dex_detail_tab==3 && dex_details_ready &&
                    !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN|
                            KEY_SELECT|KEY_START|KEY_L|KEY_R)) &&

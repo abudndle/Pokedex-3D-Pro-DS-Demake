@@ -25,6 +25,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: C359 bounded model camera zoom/reset and sanitizer regressions
+        run: |
+          sh tests/run_c359_model_zoom.sh
+          P3D_HOST_SANITIZERS='-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer' sh tests/run_c359_model_zoom.sh
       - name: C358 source-bound evolution navigation and sanitizer regressions
         run: |
           sh tests/run_c358_evolution_navigation.sh
