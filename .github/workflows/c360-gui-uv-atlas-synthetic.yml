@@ -1,0 +1,31 @@
+name: C360 original GUI source UV atlas scale (synthetic-only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - 'tools/c360_gui_uv_atlas_coordinates.py'
+      - 'tests/test_c360_gui_uv_atlas_coordinates.py'
+      - '.github/workflows/c360-gui-uv-atlas-synthetic.yml'
+  pull_request:
+    paths:
+      - 'tools/c360_gui_uv_atlas_coordinates.py'
+      - 'tests/test_c360_gui_uv_atlas_coordinates.py'
+      - '.github/workflows/c360-gui-uv-atlas-synthetic.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c360-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  synthetic-gui-uv-rational-atlas-correlation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify all synthetic UV, title crop, and security regressions
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c360_gui_uv_atlas_coordinates.py' -v
+          python3 -m py_compile tools/c360_gui_uv_atlas_coordinates.py
