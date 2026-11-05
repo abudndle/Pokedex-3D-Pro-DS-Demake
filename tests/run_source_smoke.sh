@@ -18,3 +18,7 @@ cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
     source/feature_menu.c source/dsi_features.c \
     tests/test_feature_menu_bounds.c -o "$tmp/menu_test"
 "$tmp/menu_test"
+
+cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
+    source/bookmark_edit.c tests/c362_bookmark_edit.c -o "$tmp/bookmark_test"
+"$tmp/bookmark_test"
