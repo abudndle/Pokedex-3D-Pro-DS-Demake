@@ -45,3 +45,5 @@ cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
     source/feature_menu.c source/dsi_features.c \
     tests/c366_bookmark_session.c -o "$tmp/bookmark_session_test"
 "$tmp/bookmark_session_test" "$tmp/session_bookmarks"
+
+python3 tests/c387_native_bookmark_wiring.py
