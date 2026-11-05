@@ -27,3 +27,8 @@ cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
     source/bookmark_edit.c source/bookmark_navigation.c \
     tests/c363_bookmark_navigation.c -o "$tmp/bookmark_navigation_test"
 "$tmp/bookmark_navigation_test"
+
+cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
+    source/bookmark_edit.c source/bookmark_store.c \
+    tests/c364_bookmark_store.c -o "$tmp/bookmark_store_test"
+"$tmp/bookmark_store_test" "$tmp/bookmarks"
