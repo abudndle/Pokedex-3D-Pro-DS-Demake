@@ -3,7 +3,7 @@
 #define P3D_ZOOM_DEFAULT 12
 #define P3D_ZOOM_NEAR 8
 #define P3D_ZOOM_FAR 24
-#define P3D_ZOOM_ROW_TOP 104
+#define P3D_ZOOM_ROW_TOP 112
 typedef struct { int distance_quarters; } P3DModelView;
 void p3dModelViewReset(P3DModelView *view);
 /* Text-entry controls only: out/reset/in. No gesture guesses on source art. */

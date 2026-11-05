@@ -21,3 +21,5 @@ and control rows. The old row17 policy compiled and failed the non-overlap
 assertion before the production change; the same command passes afterward.
 The integrated host/build/emulator suite and fresh private source-bound
 screenshots must verify the final revision.
+
+BlocksDS console positions are zero-based and clamp to row 23. Page-specific free rows preserve existing controls, including Settings storage feedback. Zoom label and touch band occupy pixels 112 through 119. Album navigation uses free row 22; Search keeps its action labels instead of overwriting them with a hint.

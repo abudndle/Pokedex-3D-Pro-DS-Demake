@@ -1114,7 +1114,7 @@ static void render(void) {
                !p3dCanEnterFeature(hardware_caps,P3D_FEATURE_AR))
                 printf(" [DSi camera only]");
         }
-        printf("\x1b[24;1HUse A to open selected");
+        printf("\x1b[23;1HUse A to open selected");
     } else {
         printf("\x1b[9;1H%s",p3dPageName(state.page));
         if(state.page==P3D_PAGE_DEX && dex_detail_tab){
@@ -1203,7 +1203,7 @@ static void render(void) {
                        animation_playback.paused?"Resume":"Pause");
             printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
             if(preview_found)
-                printf("\x1b[%d;1H< ZOOM OUT   RESET   ZOOM IN >",1+P3D_ZOOM_ROW_TOP/8);
+                printf("\x1b[%d;1H< ZOOM OUT   RESET   ZOOM IN >",P3D_ZOOM_ROW_TOP/8);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
             if(selected_form){
                 const char *name=p3dFormName(&form_names,dex_index,selected_form);
@@ -1212,7 +1212,7 @@ static void render(void) {
             }
             else printf("\x1b[17;1HBase form");
             printf("\x1b[19;1HY: next verified form");
-            printf("\x1b[24;1HSTART: details  B: menu");
+            printf("\x1b[22;1HSTART: details  B: menu");
         }else if(state.page==P3D_PAGE_SEARCH){
             printf("\x1b[9;1H%.28s",state.search_query[0]?state.search_query:"NAME / TEXT SEARCH");
             /* One-based console rows share exact touch coordinates in C83. */
@@ -1232,7 +1232,6 @@ static void render(void) {
             printf("\x1b[%d;1H  A B C D E F G H I J K L M",P3D_SEARCH_KEYBOARD_ROW);
             printf("\x1b[%d;1H  N O P Q R S T U V W X Y Z",P3D_SEARCH_KEYBOARD_ROW+2);
             printf("\x1b[%d;1HDEL       NEXT      PREV",P3D_SEARCH_ACTIONS_ROW);
-            printf("\x1b[24;1HTap region/scope/field above");
         }else if(state.page==P3D_PAGE_MOVES){
             printf("\x1b[11;1HMove %03d of 559",move_index+1);
             if(move_catalog_ready){
@@ -1346,7 +1345,7 @@ static void render(void) {
                     printf("\x1b[%d;1H%c%s",13+(int)row*2,i==album_selected?'>':' ',names[i]);
                 }
                 printf("\x1b[23;1H%s",album_confirm_delete?"A: delete  B: cancel":"A: view photo   X: delete");
-                printf("\x1b[24;1HL/R: page   B: return");
+                printf("\x1b[22;1HL/R: page   B: return");
             }
         }else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
@@ -1394,7 +1393,7 @@ static void render(void) {
         if(state.page==P3D_PAGE_CHALLENGE &&
            (quiz.stage==P3D_CHALLENGE_QUESTION ||
             quiz.stage==P3D_CHALLENGE_REVIEW))
-            printf("\x1b[24;1HB: Return to menu");
+            printf("\x1b[22;1HB: Return to menu");
         else {
             int footer_row=p3dPageFooterRow(state.page);
             if(footer_row)printf("\x1b[%d;1HB: Return to menu",footer_row);

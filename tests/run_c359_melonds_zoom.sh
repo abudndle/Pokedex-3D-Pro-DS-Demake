@@ -20,7 +20,7 @@ trap 'if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; fi; rm -rf "$XDG
 sleep 15
 capture() { window="$(p3d_melonds_capture_live_window "$1" 20 c359-windows.txt)"; }
 press() { xdotool windowfocus --sync "$window"; xdotool keydown "$1"; sleep 0.3; xdotool keyup "$1"; sleep 0.5; }
-tap() { xdotool mousemove --window "$window" "$1" 319; xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 0.5; }
+tap() { xdotool mousemove --window "$window" "$1" 327; xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 0.5; }
 capture c359-home.xwd
 for _ in 1 2 3 4 5 6; do press Down; done
 press x; press x; press z
