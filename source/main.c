@@ -1216,12 +1216,20 @@ static void render(void) {
             printf("\x1b[16;1HX: preview detail");
             printf("\x1b[15;1HA: toggle setting");
             printf("\x1b[17;1HBookmarks: %s",bookmark_settings.active_list?"Moves":"Pokemon");
-            printf("\x1b[18;1HCount: %u",bookmark_settings.active_list?bookmark_settings.moves.count:bookmark_settings.pokemon.count);
-            printf("\x1b[19;1HSTART: save current entry");
+            const P3DBookmarkList *visible_bookmarks=bookmark_settings.active_list?
+                &bookmark_settings.moves:&bookmark_settings.pokemon;
+            printf("\x1b[18;1HCount: %u / %u",visible_bookmarks->count,
+                   P3D_BOOKMARK_CAPACITY);
+            if(visible_bookmarks->count && bookmark_cursor<visible_bookmarks->count)
+                printf("\x1b[19;1HSelected: %u (ID %u)",bookmark_cursor+1,
+                       (unsigned)visible_bookmarks->ids[bookmark_cursor]+1);
+            else printf("\x1b[19;1HNo saved bookmarks");
             printf("\x1b[20;1HL/R: list  UP/DOWN: slot");
-            printf("\x1b[21;1HSELECT: %s slot %u",
-                (bookmark_settings.active_list?bookmark_settings.moves.editing:bookmark_settings.pokemon.editing)?"delete":"open",bookmark_cursor+1);
-            printf("\x1b[22;1HY: toggle bookmark edit");
+            printf("\x1b[21;1HSELECT: %s",
+                   visible_bookmarks->editing?"delete":"open");
+            printf("\x1b[22;1HY: edit  START: add");
+            if(!storage_ready)printf("\x1b[23;1HStorage unavailable");
+            else if(bookmark_settings.dirty)printf("\x1b[23;1HBookmark save pending");
         }else if(state.page==P3D_PAGE_FAVORITES){
             printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
             printf("\x1b[15;1HChoose in Pokedex");
