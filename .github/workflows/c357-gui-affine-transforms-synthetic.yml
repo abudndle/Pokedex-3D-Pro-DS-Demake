@@ -1,0 +1,34 @@
+name: C357 original GUI scene transforms (synthetic only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - 'tools/c357_gui_source_transforms.py'
+      - 'tests/test_c357_gui_source_transforms.py'
+      - '.github/workflows/c357-gui-affine-transforms-synthetic.yml'
+  pull_request:
+    paths:
+      - 'tools/c357_gui_source_transforms.py'
+      - 'tests/test_c357_gui_source_transforms.py'
+      - '.github/workflows/c357-gui-affine-transforms-synthetic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c357-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-gui-source-scene-affine-transforms:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate original C5v2 section offsets, 3x4 transforms, metadata and source boundaries
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c357_gui_source_transforms.py' -v
+          python3 -m py_compile tools/c357_gui_source_transforms.py
