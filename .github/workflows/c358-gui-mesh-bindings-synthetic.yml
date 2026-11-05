@@ -1,0 +1,35 @@
+name: C358 GUI texture/material/mesh scene bindings (synthetic only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - 'tools/c358_gui_material_mesh_bindings.py'
+      - 'tests/c358_synthetic_fixtures.py'
+      - 'tests/test_c358_gui_material_mesh_bindings.py'
+      - '.github/workflows/c358-gui-mesh-bindings-synthetic.yml'
+  pull_request:
+    paths:
+      - 'tools/c358_gui_material_mesh_bindings.py'
+      - 'tests/c358_synthetic_fixtures.py'
+      - 'tests/test_c358_gui_material_mesh_bindings.py'
+      - '.github/workflows/c358-gui-mesh-bindings-synthetic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: c358-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-gui-texture-material-mesh-node-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check 15 synthetic original C5 material/mesh/texture/node relationship tests
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c358_gui_material_mesh_bindings.py' -v
+          python3 -m py_compile tools/c358_gui_material_mesh_bindings.py
