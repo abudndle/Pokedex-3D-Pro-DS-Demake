@@ -35,11 +35,11 @@ def source(key):
         ids=[value for k in range(t) for value in
              ((0,1,2) if k%2==0 else (0,2,3))]
         triangles.extend(struct.pack('<'+'H'*len(ids),*ids))
-        struct.pack_into('<IIHH',d,p+c+i*12,len(vertices)+
+        struct.pack_into('<IIHH',d,p+b+i*12,len(vertices)+
                          0,0,len(ids),2) # corrected below after all vertices
     offset=len(vertices)
     for i,t in enumerate(tc):
-        struct.pack_into('<I',d,p+c+i*12,offset)
+        struct.pack_into('<I',d,p+b+i*12,offset)
         offset+=t*6
     geom=bytes(vertices+triangles)
     struct.pack_into('<I',d,p+8,len(geom))
