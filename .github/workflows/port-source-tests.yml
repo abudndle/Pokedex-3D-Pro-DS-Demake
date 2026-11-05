@@ -25,6 +25,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: C335 actual source-bound Nitro Engine/DSMA manifest and file preflight
+        run: sh tests/run_c335_nitro_bridge.sh
+      - name: C335 original source pair to Nitro OBJ converter regressions
+        run: python3 -m unittest discover -s tests -p 'test_c335_nitro_converter.py' -v
+      - name: C335 retain original renderer and libnds video setup
+        run: python3 -m unittest discover -s tests -p 'test_c335_native_bridge_wiring.py' -v
       - name: C333 enforce native touchscreen detail UI routing and fail-closed source
         run: python3 -m unittest discover -s tests -p 'test_c333_native_detail_wiring.py' -v
       - name: C333 strict source-detail payload and form metadata regression
