@@ -33,7 +33,8 @@ def make_source():
                  'vertices':[vertex(i,color=(0,20,40,255)) for i in range(4)]},
                 {'draw_slot':1,'source_texture_name':'titlepro_en',
                  'scene_node_index':2,'vertex_attribute_source_tag':'4420',
-                 'vertices':[vertex(i,uv) for i,uv in enumerate(title_uv)]},
+                 'vertices':[dict(vertex(i,uv),source_xyz=[(-90,90,90,-90)[i],(46,46,-46,-46)[i],0.0])
+                             for i,uv in enumerate(title_uv)]},
             ]}}}
     manifest = {'private_source_archive_sha256':ARCHIVE, 'entries':[
         {'original_source':'decoded_c5/gui/gui_common.c5','name':'tex00',
