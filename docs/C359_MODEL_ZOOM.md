@@ -16,7 +16,7 @@ favorites, form selection and entry navigation are preserved. Exact original
 first zoom-touch assertion before behavior was implemented. The same command
 passes after implementation, including exact hit bounds, clamping, reset,
 unavailable/art gating and invalid-state recovery. The C306 workflow uses
-independently authored red geometry and real DeSmuME touchscreen input to
+independently authored red geometry and pinned melonDS touchscreen input to
 check enlargement, reduction and exact reset; negative frame fixtures reject
 missing, blank and incorrect rendered-size evidence.
 
