@@ -1938,6 +1938,14 @@ int main(void) {
                 if((down&KEY_SELECT) && storage_ready){
                     int opened=p3dBookmarkSessionSelect(&bookmark_settings,&state,
                         storage_ready?P3D_SAVE_BASE:NULL,bookmark_cursor);
+                    if(opened==-1){
+                        /* Deletion changed the in-memory list, but the FAT flush failed.
+                           Keep the cursor valid and expose the pending save warning. */
+                        unsigned count=bookmark_settings.active_list?
+                            bookmark_settings.moves.count:bookmark_settings.pokemon.count;
+                        if(bookmark_cursor>=count)bookmark_cursor=count?count-1:0;
+                        redraw=1;
+                    }
                     if(opened==2){
                         unsigned count=bookmark_settings.active_list?
                             bookmark_settings.moves.count:bookmark_settings.pokemon.count;
