@@ -28,6 +28,26 @@ if [ -z "$window" ]; then cat "$temp/desmume.log"; exit 1; fi
 sleep 12
 xdotool windowfocus --sync "$window"
 xwd -id "$window" -silent -out c306-home.xwd
+if [[ "${C359_ZOOM_ONLY:-0}" == 1 ]]; then
+  press() { xdotool keydown "$1"; sleep 0.2; xdotool keyup "$1"; sleep 0.5; }
+  tap() { xdotool mousemove --window "$window" "$1" 300; xdotool mousedown 1; sleep 0.2; xdotool mouseup 1; sleep 0.5; }
+  # Disable auto-rotation through real Settings input; no emulator memory edits.
+  for _ in 1 2 3 4 5 6; do press k; done
+  press x; press x; press b
+  for _ in 1 2 3 4 5 6; do press i; done
+  press x
+  xwd -id "$window" -silent -out c359-default.xwd
+  for _ in 1 2 3; do tap 220; done
+  xwd -id "$window" -silent -out c359-near.xwd
+  tap 128
+  xwd -id "$window" -silent -out c359-reset.xwd
+  for _ in 1 2 3; do tap 30; done
+  xwd -id "$window" -silent -out c359-far.xwd
+  tap 128
+  xwd -id "$window" -silent -out c359-reset-again.xwd
+  python3 tests/c359_zoom_frame_gate.py c359-{default,near,reset,far,reset-again}.xwd
+  exit 0
+fi
 # First two synthetic Dex species map to distinct matched material textures.
 xdotool keydown x; sleep 0.5; xdotool keyup x
 sleep 2

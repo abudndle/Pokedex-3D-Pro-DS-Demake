@@ -144,7 +144,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/search_touch.c",
-      "gap": "C123 introduces strict CRC-validated private P3HM original 3DS seven-icon HOME touch rectangles. When an authentic bottom-screen HOME bitmap is in use, touch targets come only from the corresponding source-measured positions, not the text developer menu; invalid/missing maps fail closed while D-pad/A remain functional. Text-only developer menus retain their list touch targets. Exact recovered original icon geometry and original UI interaction parity are not verified without owner-private source assets.",
+      "gap": "C123 introduces strict CRC-validated private P3HM original 3DS seven-icon HOME touch rectangles. When an authentic bottom-screen HOME bitmap is in use, touch targets come only from the corresponding source-measured positions, not the text developer menu; invalid/missing maps fail closed while D-pad/A remain functional. Text-only developer menus retain their list touch targets. C359 adds bounded touchscreen model zoom/reset on the text entry only, with original-art and missing-preview gating. Exact recovered original icon geometry, camera semantics and original UI interaction parity remain unverified.",
       "verified_end_to_end": false
     },
     {
