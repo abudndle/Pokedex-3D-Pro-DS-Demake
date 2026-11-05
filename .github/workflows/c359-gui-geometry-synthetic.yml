@@ -29,5 +29,5 @@ jobs:
           python-version: '3.12'
       - name: Verify synthetic original XYZ UV/color vertex streams and triangles
         run: |
-          python3 -m unittest discover -s tests -p 'test_c359_gui_vertex_uv_topology.py' -v
+          python3 -m unittest discover -s tests -p 'test_c359*.py' -v
           python3 -m py_compile tools/c359_gui_vertex_uv_topology.py
