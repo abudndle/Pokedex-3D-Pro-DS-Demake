@@ -1907,7 +1907,7 @@ int main(void) {
                     bookmark_cursor=0;
                     redraw=1;
                 }
-                if(down&KEY_START){
+                if((down&KEY_START) && storage_ready){
                     unsigned id=bookmark_settings.active_list?(unsigned)move_index:(unsigned)dex_index;
                     if(p3dBookmarkSessionAdd(&bookmark_settings,
                             storage_ready?P3D_SAVE_BASE:NULL,
@@ -1919,7 +1919,7 @@ int main(void) {
                     if(count){bookmark_cursor=(bookmark_cursor+count+
                         ((down&KEY_UP)?count-1:1))%count;redraw=1;}
                 }
-                if(down&KEY_SELECT){
+                if((down&KEY_SELECT) && storage_ready){
                     int opened=p3dBookmarkSessionSelect(&bookmark_settings,&state,
                         storage_ready?P3D_SAVE_BASE:NULL,bookmark_cursor);
                     if(opened==1){
