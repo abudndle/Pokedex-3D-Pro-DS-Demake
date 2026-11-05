@@ -8,6 +8,7 @@
 #include <time.h>
 #include <filesystem.h>
 #include "feature_menu.h"
+#include "bookmark_session.h"
 #include "menu_layout.h"
 #include "menu_navigation.h"
 #include "dsi_features.h"
@@ -49,6 +50,7 @@
 #include "species_details.h"
 #include "species_learnset.h"
 #include "model_view.h"
+#include "nitro_source_bridge.h"
 #include "dex_search.h"
 #include "search_touch.h"
 #include "photo_album.h"
@@ -78,6 +80,8 @@ static int challenge_correct_total=0, challenge_answer_total=0;
 static uint32_t challenge_seed=0x13579BDFu;
 static int favorite_index=0;
 static int storage_ready=0;
+static P3DBookmarkSettings bookmark_settings;
+static unsigned bookmark_cursor=0;
 static int nitro_ready=0;
 static int save_message=0;
 static int progress_dirty=0;
@@ -312,6 +316,9 @@ static void reload_preview(void){
         if(p3dLearnsetPath(details_path,dex_index,selected_form))
             p3dLearnsetLoad(details_path,dex_index,selected_form,&dex_learnset);
     }
+    /* Source-locked Nitro Engine/DSMA model is released before switching
+     * form/species; never carry an old Pokémon into the new entry. */
+    p3dNitroBridgeUnload();
     /* Free all prior per-material VRAM allocations on species/form changes. */
     p3dPreviewTextureSetRelease(&preview_gl_textures);
     p3dDsMaterialTextureCacheDestroy(&native_texture_cache);
@@ -352,6 +359,13 @@ static void reload_preview(void){
         }
     }
     preview_found=legacy_preview_found||source_geometry_ready;
+    /* Reuse verified original P3VX/P3IX, not procedural geometry.
+     * A private P3NE sidecar binds the Nitro Engine display-list/DSMA
+     * conversion to these exact pair bytes; absence is harmless. */
+    if(source_geometry_ready)
+        (void)p3dNitroBridgeLoad((uint16_t)resource,
+            source_geometry_pair.vx,source_geometry_pair.vx_size,
+            source_geometry_pair.ix,source_geometry_pair.ix_size);
     /* Native material indices must cover exact P3VX/P3IX source triangles,
      * not the independently reduced DS3M order. The conservative source
      * draw gate currently supports at most 600 triangles. */
@@ -611,6 +625,13 @@ static void render_model(void){
     }
     glPolyFmt(POLY_ALPHA(31)|POLY_CULL_NONE);
     if(source_geometry_ready){
+        /* Optional Nitro Engine/DSMA uses the converted ORIGINAL source
+         * geometry. Keep verified source-material texturing ahead of a
+         * converted untextured display list, and retain old GL fallback. */
+        if(!native_material_ready && p3dNitroBridgeDraw()){
+            glFlush(0);
+            return;
+        }
         /* Source indices and 4.12 XYZ were validated as one private pair.
          * No source sampler, skin weights or animation role is inferred. */
         uint32_t drawn=0;
@@ -1280,6 +1301,21 @@ static void render(void) {
             printf("\x1b[14;1HGeometry: %s",prefer_source_chunks?"HIGH TEST":"LEGACY");
             printf("\x1b[16;1HX: preview detail");
             printf("\x1b[15;1HA: toggle setting");
+            printf("\x1b[17;1HBookmarks: %s",bookmark_settings.active_list?"Moves":"Pokemon");
+            const P3DBookmarkList *visible_bookmarks=bookmark_settings.active_list?
+                &bookmark_settings.moves:&bookmark_settings.pokemon;
+            printf("\x1b[18;1HCount: %u / %u",visible_bookmarks->count,
+                   P3D_BOOKMARK_CAPACITY);
+            if(visible_bookmarks->count && bookmark_cursor<visible_bookmarks->count)
+                printf("\x1b[19;1HSelected: %u (ID %u)",bookmark_cursor+1,
+                       (unsigned)visible_bookmarks->ids[bookmark_cursor]+1);
+            else printf("\x1b[19;1HNo saved bookmarks");
+            printf("\x1b[20;1HL/R: list  UP/DOWN: slot");
+            printf("\x1b[21;1HSELECT: %s",
+                   visible_bookmarks->editing?"delete":"open");
+            printf("\x1b[22;1HY: edit  START: add");
+            if(!storage_ready)printf("\x1b[23;1HStorage unavailable");
+            else if(bookmark_settings.dirty)printf("\x1b[23;1HBookmark save pending");
         }else if(state.page==P3D_PAGE_FAVORITES){
             printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
             printf("\x1b[15;1HChoose in Pokedex");
@@ -1367,6 +1403,9 @@ int main(void) {
     P3DCapabilities caps=p3dCapabilities(isDSiMode()?1:0,0,0);
     videoSetMode(MODE_0_3D);
     glInit();
+    /* Only Nitro Engine model + DSMA animation subsystems; NE_Init3D()
+     * would reset the existing top 3D/bottom text screen layout. */
+    (void)p3dNitroBridgeInit();
     glEnable(GL_ANTIALIAS);
     glEnable(GL_BLEND);
     glClearDepth(GL_MAX_DEPTH);
@@ -1409,6 +1448,7 @@ int main(void) {
         p3dFormNamesLoad(&form_names,"nitro:/models/form_names.p3fn");
     }
     p3dMenuReset(&state);
+    p3dBookmarkSettingsInit(&bookmark_settings);
     p3dChallengeReset(&quiz);
     p3dRecordsReset(&records);
     /* FAT/DLDI storage is optional in DS mode; no media means volatile progress. */
@@ -1422,6 +1462,7 @@ int main(void) {
     caps=p3dCapabilities(isDSiMode()?1:0,storage_ready,0);
     hardware_caps=caps;
     if(storage_ready){
+        (void)p3dBookmarkSessionLoad(&bookmark_settings,P3D_SAVE_BASE);
         /* Bad or missing records slots leave a clean in-memory history. */
         (void)p3dRecordsLoad(P3D_SAVE_BASE,&records);
         P3DSaveState record;
@@ -1545,6 +1586,7 @@ int main(void) {
     if(last_checkpoint_valid || !show_original_title())render();
     while(1) {
         swiWaitForVBlank();
+        p3dNitroBridgeFrame();
         challenge_seed+=0x9E3779B9u; /* Vary each game session's quiz sequence. */
         scanKeys();
         unsigned down=keysDown();
@@ -1624,7 +1666,7 @@ int main(void) {
         }
         /* SELECT makes the text navigation available even with a full-screen
          * recovered UI image. Press SELECT again to restore original art. */
-        if(down&KEY_SELECT){
+        if((down&KEY_SELECT) && (home || state.page!=P3D_PAGE_SETTINGS)){
             prefer_original_art=!prefer_original_art;
             /* An invisible confirmation must never remain armed when the
              * screen mode changes, including returning to the text screen. */
@@ -1635,7 +1677,7 @@ int main(void) {
         }
         /* START explicitly retries a previously failed save, including from
          * the home menu, without discarding unsaved changes on failure. */
-        if((down&KEY_START)&&progress_dirty){
+        if((down&KEY_START)&&progress_dirty && (home || state.page!=P3D_PAGE_SETTINGS)){
             if(save_progress())progress_dirty=0;
             redraw=1;
         }
@@ -2035,16 +2077,67 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_SETTINGS){
+                if(down&(KEY_L|KEY_R)){
+                    p3dBookmarkSettingsSelectList(&bookmark_settings,
+                        bookmark_settings.active_list?0:1);
+                    bookmark_cursor=0;
+                    redraw=1;
+                }
+                if((down&KEY_START) && storage_ready){
+                    /* Retry any pending failed write before adding another entry. */
+                    if(bookmark_settings.dirty){
+                        (void)p3dBookmarkSessionFlush(&bookmark_settings,P3D_SAVE_BASE);
+                        redraw=1;
+                    }else{
+                        unsigned id=bookmark_settings.active_list?(unsigned)move_index:(unsigned)dex_index;
+                        (void)p3dBookmarkSessionAdd(&bookmark_settings,P3D_SAVE_BASE,
+                                                   bookmark_settings.active_list,id);
+                        redraw=1;
+                    }
+                }
+                if(down&(KEY_UP|KEY_DOWN)){
+                    unsigned count=bookmark_settings.active_list?
+                        bookmark_settings.moves.count:bookmark_settings.pokemon.count;
+                    if(count){bookmark_cursor=(bookmark_cursor+count+
+                        ((down&KEY_UP)?count-1:1))%count;redraw=1;}
+                }
+                if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH))){
+                    int editing=bookmark_settings.active_list?
+                        bookmark_settings.moves.editing:bookmark_settings.pokemon.editing;
+                    p3dBookmarkSettingsEdit(&bookmark_settings,!editing);
+                    redraw=1;
+                }
+                if((down&KEY_SELECT) && storage_ready){
+                    int opened=p3dBookmarkSessionSelect(&bookmark_settings,&state,
+                        storage_ready?P3D_SAVE_BASE:NULL,bookmark_cursor);
+                    if(opened==-1){
+                        /* Deletion changed the in-memory list, but the FAT flush failed.
+                           Keep the cursor valid and expose the pending save warning. */
+                        unsigned count=bookmark_settings.active_list?
+                            bookmark_settings.moves.count:bookmark_settings.pokemon.count;
+                        if(bookmark_cursor>=count)bookmark_cursor=count?count-1:0;
+                        redraw=1;
+                    }
+                    if(opened==2){
+                        unsigned count=bookmark_settings.active_list?
+                            bookmark_settings.moves.count:bookmark_settings.pokemon.count;
+                        if(bookmark_cursor>=count)bookmark_cursor=count?count-1:0;
+                        redraw=1;
+                    }
+                    if(opened==1){
+                        if(state.page==P3D_PAGE_DEX){
+                            dex_index=state.selected_dex;selected_form=0;
+                        }else if(state.page==P3D_PAGE_MOVES)
+                            (void)p3dMoveNavigateSelect(&move_index,&move_text_offset,state.move_index);
+                        reload_preview();redraw=1;
+                    }
+                }
                 if((down&KEY_X) && !(down&(KEY_A|KEY_TOUCH))){
                     prefer_source_chunks=!prefer_source_chunks;
                     reload_preview();
                     redraw=1;
                 }
-                if((down&KEY_Y) && !(down&(KEY_A|KEY_TOUCH))){
-                    state.selected_dex=dex_index;
-                    state.page=P3D_PAGE_SEARCH;
-                    redraw=1;
-                }
+
                 int toggle=(down&KEY_A)!=0;
                 if((down&KEY_TOUCH) && !showing_original_art){
                     touchPosition point;

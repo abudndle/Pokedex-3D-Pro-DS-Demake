@@ -8,6 +8,10 @@ This project uses DS-Homebrew projects as **technical references**, not sources 
 - [nds-bootstrap](https://github.com/DS-Homebrew/nds-bootstrap): launch behavior, SD-card paths, save-file expectations and compatibility when running a homebrew `.nds` on DS/DSi/3DS via TWiLight Menu++. Its README documents `.sav` for DS ROM saves and `.pub`/`.prv` for DSiWare; those are launcher conventions, not a promise that this project's custom FAT save path automatically works. Use it for runtime interoperability, **not** as a graphics or 3D model source.
 - [GodMode9i](https://github.com/DS-Homebrew/GodMode9i): read-only file-browser conventions and DSi/SD-card storage handling. Keep file operations carefully bounded, especially imported assets and save data.
 
+## DSi camera, QR scan, and AR integration
+
+The reference implementations in [Epicpkmn11/dsi-camera](https://github.com/Epicpkmn11/dsi-camera), [addisonking/dsi-camera](https://github.com/addisonking/dsi-camera), and [Epicpkmn11/dsidl](https://github.com/Epicpkmn11/dsidl), together with [libnds documentation](https://libnds.devkitpro.org/), are evaluated in [C336 DSi camera and QR integration](C336_DSI_CAMERA_QR_INTEGRATION.md). They are hardware and scan workflow references, **not** an implemented AR backend or an original-game marker format. BlocksDS is the build authority.
+
 ## Port-specific implementation rules
 
 1. Keep the **asset-free** BlocksDS build usable on a standard DS without DSi-only features. Check hardware capability before exposing DSi camera and SD-only operations.

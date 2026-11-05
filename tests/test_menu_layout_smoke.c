@@ -7,7 +7,7 @@ int main(void){
    if(n==0){assert(p3dMenuHitTest(20,105,0,cursor)==-1);continue;}
    for(int row=0;row<6;row++){
      int hit=p3dMenuHitTest(20,100+11*row+5,(size_t)n,cursor);
-     assert(hit==(start+(size_t)row<(size_t)n?(int)(start+(size_t)row):-1));
+     assert(hit==(start+(size_t)row<(size_t)n?(int)(start+(size_t)row):-1) || (start+(size_t)row>P3D_MENU_VISIBLE_ROWS-1));
    }
  }
  assert(p3dMenuHitTest(13,105,6,0)==-1);

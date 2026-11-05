@@ -1,5 +1,9 @@
 # Recovered BlocksDS ARM9 port build rules, invoked only after source migration
 export BLOCKSDS ?= /opt/blocksds/core
+export BLOCKSDSEXT ?= /opt/blocksds/external
+# Explicit opt-in: BlocksDS-native Nitro Engine 0.16 with bundled DSMA.
+# Default build remains independent and preserves the libnds renderer.
+P3D_NITRO_ENGINE ?= 0
 export WONDERFUL_TOOLCHAIN ?= /opt/wonderful
 NAME := Pokedex3D_DS_BlocksDS
 GAME_TITLE := Pokedex 3D Pro DS
@@ -19,6 +23,13 @@ ARCH := -mthumb -mcpu=arm946e-s+nofp
 SPECS := $(BLOCKSDS)/sys/crts/ds_arm9.specs
 CFLAGS := -MMD -MP -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__ -DP3D_HAVE_FAT -Isource -I$(BLOCKSDS)/libs/libnds/include $(EXTRA_CFLAGS)
 LDFLAGS := $(ARCH) -L$(BLOCKSDS)/libs/libnds/lib -Wl,-Map,build/$(NAME).map -Wl,--gc-sections -Wl,--start-group -lnds9 -lc -Wl,--end-group -specs=$(SPECS)
+ifeq ($(P3D_NITRO_ENGINE),1)
+NE_ROOT := $(BLOCKSDSEXT)/nitro-engine
+CFLAGS += -DP3D_USE_NITRO_ENGINE -DNE_BLOCKSDS -I$(NE_ROOT)/include
+LDFLAGS := $(ARCH) -L$(NE_ROOT)/lib -L$(BLOCKSDS)/libs/libnds/lib \
+    -Wl,-Map,build/$(NAME).map -Wl,--gc-sections \
+    -Wl,--start-group -lNE -lnds9 -lm -lc -Wl,--end-group -specs=$(SPECS)
+endif
 .PHONY: rom verify-toolchain
 rom: verify-toolchain $(NAME).nds
 verify-toolchain:
@@ -26,6 +37,9 @@ verify-toolchain:
 	@test -f "$(SPECS)" || { echo "ERROR: BlocksDS ARM9 specs missing: $(SPECS)" >&2; exit 1; }
 	@test -f "$(BLOCKSDS)/libs/libnds/include/nds.h" || { echo "ERROR: BlocksDS libnds headers missing" >&2; exit 1; }
 	@test -x "$(BLOCKSDS)/tools/ndstool/ndstool" || { echo "ERROR: BlocksDS ndstool missing" >&2; exit 1; }
+ifeq ($(P3D_NITRO_ENGINE),1)
+	@test -f "$(NE_ROOT)/include/NEMain.h" && test -f "$(NE_ROOT)/lib/libNE.a" || { echo "ERROR: Nitro Engine missing; install blocksds-nitroengine under $(NE_ROOT)" >&2; exit 1; }
+endif
 build/%.o: source/%.c | verify-toolchain
 	@mkdir -p build
 	$(CC) $(CFLAGS) -c -o $@ $<

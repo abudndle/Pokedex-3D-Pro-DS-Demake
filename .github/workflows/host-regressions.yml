@@ -1,0 +1,35 @@
+name: DS port host regressions
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: host-regressions-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout public DS port source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Python syntax of port tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m compileall -q tools
+      - name: Run existing full host regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          make check-host
