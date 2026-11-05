@@ -21,6 +21,20 @@ int main(int argc,char **argv){
  assert(p3dBookmarkSessionLoad(&a,argv[1]));
  assert(a.pokemon.count==0&&a.moves.count==1);
  assert(!p3dBookmarkSessionAdd(&a,argv[1],0,649));
+ /* A failed FAT write must retain the dirty in-memory change for retry. */
+ {
+  P3DBookmarkSettings pending,recovered;
+  char invalid_base[256];
+  assert(snprintf(invalid_base,sizeof(invalid_base),"%s/missing-parent/bookmarks",argv[1])<(int)sizeof(invalid_base));
+  p3dBookmarkSettingsInit(&pending);
+  assert(!p3dBookmarkSessionAdd(&pending,invalid_base,0,123));
+  assert(pending.dirty&&pending.pokemon.count==1&&pending.pokemon.ids[0]==123);
+  assert(p3dBookmarkSessionFlush(&pending,argv[1]));
+  assert(!pending.dirty);
+  assert(p3dBookmarkSessionLoad(&recovered,argv[1]));
+  assert(recovered.pokemon.count==1&&recovered.pokemon.ids[0]==123);
+  assert(recovered.moves.count==0);
+ }
  assert(snprintf(path,sizeof(path),"%s_bookmarks_A.sav",argv[1])<(int)sizeof(path));
  remove(path);
  assert(snprintf(path,sizeof(path),"%s_bookmarks_B.sav",argv[1])<(int)sizeof(path));
