@@ -32,3 +32,10 @@ cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
     source/bookmark_edit.c source/bookmark_store.c \
     tests/c364_bookmark_store.c -o "$tmp/bookmark_store_test"
 "$tmp/bookmark_store_test" "$tmp/bookmarks"
+
+cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
+    source/bookmark_edit.c source/bookmark_navigation.c source/bookmark_settings.c \
+    source/bookmark_store.c source/bookmark_session.c \
+    source/feature_menu.c source/dsi_features.c \
+    tests/c366_bookmark_session.c -o "$tmp/bookmark_session_test"
+"$tmp/bookmark_session_test" "$tmp/session_bookmarks"
