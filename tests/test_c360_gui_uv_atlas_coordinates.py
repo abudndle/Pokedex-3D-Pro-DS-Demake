@@ -65,6 +65,11 @@ class TestC360(unittest.TestCase):
         self.assertFalse(r['GPU_runtime_UV_normalization_and_origin_verified'])
         self.assertFalse(r['release_ready'])
 
+    def test_title_uv_rect_is_not_proof_without_matching_source_mesh(self):
+        self.topology['resources']['en/gui_title']['draws'][1]['vertices'][1]['source_xyz'][0]=100
+        report=link_atlas_uv(self.topology,self.manifest)
+        self.assertFalse(report['english_title_180x92_source_pixel_rect_match'])
+
     def test_full_atlas_corners_are_source_evidence(self):
         r=link_atlas_uv(self.topology,self.manifest)
         self.assertEqual(r['source_full_atlas_2048_corner_quads'],1)
