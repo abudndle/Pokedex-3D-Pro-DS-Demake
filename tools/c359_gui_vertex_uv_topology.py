@@ -46,7 +46,8 @@ def recover_geometry(data):
     geom=data[payload_start:payload_start+geom_size]
     if len(geom)!=geom_size:
         raise ValueError('truncated embedded original geometry payload')
-    vstart,vend,istart,iend=struct.unpack_from('<4I',data,inner+0x3c)
+    vstart,vend,iend=struct.unpack_from('<3I',data,inner+0x3c)
+    istart=vend
     vcount=(vend-vstart)//VERTEX_DESCRIPTOR_SIZE
     icount=(iend-istart)//INDEX_DESCRIPTOR_SIZE
     draws=binding['draws']
