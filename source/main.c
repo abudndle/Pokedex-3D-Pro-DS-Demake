@@ -10,6 +10,7 @@
 #include "feature_menu.h"
 #include "bookmark_session.h"
 #include "menu_layout.h"
+#include "page_footer.h"
 #include "menu_navigation.h"
 #include "dsi_features.h"
 #include "challenge.h"
@@ -1211,7 +1212,7 @@ static void render(void) {
             }
             else printf("\x1b[17;1HBase form");
             printf("\x1b[19;1HY: next verified form");
-            printf("\x1b[24;1HSTART: original data details");
+            printf("\x1b[24;1HSTART: details  B: menu");
         }else if(state.page==P3D_PAGE_SEARCH){
             printf("\x1b[9;1H%.28s",state.search_query[0]?state.search_query:"NAME / TEXT SEARCH");
             /* One-based console rows share exact touch coordinates in C83. */
@@ -1394,9 +1395,10 @@ static void render(void) {
            (quiz.stage==P3D_CHALLENGE_QUESTION ||
             quiz.stage==P3D_CHALLENGE_REVIEW))
             printf("\x1b[24;1HB: Return to menu");
-        else if(state.page!=P3D_PAGE_ALBUM &&
-                (state.page!=P3D_PAGE_DEX || dex_detail_tab!=3))
-            printf("\x1b[17;1HPress B to go back");
+        else {
+            int footer_row=p3dPageFooterRow(state.page);
+            if(footer_row)printf("\x1b[%d;1HB: Return to menu",footer_row);
+        }
     }
 }
 int main(void) {
