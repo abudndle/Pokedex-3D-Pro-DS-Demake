@@ -8,6 +8,7 @@
 #include <time.h>
 #include <filesystem.h>
 #include "feature_menu.h"
+#include "bookmark_session.h"
 #include "menu_layout.h"
 #include "menu_navigation.h"
 #include "dsi_features.h"
@@ -75,6 +76,8 @@ static int challenge_correct_total=0, challenge_answer_total=0;
 static uint32_t challenge_seed=0x13579BDFu;
 static int favorite_index=0;
 static int storage_ready=0;
+static P3DBookmarkSettings bookmark_settings;
+static unsigned bookmark_cursor=0;
 static int nitro_ready=0;
 static int save_message=0;
 static int progress_dirty=0;
@@ -1212,6 +1215,11 @@ static void render(void) {
             printf("\x1b[14;1HGeometry: %s",prefer_source_chunks?"HIGH TEST":"LEGACY");
             printf("\x1b[16;1HX: preview detail");
             printf("\x1b[15;1HA: toggle setting");
+            printf("\x1b[17;1HBookmarks: %s",bookmark_settings.active_list?"Moves":"Pokemon");
+            printf("\x1b[18;1HCount: %u",bookmark_settings.active_list?bookmark_settings.moves.count:bookmark_settings.pokemon.count);
+            printf("\x1b[19;1HSTART: save current entry");
+            printf("\x1b[20;1HL/R: list  UP/DOWN: slot");
+            printf("\x1b[21;1HSELECT: open slot");
         }else if(state.page==P3D_PAGE_FAVORITES){
             printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
             printf("\x1b[15;1HChoose in Pokedex");
@@ -1323,6 +1331,7 @@ int main(void) {
         p3dFormNamesLoad(&form_names,"nitro:/models/form_names.p3fn");
     }
     p3dMenuReset(&state);
+    p3dBookmarkSettingsInit(&bookmark_settings);
     p3dChallengeReset(&quiz);
     p3dRecordsReset(&records);
     /* FAT/DLDI storage is optional in DS mode; no media means volatile progress. */
@@ -1336,6 +1345,7 @@ int main(void) {
     caps=p3dCapabilities(isDSiMode()?1:0,storage_ready,0);
     hardware_caps=caps;
     if(storage_ready){
+        (void)p3dBookmarkSessionLoad(&bookmark_settings,P3D_SAVE_BASE);
         /* Bad or missing records slots leave a clean in-memory history. */
         (void)p3dRecordsLoad(P3D_SAVE_BASE,&records);
         P3DSaveState record;
@@ -1891,6 +1901,33 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_SETTINGS){
+                if(down&(KEY_L|KEY_R)){
+                    p3dBookmarkSettingsSelectList(&bookmark_settings,
+                        bookmark_settings.active_list?0:1);
+                    bookmark_cursor=0;
+                    redraw=1;
+                }
+                if((down&KEY_START) && storage_ready){
+                    unsigned id=bookmark_settings.active_list?(unsigned)move_index:(unsigned)dex_index;
+                    if(p3dBookmarkSessionAdd(&bookmark_settings,
+                            storage_ready?P3D_SAVE_BASE:NULL,
+                            bookmark_settings.active_list,id))redraw=1;
+                }
+                if(down&(KEY_UP|KEY_DOWN)){
+                    unsigned count=bookmark_settings.active_list?
+                        bookmark_settings.moves.count:bookmark_settings.pokemon.count;
+                    if(count){bookmark_cursor=(bookmark_cursor+count+
+                        ((down&KEY_UP)?count-1:1))%count;redraw=1;}
+                }
+                if((down&KEY_SELECT) && storage_ready){
+                    int opened=p3dBookmarkSessionSelect(&bookmark_settings,&state,
+                        storage_ready?P3D_SAVE_BASE:NULL,bookmark_cursor);
+                    if(opened==1){
+                        if(state.page==P3D_PAGE_DEX)dex_index=state.selected_dex;
+                        else if(state.page==P3D_PAGE_MOVES)move_index=state.move_index;
+                        reload_preview();redraw=1;
+                    }
+                }
                 if((down&KEY_X) && !(down&(KEY_A|KEY_TOUCH))){
                     prefer_source_chunks=!prefer_source_chunks;
                     reload_preview();
