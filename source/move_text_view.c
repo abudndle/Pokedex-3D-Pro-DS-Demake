@@ -20,3 +20,12 @@ int p3dMoveTextScroll(int current,const char *text,int direction){
     if(direction>0)return current>last-28?last:current+28;
     return current;
 }
+/* Select a bounded Move Dex entry and reset its text viewport together.
+ * Returns 1 only on a changed selection; rejected/no-change calls preserve both.
+ * The two outputs must be distinct objects. */
+int p3dMoveNavigateSelect(int *index,int *text_offset,int target){
+    if(!index||!text_offset||index==text_offset||target<0||target>=P3D_MOVE_COUNT||*index==target)return 0;
+    *index=target;
+    *text_offset=0;
+    return 1;
+}

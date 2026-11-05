@@ -6,6 +6,8 @@ full_round="${C264_FULL_ROUND:-0}"
 detail_only="${C333_DETAIL_ONLY:-0}"
 learnset_only="${C334_LEARNSET_ONLY:-0}"
 evolution_only="${C358_EVOLUTION_ONLY:-0}"
+move_only="${C360_MOVE_ONLY:-0}"
+if [[ "$move_only" != 0 && "$move_only" != 1 ]]; then exit 2; fi
 if [[ "$evolution_only" != 0 && "$evolution_only" != 1 ]]; then exit 2; fi
 if [[ "$learnset_only" != 0 && "$learnset_only" != 1 ]]; then
   echo 'C334_LEARNSET_ONLY must be 0 or 1' >&2
@@ -111,6 +113,27 @@ sleep 0.4
 xdotool keyup x
 sleep 4
 capture c260-melonds-fat-favorite.xwd
+if [[ "$move_only" == 1 ]]; then
+  press() { xdotool windowfocus --sync "$window"; xdotool keydown "$1"; sleep 0.3; xdotool keyup "$1"; sleep 1; }
+  tap() { xdotool mousemove --window "$window" "$1" "$2"; xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 1; }
+  press z; press Down; press x
+  capture c360-melonds-long.xwd
+  press Right
+  capture c360-melonds-reference.xwd
+  press Left
+  for _ in 1 2 3 4 5 6 7; do tap 128 379; done
+  capture c360-melonds-scrolled.xwd
+  tap 220 391
+  capture c360-melonds-short.xwd
+  close_cleanly
+  python3 tests/c360_move_gate.py --fat "$sd_root/export"
+  launch
+  capture c360-melonds-resumed.xwd
+  close_cleanly
+  python3 tests/c360_move_gate.py --fat "$sd_root/export"
+  python3 tests/c360_move_gate.py c360-melonds-{long,reference,scrolled,short,resumed}.xwd
+  exit 0
+fi
 if [[ "$detail_only" == 1 || "$learnset_only" == 1 || "$evolution_only" == 1 ]]; then
   if [[ "$learnset_only" == 1 ]]; then
     # Exercise the actual Right handler, not just its portable helper.
