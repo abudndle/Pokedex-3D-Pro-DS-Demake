@@ -1,0 +1,34 @@
+name: C357 original GUI C5 scene transforms (synthetic-only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - 'tools/c357_gui_scene_transforms.py'
+      - 'tests/test_c357_gui_scene_transforms.py'
+      - '.github/workflows/c357-gui-scene-transforms-synthetic.yml'
+  pull_request:
+    paths:
+      - 'tools/c357_gui_scene_transforms.py'
+      - 'tests/test_c357_gui_scene_transforms.py'
+      - '.github/workflows/c357-gui-scene-transforms-synthetic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c357-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-gui-c5-scene-node-affines:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify eleven original-C5 source transform format and failure tests
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c357_gui_scene_transforms.py' -v
+          python3 -m py_compile tools/c357_gui_scene_transforms.py
