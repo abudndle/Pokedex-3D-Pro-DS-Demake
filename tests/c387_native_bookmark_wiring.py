@@ -12,6 +12,11 @@ checks = {
     "bookmark edit toggled": "p3dBookmarkSettingsEdit(&bookmark_settings,!editing);",
     "global SELECT excluded from Settings": "(home || state.page!=P3D_PAGE_SETTINGS)",
     "slot clamped after deletion": "if(bookmark_cursor>=count)bookmark_cursor=count?count-1:0;",
+    "FAT delete failure reported": "if(opened==-1){",
+    "bookmark storage failure displayed": 'printf("\\x1b[23;1HStorage unavailable")',
+    "pending bookmark save displayed": 'printf("\\x1b[23;1HBookmark save pending")',
+    "selected bookmark ID displayed": '(unsigned)visible_bookmarks->ids[bookmark_cursor]+1',
+
 }
 for label, needle in checks.items():
     if needle not in source:
