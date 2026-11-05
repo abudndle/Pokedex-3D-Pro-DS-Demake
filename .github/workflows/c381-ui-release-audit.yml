@@ -1,0 +1,24 @@
+name: C381 UI asset inventory checks
+on:
+  push:
+    paths:
+      - 'tools/audit_ui_release_assets.py'
+      - 'tests/test_c381_release_asset_audit.py'
+      - '.github/workflows/c381-ui-release-audit.yml'
+  pull_request:
+    paths:
+      - 'tools/audit_ui_release_assets.py'
+      - 'tests/test_c381_release_asset_audit.py'
+      - '.github/workflows/c381-ui-release-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python3 -m unittest discover -s tests -p 'test_c381_release_asset_audit.py' -v
