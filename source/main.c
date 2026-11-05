@@ -1291,9 +1291,9 @@ static void render(void) {
                 }
             }else{
                 printf("\x1b[11;1HCompleted: %u",(unsigned)records.rounds);
-                for(int i=0;i<7;i++)
+                for(int i=0;i<P3D_RECORD_CHALLENGES;i++)
                     printf("\x1b[%d;1H%d: %u runs  best %d",
-                           13+i*2,i+1,(unsigned)records.runs[i],
+                           p3dRecordScoreRow((unsigned)i),i+1,(unsigned)records.runs[i],
                            records.best[i]==0xffu?-1:(int)records.best[i]);
             }
             printf("\x1b[23;1HL/R: tabs  X/Fav Y/Quiz");

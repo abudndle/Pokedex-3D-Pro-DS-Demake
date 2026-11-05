@@ -6,3 +6,4 @@ int p3dPageFooterRow(P3DPage page){
  default:return 24;
  }
 }
+int p3dRecordScoreRow(unsigned mode){return mode<P3D_RECORD_CHALLENGES?13+(int)mode:0;}

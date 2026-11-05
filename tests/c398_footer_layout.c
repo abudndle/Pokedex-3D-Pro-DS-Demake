@@ -16,6 +16,12 @@ int main(void){
  assert(!p3dPageFooterRow(P3D_PAGE_ALBUM));
  assert(!p3dPageFooterRow(P3D_PAGE_HOME));
  assert(!p3dPageFooterRow((P3DPage)P3D_PAGE_COUNT));
+ for(unsigned mode=0;mode<P3D_RECORD_CHALLENGES;mode++){
+  int row=p3dRecordScoreRow(mode);
+  assert(row>=11&&row<23&&row!=p3dPageFooterRow(P3D_PAGE_RECORDS));
+  if(mode)assert(row>p3dRecordScoreRow(mode-1));
+ }
+ assert(!p3dRecordScoreRow(P3D_RECORD_CHALLENGES));
  puts("C398 generic Back footer preserves move text, types, form and bookmark rows: PASS");
  return 0;
 }

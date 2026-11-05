@@ -10,6 +10,12 @@ Dex, Search and Album retain their own bottom-row controls. Dex entry's existing
 START hint also names B; details retain START/B controls. No touch targets,
 gameplay values or save formats change.
 
+Records also placed its seven supported quiz scores on rows13,15,...25,
+overwriting the control row and placing the final mode off-screen. Its score
+rows now use13..19, preserving all seven values and the navigation/footer rows.
+The regression first failed with the old spacing and now checks every supported
+mode stays visible, ordered and outside the control/footer area.
+
 The portable footer policy regression checks against the pages' occupied data
 and control rows. The old row17 policy compiled and failed the non-overlap
 assertion before the production change; the same command passes afterward.
