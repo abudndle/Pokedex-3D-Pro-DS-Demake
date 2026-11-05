@@ -8,6 +8,9 @@ checks = {
     "bookmark initialized": "p3dBookmarkSettingsInit(&bookmark_settings);",
     "bookmark loaded from FAT": "p3dBookmarkSessionLoad(&bookmark_settings,P3D_SAVE_BASE)",
     "bookmark saved": "p3dBookmarkSessionAdd(&bookmark_settings,",
+    "failed bookmark save retry": "p3dBookmarkSessionFlush(&bookmark_settings,P3D_SAVE_BASE)",
+    "pending save takes precedence": "if(bookmark_settings.dirty){",
+
     "bookmark selected": "p3dBookmarkSessionSelect(&bookmark_settings,&state,",
     "bookmark edit toggled": "p3dBookmarkSettingsEdit(&bookmark_settings,!editing);",
     "global SELECT excluded from Settings": "(home || state.page!=P3D_PAGE_SETTINGS)",
