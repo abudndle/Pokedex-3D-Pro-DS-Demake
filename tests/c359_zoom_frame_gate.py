@@ -17,5 +17,7 @@ def verify(*paths):
 
 
 if __name__=='__main__':
-    paths=sys.argv[1:];print('C359 actual synthetic camera zoom:',verify(*paths))
+    paths=sys.argv[1:]
     for p in paths:safe_png(p,p.replace('.xwd','.png'))
+    print('C359 rendered red model samples:',[count_dominant(frame_rgb(p),0,(0,0,256,192)) for p in paths])
+    print('C359 actual synthetic camera zoom:',verify(*paths))

@@ -84,7 +84,8 @@ int main(void) {
                                   text=True, check=True)
             self.assertEqual(proc.stderr, "")
             self.assertIn("sym=100", proc.stdout)
-            for original, expected in (("100", "229"), ("98", "0")):
+            for original, expected in (("100", "229"), ("98", "0"),
+                                       ("107", "0"), ("105", "13")):
                 env = {**os.environ, "LD_PRELOAD": str(hook),
                        "P3D_C238_TRACE": "1", "P3D_C240_ADAPT_0913": "1",
                        "C238_TEST_SYM": original}

@@ -50,8 +50,11 @@ int SDL_PollEvent(void *event) {
             /* DeSmuME 0.9.13 CLI copies u32 defaults into a u16
              * keyboard_cfg array, then resets parsed [KEYS] values.
              * Thus DS B sits at SDL sym 0, DS Right at sym 229.
-             * Translate only the test's distinct d/b XTEST keys. */
-            int32_t mapped = sym == 100 ? 229 : (sym == 98 ? 0 : sym);
+             * The next packed u16 slots put Up at 13 and Down at 0.
+             * k/i are used only on HOME by C359; Down shares the broken
+             * B/Start slot and is not a general in-game keymap repair. */
+            int32_t mapped = sym == 100 ? 229 :
+                (sym == 98 || sym == 107 ? 0 : (sym == 105 ? 13 : sym));
             if (mapped != sym) {
                 memcpy((unsigned char *)event + 20, &mapped, sizeof(mapped));
                 if (enabled()) {
