@@ -156,7 +156,16 @@ def link_atlas_uv(topology, atlases):
     title_match = False
     if len(sample) > 1 and sample[1].get('source_texture_name') == 'titlepro_en':
         rect = sample[1]['candidate_atlas_pixel_rect_exact']
-        title_match = (rect['right'] == {'numerator': 180, 'denominator': 1} and
+        original_vertices = topology['resources']['en/gui_title']['draws'][1]['vertices']
+        positions = [v.get('source_xyz') for v in original_vertices]
+        dimensions_match = (len(positions) == 4 and
+                            all(isinstance(p, list) and len(p) == 3 and
+                                all(type(n) in (int, float) and math.isfinite(n) for n in p)
+                                for p in positions) and
+                            max(p[0] for p in positions) - min(p[0] for p in positions) == 180 and
+                            max(p[1] for p in positions) - min(p[1] for p in positions) == 92)
+        title_match = (dimensions_match and
+                       rect['right'] == {'numerator': 180, 'denominator': 1} and
                        rect['left'] == {'numerator': 0, 'denominator': 1} and
                        rect['top'] == {'numerator': 164, 'denominator': 1} and
                        rect['bottom'] == {'numerator': 256, 'denominator': 1})
