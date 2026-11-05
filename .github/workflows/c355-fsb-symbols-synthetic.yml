@@ -1,0 +1,34 @@
+name: C355 original FSB script string recovery (synthetic only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - 'tools/c355_fsb_ui_symbols.py'
+      - 'tests/test_c355_fsb_ui_symbols.py'
+      - '.github/workflows/c355-fsb-symbols-synthetic.yml'
+  pull_request:
+    paths:
+      - 'tools/c355_fsb_ui_symbols.py'
+      - 'tests/test_c355_fsb_ui_symbols.py'
+      - '.github/workflows/c355-fsb-symbols-synthetic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c355-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-original-fsb-source-symbols:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate ten synthetic FSB source boundaries and string-reference tests
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c355_fsb_ui_symbols.py' -v
+          python3 -m py_compile tools/c355_fsb_ui_symbols.py
