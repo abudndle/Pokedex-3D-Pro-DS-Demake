@@ -7,4 +7,6 @@
 const char *p3dMoveTextField(const P3DMove *entry,int field);
 /* Move in 28-character steps through an 84-character Nintendo DS viewport. */
 int p3dMoveTextScroll(int current,const char *text,int direction);
+/* Change entry and reset scroll atomically; invalid/no-change calls are inert. */
+int p3dMoveNavigateSelect(int *index,int *text_offset,int target);
 #endif

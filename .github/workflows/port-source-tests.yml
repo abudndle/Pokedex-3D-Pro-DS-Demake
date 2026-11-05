@@ -25,6 +25,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run asset-free C source smoke test
         run: sh tests/run_source_smoke.sh
+      - name: C360 Move Dex touch/keypad viewport reset and sanitizer regressions
+        run: |
+          sh tests/run_c360_move_navigation.sh
+          P3D_HOST_SANITIZERS='-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer' sh tests/run_c360_move_navigation.sh
       - name: C359 bounded model camera zoom/reset and sanitizer regressions
         run: |
           sh tests/run_c359_model_zoom.sh

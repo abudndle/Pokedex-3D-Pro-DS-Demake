@@ -11,6 +11,7 @@ on:
       - 'tests/c332_*'
       - 'tests/c333_*'
       - 'tests/*c358*'
+      - 'tests/*c360*'
       - 'tests/test_c260_*'
       - 'tests/test_c261_*'
       - 'tests/test_c262_*'
@@ -31,6 +32,7 @@ on:
       - 'tests/c332_*'
       - 'tests/c333_*'
       - 'tests/*c358*'
+      - 'tests/*c360*'
       - 'tests/test_c260_*'
       - 'tests/test_c261_*'
       - 'tests/test_c262_*'
@@ -143,6 +145,21 @@ jobs:
           C358_EVOLUTION_ONLY=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
             bash tests/run_c260_melonds_fat.sh \
             "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C260_APP_RUN"
+      - name: C360 Move Dex frame and checkpoint regression gates
+        run: python3 -m unittest discover -s tests -p 'test_c360_move_gate.py' -v
+      - name: C360 compile synthetic long/short moves and verify touch viewport and restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$(mktemp -d)"
+          python3 tests/c360_synthetic_moves.py "$stage"
+          docker run --rm -v "$PWD:/work" -v "$stage:/c360-fixture:ro" -w /work \
+            skylyrac/blocksds:slim-latest \
+            make -f Makefile.native NITROFSDIR=/c360-fixture rom EXTRA_CFLAGS=-DP3D_EMULATOR_DIAGNOSTICS
+          python3 tests/verify_nds_rom.py Pokedex3D_DS_BlocksDS.nds
+          C360_MOVE_ONLY=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
+            bash tests/run_c260_melonds_fat.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C260_APP_RUN"
       - name: Preserve only synthetic development-ROM dual-screen captures
         if: always()
         uses: actions/upload-artifact@v4
@@ -155,6 +172,7 @@ jobs:
             c333-melonds-*.xwd
             c334-melonds-*.xwd
             c358-melonds-*.xwd
+            c360-melonds-*.xwd
             c260-melonds-windows.txt
           if-no-files-found: ignore
           retention-days: 3

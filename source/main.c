@@ -2252,8 +2252,8 @@ int main(void) {
                         }
                     } else if(state.page==P3D_PAGE_MOVES && direction){
                         int next=move_index+direction;
-                        if(next>=0 && next<559){
-                            move_index=next;progress_dirty=1;redraw=1;
+                        if(p3dMoveNavigateSelect(&move_index,&move_text_offset,next)){
+                            progress_dirty=1;redraw=1;
                         }
                     }
                 }
@@ -2299,9 +2299,7 @@ int main(void) {
                 if(down&KEY_DOWN)next+=10;
                 if(next<0)next=0;
                 if(next>558)next=558;
-                if(next!=move_index){
-                    move_index=next;
-                    move_text_offset=0;
+                if(p3dMoveNavigateSelect(&move_index,&move_text_offset,next)){
                     progress_dirty=1;
                     redraw=1;
                 }
