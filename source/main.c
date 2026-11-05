@@ -1918,10 +1918,16 @@ int main(void) {
                     redraw=1;
                 }
                 if((down&KEY_START) && storage_ready){
-                    unsigned id=bookmark_settings.active_list?(unsigned)move_index:(unsigned)dex_index;
-                    if(p3dBookmarkSessionAdd(&bookmark_settings,
-                            storage_ready?P3D_SAVE_BASE:NULL,
-                            bookmark_settings.active_list,id))redraw=1;
+                    /* Retry any pending failed write before adding another entry. */
+                    if(bookmark_settings.dirty){
+                        (void)p3dBookmarkSessionFlush(&bookmark_settings,P3D_SAVE_BASE);
+                        redraw=1;
+                    }else{
+                        unsigned id=bookmark_settings.active_list?(unsigned)move_index:(unsigned)dex_index;
+                        (void)p3dBookmarkSessionAdd(&bookmark_settings,P3D_SAVE_BASE,
+                                                   bookmark_settings.active_list,id);
+                        redraw=1;
+                    }
                 }
                 if(down&(KEY_UP|KEY_DOWN)){
                     unsigned count=bookmark_settings.active_list?
