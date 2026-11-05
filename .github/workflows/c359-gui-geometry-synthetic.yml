@@ -1,0 +1,33 @@
+name: C359 indexed GUI vertex source audit (synthetic only)
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - 'tools/c359_gui_vertex_uv_topology.py'
+      - 'tests/c359_synthetic_fixtures.py'
+      - 'tests/test_c359_gui_vertex_uv_topology.py'
+      - '.github/workflows/c359-gui-geometry-synthetic.yml'
+  pull_request:
+    paths:
+      - 'tools/c359_gui_vertex_uv_topology.py'
+      - 'tests/c359_synthetic_fixtures.py'
+      - 'tests/test_c359_gui_vertex_uv_topology.py'
+      - '.github/workflows/c359-gui-geometry-synthetic.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: c359-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  synthetic-indexed-source-geometry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify synthetic original XYZ UV/color vertex streams and triangles
+        run: |
+          python3 -m unittest discover -s tests -p 'test_c359_gui_vertex_uv_topology.py' -v
+          python3 -m py_compile tools/c359_gui_vertex_uv_topology.py
