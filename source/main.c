@@ -1219,7 +1219,7 @@ static void render(void) {
             printf("\x1b[18;1HCount: %u",bookmark_settings.active_list?bookmark_settings.moves.count:bookmark_settings.pokemon.count);
             printf("\x1b[19;1HSTART: save current entry");
             printf("\x1b[20;1HL/R: list  UP/DOWN: slot");
-            printf("\x1b[21;1HSELECT: open slot");
+            printf("\x1b[21;1HSELECT: open slot %u",bookmark_cursor+1);
         }else if(state.page==P3D_PAGE_FAVORITES){
             printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
             printf("\x1b[15;1HChoose in Pokedex");
@@ -1534,7 +1534,7 @@ int main(void) {
         }
         /* SELECT makes the text navigation available even with a full-screen
          * recovered UI image. Press SELECT again to restore original art. */
-        if(down&KEY_SELECT){
+        if((down&KEY_SELECT) && (home || state.page!=P3D_PAGE_SETTINGS)){
             prefer_original_art=!prefer_original_art;
             /* An invisible confirmation must never remain armed when the
              * screen mode changes, including returning to the text screen. */
@@ -1545,7 +1545,7 @@ int main(void) {
         }
         /* START explicitly retries a previously failed save, including from
          * the home menu, without discarding unsaved changes on failure. */
-        if((down&KEY_START)&&progress_dirty){
+        if((down&KEY_START)&&progress_dirty && (home || state.page!=P3D_PAGE_SETTINGS)){
             if(save_progress())progress_dirty=0;
             redraw=1;
         }
