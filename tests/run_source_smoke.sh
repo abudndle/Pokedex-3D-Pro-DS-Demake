@@ -35,5 +35,6 @@ cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
 
 cc -std=c11 -Wall -Wextra -Werror -O2 -Isource \
     source/bookmark_edit.c source/bookmark_navigation.c source/bookmark_settings.c \
+    source/feature_menu.c source/dsi_features.c \
     tests/c365_bookmark_settings.c -o "$tmp/bookmark_settings_test"
 "$tmp/bookmark_settings_test"
