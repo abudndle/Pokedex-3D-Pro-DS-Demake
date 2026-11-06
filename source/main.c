@@ -12,6 +12,7 @@
 #include "menu_layout.h"
 #include "page_footer.h"
 #include "menu_navigation.h"
+#include "entry_navigation.h"
 #include "dsi_features.h"
 #include "challenge.h"
 #include "challenge_text.h"
@@ -2048,15 +2049,15 @@ int main(void) {
                 }else if((down&KEY_X) && !(down&KEY_A)){
                     state.page=P3D_PAGE_FAVORITES;
                     favorite_index=0;
+                    down=0; /* Do not reuse X to open a favorite immediately. */
                     redraw=1;
                 }else if(down&KEY_A){
                     if(records_tab==1 &&
                        records.recent[records_recent_cursor]!=P3D_RECORD_NO_SPECIES){
-                        dex_index=(int)records.recent[records_recent_cursor];
-                        selected_form=0;
-                        state.page=P3D_PAGE_DEX;
-                        reload_preview();
-                        redraw=1;
+                        if(p3dEntryOpenPokemon(&state,(int)records.recent[records_recent_cursor],
+                            &dex_index,&selected_form,&dex_detail_tab,&down)){
+                            reload_preview();progress_dirty=1;redraw=1;
+                        }
                     }else if(records_tab==0){
                         state.page=P3D_PAGE_ALBUM;
                         album_offset=0;
@@ -2115,11 +2116,12 @@ int main(void) {
                         redraw=1;
                     }
                     if(opened==1){
-                        if(state.page==P3D_PAGE_DEX){
-                            dex_index=state.selected_dex;selected_form=0;
-                        }else if(state.page==P3D_PAGE_MOVES)
-                            (void)p3dMoveNavigateSelect(&move_index,&move_text_offset,state.move_index);
-                        reload_preview();redraw=1;
+                        int accepted=state.page==P3D_PAGE_DEX?
+                            p3dEntryOpenPokemon(&state,state.selected_dex,&dex_index,
+                                &selected_form,&dex_detail_tab,&down):
+                            p3dEntryOpenMove(&state,state.move_index,&move_index,
+                                &move_text_offset,&move_show_effect,&down);
+                        if(accepted){reload_preview();progress_dirty=1;redraw=1;}
                     }
                 }
                 if((down&KEY_X) && !(down&(KEY_A|KEY_TOUCH))){
@@ -2209,16 +2211,14 @@ int main(void) {
                     /* Clamp the view cursor before indexing restored favorites. */
                     if(favorite_index<0 || favorite_index>=state.favorites_count)
                         favorite_index=0;
-                    dex_index=state.favorites[favorite_index];
-                    selected_form=0;
-                    state.page=P3D_PAGE_DEX;
-                    reload_preview();
-                    progress_dirty=1;
-                    redraw=1;
+                    if(p3dEntryOpenPokemon(&state,state.favorites[favorite_index],
+                        &dex_index,&selected_form,&dex_detail_tab,&down)){
+                        reload_preview();progress_dirty=1;redraw=1;
+                    }
                 }
             }
-            /* Selecting a favorite is a navigation action. Do not process
-             * Pokédex A/LEFT/RIGHT input again on the same frame; otherwise
+            /* Explicit entry controllers consume the initiating buttons.
+             * Do not process Pokédex A/LEFT/RIGHT input again on the same frame; otherwise
              * X+A could immediately remove the just-opened favorite. */
             if(state.page==P3D_PAGE_DEX && (down&KEY_X) && !(down&(KEY_A|KEY_Y))){
                 state.selected_dex=dex_index;

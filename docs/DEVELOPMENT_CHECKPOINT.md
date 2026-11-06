@@ -2,39 +2,42 @@
 
 ## Resume point
 
-Current implementation branch: `codex/c400-gameplay-touch-flows`, stacked on verified PR #397 (`codex/c361-runtime-model-map-gate`). Main inspected remains `b93ed521f953759e5e538049fa4ce08ad8414d2c`.
+Current branch: `codex/c401-entry-navigation`, stacked on ready PR #399 (`codex/c400-gameplay-touch-flows`), itself stacked on ready #397. Main inspected remains `b93ed521f953759e5e538049fa4ce08ad8414d2c`.
 
-Previous fully verified source is `cf530d975f4f7dfc2aede4052bd0606efd69d060`: all 25 applicable independent PR workflows passed, plus BlocksDS 1.24 private ROM rebuild and genuine isolated DeSmuME and melonDS 0.9.3 captures. PR #397 is ready and unmerged. Search alignment and short-query redraw are complete: do not repeat them.
+Previous verified production source: `0cd21f33313c2e06b378d1d9a38c3094be0a6203`. All 24 applicable CI workflows passed. BlocksDS 1.24 rebuilt its private ROM with 151 byte-matching source files. Actual isolated melonDS captures verify Challenge answer/review/footer behavior; a separate authored triangle/P3AN fixture verifies pause/freeze, paused restart and resume. PR #399 is ready and unmerged. Do not repeat these completed slices or the Search fixes in #397.
+
+## New entry-navigation work
+
+Opening a Recent record previously reused A in the destination Dex and could toggle its favorite. Opening a Favorite with X could immediately redirect into Search. Reopening the same bookmarked move could retain its old text offset/effect despite the bookmark requesting the default view.
+
+Explicit entry controllers now consume initiating buttons, synchronize active and selected identities, and reset entry presentation state. Pokemon opens use base form and entry tab; Move opens use the description from offset zero even for the same move. Invalid targets, pages, null or overlapping outputs leave all state untouched. Favorites and the existing menu cursor are preserved. Main handlers use these controllers for Recent records, Favorites and bookmarks; existing ordinary species/move stepping remains unchanged.
+
+Fail-first regressions reproduced stale Records selection and stale same-move context. Native controller, related Move navigation and source smoke checks pass. A dedicated public synthetic melonDS FAT acceptance flow checks Favorite/Recent opens, unchanged favorite data, bookmark viewport/field reset and repeated reboot continuity. Final source-bound CI, build/capture and independent review evidence belongs in the current branch PR; consult it before repeating work. Missing or failing checks block merge.
 
 ## Completed implementation carried forward
 
-- Paginated optional source learnsets, exact detail-page resume and evolution navigation.
-- Album PNG viewing, exact open-photo resume, slideshow play/pause.
-- Bounded native model zoom/reset, Move Dex text-window reset on move navigation.
-- Runtime preview-map readiness separated from structural validity and identity verification.
-- Readable Records/Types/Move Dex/form/bookmark controls and zero-based Search targets.
+- Optional paginated source learnsets, exact detail resume and evolution navigation.
+- Album PNG viewing, exact photo resume, slideshow controls and distinct visible touch bands.
+- Bounded model zoom/reset; Move Dex text-window reset when changing moves.
+- Runtime preview-map readiness separate from structural validity and identity verification.
+- Readable Records/Types/Move Dex/form/bookmark controls, aligned Search keyboard and clean short queries.
+- Shared visible Challenge and optional transform-clip playback rows, with footer safety and original-art gating.
 
-## New gameplay interaction slice
+## Original-source and hardware blockers
 
-- Challenge choices use their actual zero-based row positions; padded choice cells no longer select the next answer. Fourth choice stops before the Back footer. Review Continue uses its visible band. Renderer and touch code share row constants.
-- Album filename selection, photo opening, page navigation, slideshow controls and return-to-list use separate visible bands. Filename taps cannot become page actions, and invalid/hidden/empty selections cannot open a photo. The destructive delete flow still requires its explicit confirmation.
-- Optional validated P3AN playback pause/restart now uses visible row 12, preserving unavailable/static-source/original-art gates. This is not original skeletal animation restoration.
+All 730 native preview structures pass the compiled loader/GL-emission probe. This does not prove all 730 original textured models render. Only one runtime species mapping slot is corroborated; original identity and release readiness remain false.
 
-Fail-first native regressions reproduced all three original defects, then passed after production changes. Related Challenge, source-backed continuation, Search, Album viewer/slideshow and source smoke checks are preserved. New Album touch tests are in canonical host CI, including Linux sanitizers. The real melonDS FAT Album replay uses interior coordinates matching the controls. Final source-bound ROM/CI results and captures are recorded in the branch PR; check those before repeating completed verification. Missing or failing checks block merge.
+Complete mapping, missing Japanese/English original loader tables, original UV/material face bindings, skin weights, mesh-node/action semantics, remaining original Challenge modes, audio and full original GUI remain absent or unresolved. DSi camera/AR and hardware behavior need real device evidence. Synthetic animation proof is not original skeletal playback.
 
-## Private assets and genuine limits
+Original assets, converted outputs, maps, hashes, manifests, ROMs and screenshots remain outside public source/CI/artifacts. The repository named `-private` reports public visibility; never run proprietary payload CI there.
 
-All 730 native preview structures pass the compiled loader and exact GL-emission probe; this does not prove all 730 original textured models render correctly. Runtime species mapping has only one corroborated slot. Identity and original-release readiness remain false.
+## Next tasks
 
-Private original assets, converted outputs, manifests, hashes, ROMs and captures remain outside public source, CI and artifacts. The repository named `-private` reports public visibility; do not run proprietary payload CI there.
+1. Read the new branch PR for exact final source and verification results. Integrate this stack only under repository check/approval rules; none of these PRs has been merged or represents full-game completion.
+2. Reuse #339 learnsets, #337 original species data, #156/#213 geometry and #227 emulator/hardware acceptance. Keep them open until actual acceptance is met; no duplicate milestones were created.
+3. Recover authorized missing original inputs before claiming model/material/animation parity. Advance independent gameplay/save defects while blocked, using fail-first regressions and genuine emulator evidence.
+4. Maintain source-bound FAT/restart tests when changing navigation. Explicit entry opens must never reuse their initiating input, silently modify favorites or retain another presentation context.
 
-Complete canonical species/form mapping, missing Japanese/English original loader tables, original UV/material face bindings, skin weights, mesh-node/action semantics, remaining original Challenge modes, original audio and full GUI behavior remain absent or unresolved. DSi camera/AR and hardware-specific behavior require real hardware evidence. Preserve DS fallback gating.
+No original assets were replaced, no milestone was closed, and hardware/full-game parity is not claimed.
 
-## Next work
-
-1. Read the current branch PR for exact final source, independent review, all applicable CI and private emulator acceptance. Integrate only under repository merge/check/approval rules; neither existing PR #397 nor this slice is a full-game release.
-2. Reuse #339 learnset acceptance and #337 original species data; keep #156/#213 geometry and #227 emulator/hardware acceptance open until their actual criteria are met. No duplicate milestone was created.
-3. Recover authorized missing original inputs before claiming model/material/animation parity. Continue independent gameplay/save improvements while those inputs are blocked.
-4. Optional P3AN UI has host verification; original clip/whole-game animation and hardware parity remain unverified. Public synthetic Album/Challenge emulator tests do not prove original camera/photo fidelity.
-
-No milestone has been closed or merged, and full-game completion is not claimed.
+Verification follow-up: the first real seven-launch C401 run passed every FAT phase, including both bookmark resets. Its final visual gate exposed a test calibration error: Pokemon 001 to 002 changes a small digit, not an entire text viewport. The gate now requires a real change in the exact species-number field, with independent FAT identity proof, while retaining stronger scroll/effect checks. A new regression accepts a small digit change and rejects identical species frames. Production source is unchanged by this test correction; the current PR records fresh CI outcomes.

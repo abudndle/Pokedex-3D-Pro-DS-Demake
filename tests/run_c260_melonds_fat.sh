@@ -7,6 +7,8 @@ detail_only="${C333_DETAIL_ONLY:-0}"
 learnset_only="${C334_LEARNSET_ONLY:-0}"
 evolution_only="${C358_EVOLUTION_ONLY:-0}"
 move_only="${C360_MOVE_ONLY:-0}"
+entry_only="${C401_ENTRY_ONLY:-0}"
+if [[ "$entry_only" != 0 && "$entry_only" != 1 ]]; then exit 2; fi
 if [[ "$move_only" != 0 && "$move_only" != 1 ]]; then exit 2; fi
 if [[ "$evolution_only" != 0 && "$evolution_only" != 1 ]]; then exit 2; fi
 if [[ "$learnset_only" != 0 && "$learnset_only" != 1 ]]; then
@@ -36,6 +38,11 @@ cat > "$XDG_CONFIG_HOME/melonDS/melonDS.toml" <<TOML
 [Instance0.Keyboard]
 A = 88
 B = 90
+X = 83
+Y = 65
+Select = 16777217
+L = 81
+R = 87
 Right = 16777236
 Left = 16777234
 Up = 16777235
@@ -113,6 +120,49 @@ sleep 0.4
 xdotool keyup x
 sleep 4
 capture c260-melonds-fat-favorite.xwd
+if [[ "$entry_only" == 1 ]]; then
+  press() { xdotool windowfocus --sync "$window"; xdotool keydown "$1"; sleep 0.3; xdotool keyup "$1"; sleep 1; }
+  tap() { xdotool mousemove --window "$window" "$1" "$2"; xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 1; }
+  cp c260-melonds-fat-favorite.xwd c401-melonds-favorite-reference.xwd
+  press Right; press z
+  for _ in 1 2 3; do press Down; done
+  press x; press s; press s
+  capture c401-melonds-favorite-open.xwd
+  close_cleanly
+  python3 tests/c401_entry_gate.py --fat "$sd_root/export" favorite
+  launch; capture c401-melonds-favorite-resumed.xwd
+  press Right; press z; press x; press w; press x
+  capture c401-melonds-recent-open.xwd
+  close_cleanly
+  python3 tests/c401_entry_gate.py --fat "$sd_root/export" recent
+  launch; capture c401-melonds-recent-resumed.xwd
+  press z; press Up; press Up; press x
+  capture c401-melonds-move-reference.xwd
+  for _ in 1 2 3 4 5 6 7; do tap 128 379; done
+  capture c401-melonds-move-scrolled.xwd
+  close_cleanly
+  python3 tests/c401_entry_gate.py --fat "$sd_root/export" scroll
+  launch; capture c401-melonds-scroll-resumed.xwd
+  press z
+  for _ in 1 2 3 4 5; do press Down; done
+  press x; press w; press Return; press Tab
+  capture c401-melonds-move-reopened.xwd
+  close_cleanly
+  python3 tests/c401_entry_gate.py --fat "$sd_root/export" move
+  launch; capture c401-melonds-reopen-resumed.xwd
+  press s; capture c401-melonds-move-effect.xwd
+  close_cleanly
+  python3 tests/c401_entry_gate.py --fat "$sd_root/export" effect
+  launch; capture c401-melonds-effect-resumed.xwd
+  press z; press x; press w; press Tab
+  capture c401-melonds-move-reset.xwd
+  close_cleanly
+  python3 tests/c401_entry_gate.py --fat "$sd_root/export" move
+  launch; capture c401-melonds-move-resumed.xwd; close_cleanly
+  python3 tests/c401_entry_gate.py --fat "$sd_root/export" move
+  python3 tests/c401_entry_gate.py c401-melonds-{favorite-reference,favorite-open,favorite-resumed,recent-open,recent-resumed,move-reference,move-scrolled,move-reopened,move-effect,move-reset,move-resumed}.xwd
+  exit 0
+fi
 if [[ "$move_only" == 1 ]]; then
   press() { xdotool windowfocus --sync "$window"; xdotool keydown "$1"; sleep 0.3; xdotool keyup "$1"; sleep 1; }
   tap() { xdotool mousemove --window "$window" "$1" "$2"; xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 1; }
