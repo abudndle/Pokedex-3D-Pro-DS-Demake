@@ -8,7 +8,7 @@
 #define P3D_SEARCH_TOUCH_REGION -4
 #define P3D_SEARCH_TOUCH_SCOPE -5
 #define P3D_SEARCH_TOUCH_FIELD -6
-/* One-based 8-pixel console rows; native renderer and touch share these.
+/* Zero-based libnds 8-pixel console rows; native renderer and touch share these.
  * Source artwork has no inferred hitboxes. */
 #define P3D_SEARCH_REGION_ROW 12
 #define P3D_SEARCH_FIELD_ROW 14

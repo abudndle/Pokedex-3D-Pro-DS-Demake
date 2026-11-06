@@ -36,6 +36,12 @@ int p3dChunkOpen(P3DChunkStream *s,const char *path,unsigned model_id){
     p3dChunkClose(s);
     if(!path||model_id>=738)return 0;
     f=fopen(path,"rb");if(!f)return 0;
+    /* p3dChunkRead revalidates mutable source bytes on every draw. Some
+     * host stdio implementations satisfy a backward seek from stale read
+     * buffers after another handle edits the file. Our explicit 32-face
+     * batches already provide bounded IO; disable hidden read-ahead so CRC
+     * always checks current bytes, including the final short chunk. */
+    if(setvbuf(f,NULL,_IONBF,0)!=0){fclose(f);return 0;}
     if(fread(h,1,sizeof(h),f)!=sizeof(h)||memcmp(h,"P3CS",4)!=0||
        rd16(h+4)!=1||rd16(h+6)!=model_id||rd16(h+10)!=0){fclose(f);return 0;}
     count=rd16(h+8);total=rd32(h+12);

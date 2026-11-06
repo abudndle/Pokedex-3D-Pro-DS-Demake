@@ -95,3 +95,17 @@ const char *p3dSpeciesDetailTabName(int tab){
  default:return "ENTRY";
  }
 }
+int p3dSpeciesEvolutionTouch(const P3DSpeciesDetails *details,int x,int y,
+                               int *species,int *selected_species,int *form){
+ if(!species||!selected_species||!form||form==species||form==selected_species||
+    !p3dSpeciesDetailsValid(details)||
+    !(details->fields&P3D_DETAIL_EVOLUTIONS)||
+    details->species!=*species||details->form!=*form||
+    x<0||x>=256||y<P3D_EVOLUTION_ROW_TOP||
+    y>=P3D_EVOLUTION_ROW_TOP+P3D_EVOLUTION_ROW_STEP*details->evolutions_count)
+    return 0;
+ unsigned row=(unsigned)(y-P3D_EVOLUTION_ROW_TOP)/P3D_EVOLUTION_ROW_STEP;
+ int target=details->evolutions[row];
+ *species=target;*selected_species=target;*form=0;
+ return 1;
+}

@@ -10,6 +10,7 @@
 #include "feature_menu.h"
 #include "bookmark_session.h"
 #include "menu_layout.h"
+#include "page_footer.h"
 #include "menu_navigation.h"
 #include "dsi_features.h"
 #include "challenge.h"
@@ -48,10 +49,13 @@
 #include "move_text_view.h"
 #include "dex_text.h"
 #include "species_details.h"
+#include "species_learnset.h"
+#include "model_view.h"
 #include "nitro_source_bridge.h"
 #include "dex_search.h"
 #include "search_touch.h"
 #include "photo_album.h"
+#include "photo_viewer.h"
 #include "records.h"
 #ifdef P3D_HAVE_FAT
 #include <fat.h>
@@ -132,6 +136,7 @@ static const char *native_texture_resolve(void *opaque,unsigned texture_id){
 }
 
 static P3DAnimationPlayback animation_playback;
+static P3DModelView model_view={P3D_ZOOM_DEFAULT};
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
 static P3DFormNames form_names;
@@ -142,6 +147,8 @@ static int dex_text_ready=0;
 static P3DSpeciesDetails dex_details;
 static int dex_details_ready=0;
 static int dex_detail_tab=0; /* 0 original entry, 1-4 optional details */
+static P3DLearnset dex_learnset;
+static unsigned dex_learnset_page=0;
 static int search_region=0;
 static int search_scope=0;
 static int search_field=P3D_DEX_SEARCH_NAME;
@@ -170,6 +177,9 @@ static int album_ready=0;
 static size_t album_offset=0;
 static size_t album_selected=0;
 static int album_confirm_delete=0;
+static P3DPhotoViewer album_view;
+static int showing_album_photo=0;
+static int album_resume_unavailable=0;
 /* C81 viewed species, regional totals and per-mode high scores are stored in
  * separate dual-slot P3RC saves; P3SV legacy progress remains compatible. */
 static size_t records_photo_total(void){
@@ -200,6 +210,22 @@ static int title_audio_channel=-1;
 static int display_preview=0;
 static void prepare_original_top_art(void){
     int page=home?P3D_PAGE_HOME:(int)state.page;
+    if(!home && state.page==P3D_PAGE_ALBUM && album_view.active){
+        bgHide(3);
+        videoSetMode(MODE_5_3D);
+        bgInit(2,BgType_Bmp16,BgSize_B16_256x256,0,0);
+        bgSetPriority(2,0);
+        bgShow(2);
+        DC_FlushRange(album_view.pixels,sizeof(album_view.pixels));
+        dmaCopy(album_view.pixels,bgGetGfxPtr(2),sizeof(album_view.pixels));
+        showing_original_top_art=1;
+        showing_album_photo=1;
+        return;
+    }
+    if(showing_album_photo){
+        showing_album_photo=0;
+        top_art_page=-1; /* restore the original page or its text console */
+    }
     if(page==top_art_page && display_preview==top_art_preview)return;
     top_art_page=page;
     top_art_preview=display_preview;
@@ -244,6 +270,7 @@ static void prepare_original_art(void){
     art_page=page;
     original_art_available=prefer_original_art&&nitro_ready&&
         !(page==P3D_PAGE_DEX && dex_detail_tab) &&
+        !(page==P3D_PAGE_ALBUM && album_view.active) &&
         p3dOriginalUiPageLoad(page);
     /* Source 3DS icons are not located at development text-menu rows.
      * Only authentic privately measured original art hitboxes may route
@@ -274,16 +301,21 @@ static void prepare_original_art(void){
 }
 
 static void reload_preview(void){
+    p3dModelViewReset(&model_view);
     /* Optional form-specific metadata is never reconstructed from model
      * resources or public species databases. An absent private sidecar
      * becomes an explicitly unavailable detail screen. */
     p3dSpeciesDetailsClear(&dex_details);
     dex_details_ready=0;
+    memset(&dex_learnset,0,sizeof(dex_learnset));
+    dex_learnset_page=0;
     if(nitro_ready && !title_active && dex_index>=0 && dex_index<649){
         char details_path[80];
         if(p3dSpeciesDetailPath(details_path,dex_index,selected_form))
             dex_details_ready=p3dSpeciesDetailsLoad(
                 details_path,dex_index,selected_form,&dex_details);
+        if(p3dLearnsetPath(details_path,dex_index,selected_form))
+            p3dLearnsetLoad(details_path,dex_index,selected_form,&dex_learnset);
     }
     /* Source-locked Nitro Engine/DSMA model is released before switching
      * form/species; never carry an old Pokémon into the new entry. */
@@ -582,7 +614,7 @@ static void render_model(void){
     glMatrixMode(GL_PROJECTION);glLoadIdentity();
     gluPerspective(50,256.0/192.0,0.1,20.0);
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();
-    glTranslatef32(0,0,floattof32(-3));
+    glTranslatef32(0,0,-p3dModelViewDistance(&model_view)*1024);
     glRotateYi(model_yaw);
     if(preview_animation.ready && !source_geometry_ready){
         P3DAnimationFrame pose;
@@ -739,6 +771,11 @@ static P3DResumeState current_resume(void){
         999:(album_offset/P3D_ALBUM_PAGE_MAX));
     view.selected_form=(uint16_t)selected_form;
     view.album_selected=(uint8_t)album_selected;
+    if(!home && state.page==P3D_PAGE_ALBUM && album_view.active && album_view.ready){
+        view.album_view_active=1;view.album_photo_id=album_view.photo_id;
+        view.album_photo_checksum=album_view.identity.checksum;
+        view.album_photo_bytes=album_view.identity.bytes;
+    }
     view.records_recent_cursor=(uint8_t)records_recent_cursor;
     view.move_show_effect=(uint8_t)(move_show_effect!=0);
     view.search_region=(uint8_t)search_region;
@@ -756,6 +793,11 @@ static P3DResumeState current_resume(void){
     view.favorites_selected=(uint8_t)favorite_index;
     view.dex_detail_tab=(uint8_t)(!home && state.page==P3D_PAGE_DEX?
                                   dex_detail_tab:0);
+    if(view.dex_detail_tab==4 && dex_learnset.ready){
+        view.dex_learnset_valid=1;
+        view.dex_learnset_page=(uint8_t)dex_learnset_page;
+        view.dex_learnset_checksum=dex_learnset.checksum;
+    }
     /* An active question/review is a real resume state, not just a mode.
      * The exact seed, asked set, choices and already-counted totals travel
      * together in the CRC-protected optional P3RV v4 checkpoint. */
@@ -1072,14 +1114,31 @@ static void render(void) {
                !p3dCanEnterFeature(hardware_caps,P3D_FEATURE_AR))
                 printf(" [DSi camera only]");
         }
-        printf("\x1b[24;1HUse A to open selected");
+        printf("\x1b[23;1HUse A to open selected");
     } else {
         printf("\x1b[9;1H%s",p3dPageName(state.page));
         if(state.page==P3D_PAGE_DEX && dex_detail_tab){
             printf("\x1b[10;1H%s %d/4 - #%03d",
                    p3dSpeciesDetailTabName(dex_detail_tab),
                    dex_detail_tab,dex_index+1);
-            if(!dex_details_ready){
+            if(dex_detail_tab==4 && dex_learnset.ready){
+                unsigned start=dex_learnset_page*P3D_LEARNSET_PAGE_ROWS;
+                printf("\x1b[11;1HComplete list %u/%u",
+                       dex_learnset_page+1,
+                       dex_learnset.count?(dex_learnset.count+3u)/4u:1u);
+                for(unsigned i=0;i<4 && start+i<dex_learnset.count;i++){
+                    const P3DLearnsetRow *row=&dex_learnset.rows[start+i];
+                    P3DMove move;
+                    if(move_catalog_ready&&p3dMoveDexRead(row->move,&move))
+                        printf("\x1b[%u;1H%-6s%3u %.19s",12u+i,
+                               p3dLearnsetMethod(row->method),row->level,move.name);
+                    else printf("\x1b[%u;1H%-6s%3u Move #%03u",12u+i,
+                                p3dLearnsetMethod(row->method),row->level,row->move+1u);
+                }
+                if(!dex_learnset.count)printf("\x1b[12;1HNo listed moves");
+                printf("\x1b[17;1H< PAGE UP      PAGE DOWN >");
+                printf("\x1b[18;1HUP/DOWN: learnset pages");
+            }else if(!dex_details_ready){
                 printf("\x1b[12;1HOriginal detail unavailable");
                 printf("\x1b[14;1HNo source-verified P3SD");
                 printf("\x1b[15;1Hfor this species/form");
@@ -1100,13 +1159,21 @@ static void render(void) {
                 }else printf("\x1b[12;1HOriginal abilities unavailable");
             }else if(dex_detail_tab==3){
                 if(dex_details.fields&P3D_DETAIL_EVOLUTIONS){
-                    for(unsigned i=0;i<dex_details.evolutions_count;i++)
-                        printf("\x1b[%u;1HTo Pokemon #%03u",12u+i*2u,
-                               dex_details.evolutions[i]+1);
+                    for(unsigned i=0;i<dex_details.evolutions_count;i++){
+                        P3DDexText target;
+                        unsigned row=1u+(P3D_EVOLUTION_ROW_TOP+
+                            i*P3D_EVOLUTION_ROW_STEP)/8u;
+                        unsigned species=dex_details.evolutions[i];
+                        if(dex_text_ready && p3dDexTextRead((int)species,&target))
+                            printf("\x1b[%u;1HTo #%03u %.22s",row,species+1,target.name);
+                        else printf("\x1b[%u;1HTo Pokemon #%03u",row,species+1);
+                    }
                     if(!dex_details.evolutions_count)
                         printf("\x1b[12;1HNo listed evolutions");
+                    else printf("\x1b[17;1HTap evolution to open entry");
                 }else printf("\x1b[12;1HOriginal evolution unavailable");
             }else if(dex_detail_tab==4){
+                printf("\x1b[11;1HSummary only (max 4 refs)");
                 if(dex_details.fields&P3D_DETAIL_MOVES){
                     for(unsigned i=0;i<dex_details.moves_count;i++){
                         unsigned index=dex_details.move_indices[i];
@@ -1135,6 +1202,8 @@ static void render(void) {
                 printf("\x1b[12;1H[%-6s]      [Restart]",
                        animation_playback.paused?"Resume":"Pause");
             printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
+            if(preview_found)
+                printf("\x1b[%d;1H< ZOOM OUT   RESET   ZOOM IN >",P3D_ZOOM_ROW_TOP/8);
             printf("\x1b[15;1HLEFT/RIGHT: browse");
             if(selected_form){
                 const char *name=p3dFormName(&form_names,dex_index,selected_form);
@@ -1143,10 +1212,10 @@ static void render(void) {
             }
             else printf("\x1b[17;1HBase form");
             printf("\x1b[19;1HY: next verified form");
-            printf("\x1b[24;1HSTART: original data details");
+            printf("\x1b[22;1HSTART: details  B: menu");
         }else if(state.page==P3D_PAGE_SEARCH){
-            printf("\x1b[9;1H%.28s",state.search_query[0]?state.search_query:"NAME / TEXT SEARCH");
-            /* One-based console rows share exact touch coordinates in C83. */
+            printf("\x1b[9;1H%-28.28s",state.search_query[0]?state.search_query:"NAME / TEXT SEARCH");
+            /* Zero-based console rows share exact touch coordinates in C83. */
             printf("\x1b[%d;1HRegion: %.8s",P3D_SEARCH_REGION_ROW,
                    p3dDexRegionName(search_region));
             printf("\x1b[%d;17HScope: %.9s",P3D_SEARCH_REGION_ROW,
@@ -1163,7 +1232,6 @@ static void render(void) {
             printf("\x1b[%d;1H  A B C D E F G H I J K L M",P3D_SEARCH_KEYBOARD_ROW);
             printf("\x1b[%d;1H  N O P Q R S T U V W X Y Z",P3D_SEARCH_KEYBOARD_ROW+2);
             printf("\x1b[%d;1HDEL       NEXT      PREV",P3D_SEARCH_ACTIONS_ROW);
-            printf("\x1b[24;1HTap region/scope/field above");
         }else if(state.page==P3D_PAGE_MOVES){
             printf("\x1b[11;1HMove %03d of 559",move_index+1);
             if(move_catalog_ready){
@@ -1222,9 +1290,9 @@ static void render(void) {
                 }
             }else{
                 printf("\x1b[11;1HCompleted: %u",(unsigned)records.rounds);
-                for(int i=0;i<7;i++)
+                for(int i=0;i<P3D_RECORD_CHALLENGES;i++)
                     printf("\x1b[%d;1H%d: %u runs  best %d",
-                           13+i*2,i+1,(unsigned)records.runs[i],
+                           p3dRecordScoreRow((unsigned)i),i+1,(unsigned)records.runs[i],
                            records.best[i]==0xffu?-1:(int)records.best[i]);
             }
             printf("\x1b[23;1HL/R: tabs  X/Fav Y/Quiz");
@@ -1254,14 +1322,30 @@ static void render(void) {
         }else if(state.page==P3D_PAGE_ALBUM){
             if(!storage_ready)printf("\x1b[13;1HFAT storage unavailable");
             else if(!album_ready)printf("\x1b[13;1HPhoto folder unavailable");
-            else {
+            else if(album_view.active){
+                printf("\x1b[11;1H%.11s",album_view.name);
+                if(album_view.ready)
+                    printf("\x1b[13;1HPhoto %u x %u",album_view.width,album_view.height);
+                else printf("\x1b[13;1HPhoto unavailable or invalid");
+                printf("\x1b[16;1HLEFT / RIGHT: browse photos");
+                printf("\x1b[18;1HA: %s slideshow",album_view.playing?"pause":"play");
+                printf("\x1b[19;1H%s",album_view.playing?"Playing (5 sec / photo)":"Paused");
+                printf("\x1b[20;1HB: return to Album list");
+                printf("\x1b[22;1H< PREV     LIST     NEXT >");
+            }else {
                 size_t total=0;
                 char names[P3D_ALBUM_PAGE_MAX][32];
                 size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
                 printf("\x1b[11;1HPhotos: %u",(unsigned)total);
-                for(size_t i=0;i<shown && i<5;i++)
-                    printf("\x1b[%d;1H%c%s",13+(int)i*2,i==album_selected?'>':' ',names[i]);
-                printf("\x1b[24;1H%s",album_confirm_delete?"A: delete  B: cancel":"X: delete  L/R: page");
+                if(album_resume_unavailable)
+                    printf("\x1b[12;1HSaved photo changed/unavailable");
+                size_t first=album_selected>=5?album_selected-4:0;
+                for(size_t row=0;row<5 && first+row<shown;row++){
+                    size_t i=first+row;
+                    printf("\x1b[%d;1H%c%s",13+(int)row*2,i==album_selected?'>':' ',names[i]);
+                }
+                printf("\x1b[23;1H%s",album_confirm_delete?"A: delete  B: cancel":"A: view photo   X: delete");
+                printf("\x1b[22;1HL/R: page   B: return");
             }
         }else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
@@ -1309,8 +1393,11 @@ static void render(void) {
         if(state.page==P3D_PAGE_CHALLENGE &&
            (quiz.stage==P3D_CHALLENGE_QUESTION ||
             quiz.stage==P3D_CHALLENGE_REVIEW))
-            printf("\x1b[24;1HB: Return to menu");
-        else printf("\x1b[17;1HPress B to go back");
+            printf("\x1b[22;1HB: Return to menu");
+        else {
+            int footer_row=p3dPageFooterRow(state.page);
+            if(footer_row)printf("\x1b[%d;1HB: Return to menu",footer_row);
+        }
     }
 }
 int main(void) {
@@ -1466,6 +1553,15 @@ int main(void) {
         move_catalog_ready=p3dMoveDexInit("nitro:/moves.p3dm");
         dex_text_ready=p3dDexTextInit("nitro:/data/dex_en.p3dx");
     }
+    if(last_checkpoint_valid && !home && state.page==P3D_PAGE_ALBUM &&
+       last_checkpoint.album_view_active){
+        P3DPhotoIdentity identity={last_checkpoint.album_photo_checksum,
+                                   last_checkpoint.album_photo_bytes};
+        if(!album_ready || !p3dPhotoViewerRestore(&album_view,&photo_album,
+               last_checkpoint.album_photo_id,identity,&album_offset,&album_selected))
+            album_resume_unavailable=1;
+        art_page=-1;
+    }
     if(last_checkpoint_valid && state.page==P3D_PAGE_MOVES){
         /* Prevent a stale saved scroll after the private move text changes. */
         P3DMove entry;
@@ -1479,6 +1575,11 @@ int main(void) {
         records.recent[records_recent_cursor]==P3D_RECORD_NO_SPECIES))
         records_recent_cursor=0;
     reload_preview();
+    if(last_checkpoint_valid && !home && state.page==P3D_PAGE_DEX &&
+       dex_detail_tab==4 && last_checkpoint.dex_learnset_valid &&
+       last_checkpoint.dex==dex_index && last_checkpoint.selected_form==selected_form)
+        dex_learnset_page=p3dLearnsetRestorePage(&dex_learnset,
+            last_checkpoint.dex_learnset_page,last_checkpoint.dex_learnset_checksum);
     count=(int)p3dMenuEntries(caps,pages);
     /* Reset/power-on with a valid checkpoint opens that same active page,
      * bypassing title. New games still use the genuine original 3DS title
@@ -1496,7 +1597,7 @@ int main(void) {
          * Capture actual ARM9 libnds key state while X11 keys are held.
          * This is a diagnostic, not proof of a correct button mapping. */
         static unsigned c237_frame=0;
-        if((++c237_frame % 5u)==0u || down){
+        if((((++c237_frame % 5u)==0u) || down) && !showing_original_top_art){
             consoleSelect(&top_console);
             printf("\x1b[23;1Hdbg f%05lu d%04X h%04X  ",
                    (unsigned long)(c237_frame%100000u),down,held);
@@ -1616,6 +1717,9 @@ int main(void) {
             if(down&KEY_B){
                 if(state.page==P3D_PAGE_DEX && dex_detail_tab){
                     dex_detail_tab=0;
+                    art_page=-1;
+                }else if(state.page==P3D_PAGE_ALBUM && album_view.active){
+                    p3dPhotoViewerClose(&album_view);
                     art_page=-1;
                 }else if(state.page==P3D_PAGE_ALBUM && album_confirm_delete){
                     album_confirm_delete=0;
@@ -1836,12 +1940,43 @@ int main(void) {
                 if(search_navigation)down=0;
             }
             if(state.page==P3D_PAGE_ALBUM && album_ready){
+                if(down&(KEY_A|KEY_X|KEY_UP|KEY_DOWN|KEY_LEFT|KEY_RIGHT|KEY_L|KEY_R|KEY_TOUCH))
+                    album_resume_unavailable=0;
                 char names[P3D_ALBUM_PAGE_MAX][32];
                 size_t total=0;
                 size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
                 if(!shown)album_selected=0;
                 else if(album_selected>=shown)album_selected=shown-1;
-                if(album_confirm_delete){
+                if(album_view.active){
+                    if((down&KEY_A) &&
+                       !(down&(KEY_B|KEY_X|KEY_Y|KEY_TOUCH|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN))){
+                        (void)p3dPhotoViewerPlay(&album_view);redraw=1;
+                    }
+                    int direction=((down&KEY_LEFT)!=0)!=((down&KEY_RIGHT)!=0)?
+                        ((down&KEY_LEFT)?-1:1):0;
+                    if((down&KEY_TOUCH) &&
+                       !(down&(KEY_A|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN))){
+                        touchPosition point;touchRead(&point);
+                        if(point.py>=136 && point.py<152){
+                            (void)p3dPhotoViewerPlay(&album_view);redraw=1;
+                        }
+                        if(point.py>=160 && point.py<184){
+                            if(point.px>=64 && point.px<192){
+                                p3dPhotoViewerClose(&album_view);art_page=-1;redraw=1;
+                            }else direction=point.px<64?-1:1;
+                        }
+                    }
+                    if(direction){
+                        album_view.playing=0;album_view.dwell_frames=0;redraw=1;
+                    }
+                    if(direction && p3dPhotoAlbumStep(&album_offset,&album_selected,total,direction)){
+                        shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
+                        if(shown && album_selected<shown)
+                            p3dPhotoViewerOpen(&album_view,&photo_album,names[album_selected]);
+                        else p3dPhotoViewerClose(&album_view);
+                        art_page=-1;redraw=1;
+                    }
+                }else if(album_confirm_delete){
                     /* A deletion must not be confirmed under an invisible
                      * bitmap-overlay prompt or after a simultaneous selection. */
                     if((down&KEY_A) && !showing_original_art &&
@@ -1855,6 +1990,8 @@ int main(void) {
                         album_confirm_delete=0;redraw=1;
                     }
                 }else{
+                    int open_photo=(down&KEY_A) &&
+                        !(down&(KEY_X|KEY_Y|KEY_UP|KEY_DOWN|KEY_LEFT|KEY_RIGHT|KEY_L|KEY_R|KEY_TOUCH));
                     if((down&KEY_UP) && album_selected>0){album_selected--;redraw=1;}
                     if((down&KEY_DOWN) && album_selected+1<shown){album_selected++;redraw=1;}
                     /* Never request deletion while its confirmation is hidden
@@ -1863,7 +2000,7 @@ int main(void) {
                        !(down&(KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN))){
                         album_confirm_delete=1;redraw=1;
                     }
-                    int direction=(down&KEY_LEFT)?-1:((down&KEY_RIGHT)?1:0);
+                    int direction=(down&(KEY_LEFT|KEY_L))?-1:((down&(KEY_RIGHT|KEY_R))?1:0);
                     if((down&KEY_TOUCH) && !showing_original_art){
                         touchPosition point;
                         touchRead(&point);
@@ -1872,16 +2009,24 @@ int main(void) {
                         if(point.py>=150 && point.py<192 &&
                            (point.px<64 || point.px>=192))
                             direction=point.px<64?-1:1;
-                        /* The five visible filename rows start at console row
-                         * 13, then advance two 8-pixel rows per filename. */
+                        /* Console row 13 starts at pixel 96. Keep the five
+                         * filename rows separate from the view button. */
                         if(point.px>=64 && point.px<192 &&
-                           point.py>=104 && point.py<184){
-                            int hit=((int)point.py-104)/16;
+                           point.py>=96 && point.py<176){
+                            int hit=((int)point.py-96)/16;
                             if(hit>=0 && hit<5 && (size_t)hit<shown){
-                                album_selected=(size_t)hit;redraw=1;
+                                size_t first=album_selected>=5?album_selected-4:0;
+                                if(first+(size_t)hit<shown)album_selected=first+(size_t)hit;
+                                redraw=1;
                                 direction=0;
                             }
                         }
+                        if(point.py>=176 && point.py<184 && point.px>=64 && point.px<192)
+                            open_photo=1;
+                    }
+                    if(open_photo && shown && album_selected<shown && !album_confirm_delete){
+                        p3dPhotoViewerOpen(&album_view,&photo_album,names[album_selected]);
+                        art_page=-1;redraw=1;
                     }
                     if(direction<0 && album_offset>=P3D_ALBUM_PAGE_MAX){
                         album_offset-=P3D_ALBUM_PAGE_MAX;album_selected=0;redraw=1;
@@ -1981,8 +2126,10 @@ int main(void) {
                         redraw=1;
                     }
                     if(opened==1){
-                        if(state.page==P3D_PAGE_DEX)dex_index=state.selected_dex;
-                        else if(state.page==P3D_PAGE_MOVES)move_index=state.move_index;
+                        if(state.page==P3D_PAGE_DEX){
+                            dex_index=state.selected_dex;selected_form=0;
+                        }else if(state.page==P3D_PAGE_MOVES)
+                            (void)p3dMoveNavigateSelect(&move_index,&move_text_offset,state.move_index);
                         reload_preview();redraw=1;
                     }
                 }
@@ -2103,7 +2250,13 @@ int main(void) {
                 }
                 /* Cycle only existing verified optional animation files;
                  * reset playback at the new keyframe sequence. */
-                if(preview_found && preview_animation_library.ready &&
+                if(dex_detail_tab==4 &&
+                   ((down&KEY_UP)!=0)!=((down&KEY_DOWN)!=0)){
+                    dex_learnset_page=p3dLearnsetPage(&dex_learnset,
+                        dex_learnset_page,(down&KEY_DOWN)?1:-1);
+                    redraw=1;
+                }
+                if(!dex_detail_tab && preview_found && preview_animation_library.ready &&
                    ((down&KEY_UP)!=0)!=((down&KEY_DOWN)!=0)){
                     int direction=(down&KEY_DOWN)?1:-1;
                     if(p3dAnimationLibraryStep(&preview_animation_library,
@@ -2130,8 +2283,9 @@ int main(void) {
                     if(p3dDexNavigateSync(&dex_index,&state.selected_dex,-1)){selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
                 }
                 if((down&KEY_RIGHT) && !(down&KEY_LEFT)){
-                    int next=p3dDexNavigate(dex_index,1);
-                    if(next!=dex_index){dex_index=next;selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
+                    if(p3dDexNavigateSync(&dex_index,&state.selected_dex,1)){
+                        selected_form=0;reload_preview();progress_dirty=1;redraw=1;
+                    }
                 }
             }
             /* In text navigation mode, the bottom corners also browse entries.
@@ -2139,6 +2293,26 @@ int main(void) {
             if(!showing_original_art && (down&KEY_TOUCH) && state.page!=P3D_PAGE_SEARCH){
                 touchPosition point;
                 touchRead(&point);
+                if(state.page==P3D_PAGE_DEX && !dex_detail_tab &&
+                   !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN|
+                           KEY_SELECT|KEY_START|KEY_L|KEY_R)) &&
+                   p3dModelZoomTouch(&model_view,preview_found,1,point.px,point.py))
+                    redraw=1;
+                if(state.page==P3D_PAGE_DEX && dex_detail_tab==3 && dex_details_ready &&
+                   !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN|
+                           KEY_SELECT|KEY_START|KEY_L|KEY_R)) &&
+                   p3dSpeciesEvolutionTouch(&dex_details,point.px,point.py,
+                       &dex_index,&state.selected_dex,&selected_form)){
+                    reload_preview();progress_dirty=1;art_page=-1;redraw=1;
+                }
+                if(state.page==P3D_PAGE_DEX && dex_detail_tab==4 &&
+                   !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|
+                           KEY_UP|KEY_DOWN|KEY_SELECT|KEY_START|KEY_L|KEY_R)) &&
+                   point.py>=128 && point.py<144){
+                    dex_learnset_page=p3dLearnsetPage(&dex_learnset,
+                        dex_learnset_page,point.px<128?-1:1);
+                    redraw=1;
+                }
                 /* C230: controls are visible ONLY on the fallback text Dex UI.
                  * Block combined keypad/touch input and source geometry without
                  * independently verified skeletal animation. */
@@ -2172,8 +2346,8 @@ int main(void) {
                         }
                     } else if(state.page==P3D_PAGE_MOVES && direction){
                         int next=move_index+direction;
-                        if(next>=0 && next<559){
-                            move_index=next;progress_dirty=1;redraw=1;
+                        if(p3dMoveNavigateSelect(&move_index,&move_text_offset,next)){
+                            progress_dirty=1;redraw=1;
                         }
                     }
                 }
@@ -2219,14 +2393,17 @@ int main(void) {
                 if(down&KEY_DOWN)next+=10;
                 if(next<0)next=0;
                 if(next>558)next=558;
-                if(next!=move_index){
-                    move_index=next;
-                    move_text_offset=0;
+                if(p3dMoveNavigateSelect(&move_index,&move_text_offset,next)){
                     progress_dirty=1;
                     redraw=1;
                 }
             }
             } /* Do not process page-specific input after B returns home. */
+        }
+        if(!title_active && !home && state.page==P3D_PAGE_ALBUM &&
+           p3dPhotoViewerTick(&album_view)){
+            (void)p3dPhotoViewerAdvance(&album_view,&photo_album,&album_offset,&album_selected);
+            art_page=-1;redraw=1;
         }
         /* Update page/model state before issuing 3D commands.  Previously
          * render_model() ran with the prior frame's display_preview flag:

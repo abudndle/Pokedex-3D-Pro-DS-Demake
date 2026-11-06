@@ -28,6 +28,23 @@ dev-rom:
 # DS-Homebrew builds similarly keep development tooling reproducible locally.
 .PHONY: check-host
 check-host:
+	@sh tests/run_c355_photo_viewer.sh
+	@sh tests/run_c356_photo_resume.sh
+	@sh tests/run_c356_photo_identity.sh
+	@sh tests/run_c357_slideshow.sh
+	@sh tests/run_c358_evolution_navigation.sh
+	@sh tests/run_c359_model_zoom.sh
+	@sh tests/run_c360_move_navigation.sh
+	@sh tests/run_c398_footer_layout.sh
+	@python3 -m unittest discover -s tests -p 'test_c360_move_gate.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c359_zoom_frame_gate.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c358_evolution_gate.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c357_slideshow_gate.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c356_photo_resume_gate.py' -v
+	@python3 -m unittest discover -s tests -p 'test_c355_album_view_gate.py' -v
+	@sh tests/run_c334_learnsets.sh
+	@sh tests/run_c334_learnset_resume.sh
+	@python3 -m unittest discover -s tests -p 'test_c334_fat_learnset_gate.py' -v
 	@set -eu; for test in \
 		run_c230_playback_controls.sh run_source_smoke.sh run_c174_native_p3ix_reader.sh run_c175_native_primitive_bridge.sh run_c176_native_primitive_draw.sh run_c177_native_vertex_stream.sh run_c178_native_geometry_pair.sh run_c289_native_vertex_uv.sh run_model_uv.sh run_preview_stream_fixture.sh run_c104_original_ui_pages.sh run_c107_native_texture_alpha.sh run_c108_material_binding.sh run_c109_original_material_refs.sh run_c110_shader_caps.sh run_c118_title_audio.sh \
 		run_menu_layout_smoke.sh run_dsi_feature_gating.sh run_c337_dsi_camera_session.sh run_c338_dsi_camera_preview.sh \

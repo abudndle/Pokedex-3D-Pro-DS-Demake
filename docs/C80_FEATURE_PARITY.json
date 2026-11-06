@@ -16,7 +16,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/main.c",
-      "gap": "C82 original 649 P3DX names/descriptions/height/weight and C333 optional source-validated P3SD sidecar and tab viewer; no proven original 3DS stats/ability/evolution/complete learnset records yet. Source form semantics, final 3D renderer, original UI art and localization incomplete.",
+      "gap": "C82 original 649 P3DX names/descriptions/height/weight and C333 optional source-validated P3SD sidecar and tab viewer, plus C358 source-bound evolution-reference touch navigation with target names, form0 reset and exact target/tab resume; no proven original 3DS stats/ability/evolution/complete learnset records yet. Source form semantics, final 3D renderer, original UI art and localization incomplete.",
       "verified_end_to_end": false
     },
     {
@@ -72,7 +72,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/photo_album.c",
-      "gap": "Basic list/page/delete; original photo associations, slideshow and DSi capture pending",
+      "gap": "C355 adds bounded PNG opening, aspect-preserving RGB555 photo viewing, keypad/touch browsing across pages and return to the retained list selection. C356 adds source-bound exact-photo restart and safe list fallback for changed/missing media; C357 adds timed button/touch slideshow playback, pause, looping and paused restart as a DS adaptation; original timing/artwork, photo associations, camera capture and physical DS/DSi validation remain pending",
       "verified_end_to_end": false
     },
     {
@@ -120,7 +120,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/species_details.c",
-      "gap": "C333 adds fail-closed per-species/form P3SD v1 native reader, four tab details UI and persistent P3RV v5 detail tab. Only 649 P3DX names/descriptions/height/weight and 559 P3DM move names/effects are verified original source. The user's original private stats/ability/evolution/complete learnset records are not recovered in the accessible workspace, no original values are bundled, and the v1 sidecar supports only 4 optional move references, not full learnsets. Original-source binary extraction, provenance, full forms/data, authentic 3DS art, 3DS side-by-side comparison, DSi/hardware still missing.",
+      "gap": "C333 adds fail-closed per-species/form P3SD v1 native reader, four tab details UI and persistent P3RV v5 detail tab. Only 649 P3DX names/descriptions/height/weight and 559 P3DM move names/effects are verified original source. The user's original private stats/ability/evolution/complete learnset records are not recovered in the accessible workspace, no original values are bundled, and P3SD v1 still supports only 4 optional move references. C334 adds bounded complete-list P3SL transport (up to 256 method/level rows), four-row keypad/touch pagination and source-checksum-bound P3RV v6 page resume; original full learnset recovery/provenance and physical-hardware validation remain incomplete. Original-source binary extraction, provenance, full forms/data, authentic 3DS art, 3DS side-by-side comparison, DSi/hardware still missing.",
       "verified_end_to_end": false
     },
     {
@@ -128,7 +128,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/records.c",
-      "gap": "C332 adds an optional 144-byte, CRC-checked P3RV v4 active Challenge checkpoint preserving exact question/review, chosen answer, four choices, ten asked species, RNG seed, clue page, and already counted answers; stores P3RC round generation to reject stale reviews after a completed round. Inactive checkpoints remain 80-byte P3RV v3; P3RV v1/v2/v3, P3SV and P3RC readers remain compatible. Dual-slot integrity and cross-process synthetic host tests exist; independent private-asset DSi save/display, exact original 3DS save-format parity, and power-loss recovery on real hardware remain unverified.",
+      "gap": "C332 adds an optional 144-byte, CRC-checked P3RV v4 active Challenge checkpoint preserving exact question/review, chosen answer, four choices, ten asked species, RNG seed, clue page, and already counted answers; stores P3RC round generation to reject stale reviews after a completed round. C356 adds optional 96-byte P3RV v7 exact Album photo ID/file CRC/size checkpoints; legacy v1-v6 readers and P3SV/P3RC remain compatible. Inactive checkpoints remain 80-byte v3. Dual-slot integrity and cross-process synthetic host tests exist; independent private-asset DSi save/display, exact original 3DS save-format parity, and power-loss recovery on real hardware remain unverified.",
       "verified_end_to_end": false
     },
     {
@@ -144,7 +144,7 @@
       "required_for_release": true,
       "status": "partial",
       "source": "source/search_touch.c",
-      "gap": "C123 introduces strict CRC-validated private P3HM original 3DS seven-icon HOME touch rectangles. When an authentic bottom-screen HOME bitmap is in use, touch targets come only from the corresponding source-measured positions, not the text developer menu; invalid/missing maps fail closed while D-pad/A remain functional. Text-only developer menus retain their list touch targets. Exact recovered original icon geometry and original UI interaction parity are not verified without owner-private source assets.",
+      "gap": "C123 introduces strict CRC-validated private P3HM original 3DS seven-icon HOME touch rectangles. When an authentic bottom-screen HOME bitmap is in use, touch targets come only from the corresponding source-measured positions, not the text developer menu; invalid/missing maps fail closed while D-pad/A remain functional. Text-only developer menus retain their list touch targets. C359 adds bounded touchscreen model zoom/reset on the text entry only, with original-art and missing-preview gating. Exact recovered original icon geometry, camera semantics and original UI interaction parity remain unverified.",
       "verified_end_to_end": false
     },
     {

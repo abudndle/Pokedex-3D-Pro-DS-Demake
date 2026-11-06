@@ -25,6 +25,13 @@ typedef struct {
     uint32_t challenge_recorded_rounds; /* P3RC rounds at checkpoint time */
     /* C333: optional P3RV v5 detail-tab state (only live Pokédex page). */
     uint8_t dex_detail_tab;
+    /* Optional v6: exact complete learnset page, bound to P3SL content. */
+    uint8_t dex_learnset_valid,dex_learnset_page;
+    uint32_t dex_learnset_checksum;
+    /* Optional v7: stable photo identity for the active Album viewer. */
+    uint8_t album_view_active;
+    uint16_t album_photo_id;
+    uint32_t album_photo_checksum,album_photo_bytes;
 } P3DResumeState;
 int p3dResumeStateValid(const P3DResumeState *state);
 /* A previously completed round must never be resurrected by a stale

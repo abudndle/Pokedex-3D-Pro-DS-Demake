@@ -3,6 +3,11 @@ on:
   push:
     paths:
       - 'source/**'
+      - 'third_party/pngle/**'
+      - 'tests/c355_*'
+      - 'tests/*c356*'
+      - 'tests/*c357*'
+      - 'tests/test_c355_*'
       - 'tests/c268_*'
       - 'tests/test_c268_*'
       - 'tests/run_c268_*'
@@ -10,6 +15,11 @@ on:
   pull_request:
     paths:
       - 'source/**'
+      - 'third_party/pngle/**'
+      - 'tests/c355_*'
+      - 'tests/*c356*'
+      - 'tests/*c357*'
+      - 'tests/test_c355_*'
       - 'tests/c268_*'
       - 'tests/test_c268_*'
       - 'tests/run_c268_*'
@@ -30,6 +40,12 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_c268_fat_album_gate.py' -v
       - name: Reject synthetic Album frame/navigation regressions
         run: python3 -m unittest discover -s tests -p 'test_c268_melonds_album_frame_gate.py' -v
+      - name: C355 photo-color, read-only media and selected-file gate regressions
+        run: python3 -m unittest discover -s tests -p 'test_c355_album_view_gate.py' -v
+      - name: C356 reject wrong resumed pixels, stale identities and malformed v7 slots
+        run: python3 -m unittest discover -s tests -p 'test_c356_photo_resume_gate.py' -v
+      - name: C357 reject false slideshow advance, pause, touch and resume evidence
+        run: python3 -m unittest discover -s tests -p 'test_c357_slideshow_gate.py' -v
       - name: Compile asset-free BlocksDS ROM and validate native headers
         run: |
           docker run --rm -v "$PWD:/work" -w /work \
@@ -63,6 +79,24 @@ jobs:
           xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
             bash tests/run_c268_melonds_album.sh \
             "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C268_APP_RUN"
+      - name: Verify real PNG pixels, keypad/touch viewing and read-only FAT selection recovery
+        shell: bash
+        run: |
+          C355_VIEWER_ONLY=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
+            bash tests/run_c268_melonds_album.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C268_APP_RUN"
+      - name: C356 reopen exact photo after restart, roster insertion and reject changed media
+        shell: bash
+        run: |
+          C356_RESUME_ONLY=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
+            bash tests/run_c268_melonds_album.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C268_APP_RUN"
+      - name: C357 actual timed playback, pause, touchscreen, manual browse and paused restart
+        shell: bash
+        run: |
+          C357_SLIDESHOW_ONLY=1 xvfb-run -a -s '-screen 0 1024x768x24' timeout 180s \
+            bash tests/run_c268_melonds_album.sh \
+            "$PWD/Pokedex3D_DS_BlocksDS.nds" "$C268_APP_RUN"
       - name: Preserve only asset-free synthetic Album XWD evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -70,6 +104,9 @@ jobs:
           name: c268-melonds-asset-free-album-evidence
           path: |
             c268-melonds-*.xwd
+            c355-melonds-*.xwd
+            c356-melonds-*.xwd
+            c357-melonds-*.xwd
             c268-melonds-windows.txt
           if-no-files-found: ignore
           retention-days: 3

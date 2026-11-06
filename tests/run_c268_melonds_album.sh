@@ -2,6 +2,12 @@
 # C268: real melonDS 1.1 DLDI FolderSync Album browse/page/delete/reboot.
 # No Nintendo data, private ROMs or camera access; the PNGs are generated fixtures.
 set -euo pipefail
+viewer_only="${C355_VIEWER_ONLY:-0}"
+resume_only="${C356_RESUME_ONLY:-0}"
+slideshow_only="${C357_SLIDESHOW_ONLY:-0}"
+if [[ "$slideshow_only" != 0 && "$slideshow_only" != 1 ]]; then exit 2; fi
+if [[ "$resume_only" != 0 && "$resume_only" != 1 ]]; then exit 2; fi
+if [[ "$viewer_only" != 0 && "$viewer_only" != 1 ]]; then exit 2; fi
 rom="${1:?asset-free BlocksDS ROM required}"
 app_run="${2:?SHA-pinned melonDS 1.1 AppRun required}"
 test -s "$rom" && test -x "$app_run"
@@ -101,6 +107,114 @@ sleep 0.5
 xdotool mouseup 1
 sleep 2
 capture c268-melonds-album-first.xwd
+if [[ "$slideshow_only" == 1 ]]; then
+    press x
+    capture c357-melonds-open.xwd
+    press x
+    capture c357-melonds-playing.xwd
+    sleep 3.5
+    press x
+    capture c357-melonds-paused.xwd
+    sleep 6
+    capture c357-melonds-held.xwd
+    # Touch the visible play/pause row, then manual next must pause playback.
+    xdotool mousemove --window "$window" 128 355
+    xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
+    capture c357-melonds-touch.xwd
+    sleep 3.5
+    press x
+    capture c357-melonds-touch-advanced.xwd
+    press Right
+    capture c357-melonds-manual.xwd
+    sleep 6
+    capture c357-melonds-manual-held.xwd
+    press x
+    close_cleanly
+    launch
+    capture c357-melonds-restored.xwd
+    press x
+    sleep 3.5
+    press x
+    capture c357-melonds-restarted.xwd
+    # From photo5, five full dwell intervals visit4,3,2,1 then wrap to9.
+    press x
+    sleep 24.5
+    press x
+    capture c357-melonds-wrapped.xwd
+    press z
+    capture c357-melonds-list.xwd
+    close_cleanly
+    python3 tests/c357_slideshow_gate.py --fat "$sd_root/export"
+    python3 tests/c357_slideshow_gate.py c357-melonds-{open,playing,paused,held,touch,touch-advanced,manual,manual-held,restored,restarted,wrapped,list}.xwd
+    exit 0
+fi
+if [[ "$resume_only" == 1 ]]; then
+    press x
+    press Right
+    capture c356-melonds-photo-open.xwd
+    close_cleanly
+    python3 tests/c356_photo_resume_gate.py --fat "$sd_root/export" saved
+    launch
+    capture c356-melonds-photo-resumed.xwd
+    close_cleanly
+    python3 tests/c356_photo_resume_gate.py --fat "$sd_root/export" saved
+    python3 - "$sd_root/export" <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0,'tests')
+from c355_album_view_gate import synthetic_photo
+(Path(sys.argv[1])/'Pokedex 3D Pro'/'Photos'/'AR_0010.png').write_bytes(synthetic_photo(10))
+PY
+    launch
+    capture c356-melonds-photo-reordered.xwd
+    close_cleanly
+    python3 tests/c356_photo_resume_gate.py --fat "$sd_root/export" reordered
+    python3 - "$sd_root/export" <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0,'tests')
+from c355_album_view_gate import synthetic_photo
+(Path(sys.argv[1])/'Pokedex 3D Pro'/'Photos'/'AR_0008.png').write_bytes(synthetic_photo(7))
+PY
+    launch
+    capture c356-melonds-photo-changed.xwd
+    close_cleanly
+    python3 tests/c356_photo_resume_gate.py --fat "$sd_root/export" changed
+    python3 tests/c356_photo_resume_gate.py c356-melonds-photo-{open,resumed,reordered,changed}.xwd
+    echo 'C356 real melonDS exact-photo resume, reordered roster and changed-media rejection: PASS (synthetic only)'
+    exit 0
+fi
+if [[ "$viewer_only" == 1 ]]; then
+    press x
+    capture c355-melonds-photo-first.xwd
+    press Right
+    capture c355-melonds-photo-next.xwd
+    press Left
+    capture c355-melonds-photo-return.xwd
+    xdotool mousemove --window "$window" 220 379
+    xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
+    capture c355-melonds-photo-touch.xwd
+    xdotool mousemove --window "$window" 128 379
+    xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
+    xdotool mousemove --window "$window" 128 391
+    xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
+    capture c355-melonds-photo-reopen.xwd
+    press z
+    capture c355-melonds-photo-list.xwd
+    close_cleanly
+    python3 tests/c355_album_view_gate.py --fat "$sd_root/export"
+    launch
+    capture c355-melonds-photo-resumed.xwd
+    close_cleanly
+    python3 tests/c355_album_view_gate.py --fat "$sd_root/export"
+    python3 tests/c355_album_view_gate.py \
+        c355-melonds-photo-first.xwd c355-melonds-photo-next.xwd \
+        c355-melonds-photo-return.xwd c355-melonds-photo-touch.xwd \
+        c355-melonds-photo-reopen.xwd c355-melonds-photo-list.xwd \
+        c355-melonds-photo-resumed.xwd
+    echo 'C355 real melonDS PNG pixels, keypad/touch, B/list and unchanged media: PASS (synthetic only)'
+    exit 0
+fi
 press Right
 capture c268-melonds-album-second.xwd
 press Left
