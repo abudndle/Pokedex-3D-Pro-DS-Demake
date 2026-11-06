@@ -1215,7 +1215,7 @@ static void render(void) {
             printf("\x1b[22;1HSTART: details  B: menu");
         }else if(state.page==P3D_PAGE_SEARCH){
             printf("\x1b[9;1H%.28s",state.search_query[0]?state.search_query:"NAME / TEXT SEARCH");
-            /* One-based console rows share exact touch coordinates in C83. */
+            /* Zero-based console rows share exact touch coordinates in C83. */
             printf("\x1b[%d;1HRegion: %.8s",P3D_SEARCH_REGION_ROW,
                    p3dDexRegionName(search_region));
             printf("\x1b[%d;17HScope: %.9s",P3D_SEARCH_REGION_ROW,
