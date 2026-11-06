@@ -38,6 +38,8 @@ check-host:
 	@sh tests/run_c398_footer_layout.sh
 	@sh tests/run_c400_album_touch.sh
 	@sh tests/run_c401_entry_navigation.sh
+	@sh tests/run_c402_saved_entry_browser.sh
+	@python3 -m unittest discover -s tests -p 'test_c402_saved_browser_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c401_entry_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c360_move_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c359_zoom_frame_gate.py' -v

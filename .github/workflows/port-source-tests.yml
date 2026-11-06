@@ -27,6 +27,9 @@ jobs:
         run: sh tests/run_source_smoke.sh
       - name: C398 footer never overwrites page information or owned controls
         run: |
+          sh tests/run_c402_saved_entry_browser.sh
+          python3 -m unittest discover -s tests -p 'test_c402_saved_browser_gate.py' -v
+          P3D_HOST_SANITIZERS='-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer' sh tests/run_c402_saved_entry_browser.sh
           sh tests/run_c401_entry_navigation.sh
           P3D_HOST_SANITIZERS='-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer' sh tests/run_c401_entry_navigation.sh
           python3 -m unittest discover -s tests -p 'test_c401_entry_gate.py' -v
