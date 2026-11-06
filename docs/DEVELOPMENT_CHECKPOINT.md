@@ -41,3 +41,5 @@ All 730 native preview structures pass the compiled loader and exact GL-emission
 4. Recover authorized missing source inputs before claiming complete model/material/animation or game parity. Continue independent gameplay improvements while those inputs are blocked.
 
 No milestone has been closed and no full-game completion or hardware verification is claimed.
+
+Follow-up: Search touch alignment is implemented and independently reviewed. A genuine ROM capture then exposed stale heading glyphs after a short query. A framebuffer regression rejected the old N query with 149 stray pixels beyond the N cell; the query display now clears its full 28-column field. Fresh ROM and CI verification is required for this follow-up. Read PR #397 for the latest evidence before repeating completed work.
