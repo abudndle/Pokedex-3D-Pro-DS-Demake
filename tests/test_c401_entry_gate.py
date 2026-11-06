@@ -30,6 +30,16 @@ class EntryGateTests(unittest.TestCase):
             ps=[Path(d)/f'{n}.xwd' for n in range(11)];ids=(0,0,0,1,1,2,3,2,4,2,2)
             for p,n in zip(ps,ids):make_frame(p,n)
             verify_frames(*ps)
+            # A species transition changes only a small number glyph, not a
+            # whole text viewport. Reject a missing digit transition while
+            # accepting even a single independently changed digit pixel.
+            make_frame(ps[3],0)
+            raw=bytearray(ps[3].read_bytes());raw[100+(317*256+90)*4]^=1
+            ps[3].write_bytes(raw);ps[4].write_bytes(raw)
+            verify_frames(*ps)
+            make_frame(ps[3],0);make_frame(ps[4],0)
+            with self.assertRaises(ValueError):verify_frames(*ps)
+            make_frame(ps[3],1);make_frame(ps[4],1)
             for i in (1,2,4,6,7,8,9,10):
                 make_frame(ps[i],5 if i not in (6,8) else 2)
                 with self.assertRaises(ValueError):verify_frames(*ps)

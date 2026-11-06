@@ -35,8 +35,13 @@ def verify_frames(*paths):
                    for y in range(275,391,2) for x in range(8,248,2))
     for a,b in ((0,1),(0,2),(3,4),(5,7),(5,9),(5,10)):
         if delta(a,b)>15:raise ValueError('entry or restart did not match its clean reference')
-    for a,b in ((0,3),(5,6),(5,8)):
-        if delta(a,b)<15:raise ValueError('scenario did not establish a distinct species/viewport/field')
+    # Pokemon 001 -> 002 changes one small number glyph. Require a real
+    # digit change in its exact visible field; FAT independently proves ID 1.
+    digit_change=sum(fs[0][4][y*row+x*stride:y*row+x*stride+3]!=fs[3][4][y*row+x*stride:y*row+x*stride+3]
+                     for y in range(315,323) for x in range(72,96))
+    if digit_change==0:raise ValueError('recent entry species-number glyph did not change')
+    for a,b in ((5,6),(5,8)):
+        if delta(a,b)<15:raise ValueError('scenario did not establish a distinct viewport/field')
     return {'favorite_and_recent_open_verified':True,'same_move_reset_verified':True,'original_game_parity_verified':False}
 
 if __name__=='__main__':

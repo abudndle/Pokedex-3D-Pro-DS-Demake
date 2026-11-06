@@ -39,3 +39,5 @@ Original assets, converted outputs, maps, hashes, manifests, ROMs and screenshot
 4. Maintain source-bound FAT/restart tests when changing navigation. Explicit entry opens must never reuse their initiating input, silently modify favorites or retain another presentation context.
 
 No original assets were replaced, no milestone was closed, and hardware/full-game parity is not claimed.
+
+Verification follow-up: the first real seven-launch C401 run passed every FAT phase, including both bookmark resets. Its final visual gate exposed a test calibration error: Pokemon 001 to 002 changes a small digit, not an entire text viewport. The gate now requires a real change in the exact species-number field, with independent FAT identity proof, while retaining stronger scroll/effect checks. A new regression accepts a small digit change and rejects identical species frames. Production source is unchanged by this test correction; the current PR records fresh CI outcomes.
