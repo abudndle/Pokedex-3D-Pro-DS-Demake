@@ -32,7 +32,7 @@ All 730 native preview structures pass the compiled loader/GL-emission probe. Th
 
 Complete mapping, missing Japanese/English loader tables, original UV/material face bindings, skin weights, mesh-node/action semantics, remaining original Challenge modes, audio and full original GUI remain absent or unresolved. DSi camera/AR and hardware behavior require real devices. Authored synthetic names/animation fixtures are test data, not recovered game content.
 
-Original assets, converted outputs, maps, hashes, manifests, ROMs and original-asset screenshots stay outside public source/CI/artifacts. The repository named `-private` reports public visibility; never run proprietary payload CI there.
+Original assets, converted outputs, maps, hashes, manifests, ROMs and original-asset screenshots stay outside public source/CI/artifacts. The asset repository is now confirmed private. Keep proprietary payloads in authorized private storage; public CI must continue using synthetic fixtures only.
 
 ## Next tasks
 
@@ -42,3 +42,5 @@ Original assets, converted outputs, maps, hashes, manifests, ROMs and original-a
 4. Preserve source-name fallbacks, original-art touch gating, partial Recent-page bounds and unchanged favorite data when extending saved-entry browsing.
 
 No original assets were replaced, no milestone closed, and full-game/hardware parity is not claimed.
+
+Verified browser evidence at production source `2706942`: BlocksDS 1.24 builds successfully with all 155 staged production files matching. Actual private melonDS row taps exactly match their clean target-entry frames. Public melonDS run 42167282873 and artifact 13479426776 verify all six named Favorites, five/three Recent-page rows, correct touch targets, middle removal, empty-row rejection, FAT identities and restart continuity. Independent source/frame review passes. Read PR #401 for final full-CI results. This checkpoint/privacy follow-up changes no production files.
