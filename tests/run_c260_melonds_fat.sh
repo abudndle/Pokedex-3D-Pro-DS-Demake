@@ -8,6 +8,8 @@ learnset_only="${C334_LEARNSET_ONLY:-0}"
 evolution_only="${C358_EVOLUTION_ONLY:-0}"
 move_only="${C360_MOVE_ONLY:-0}"
 entry_only="${C401_ENTRY_ONLY:-0}"
+browser_only="${C402_BROWSER_ONLY:-0}"
+if [[ "$browser_only" != 0 && "$browser_only" != 1 ]]; then exit 2; fi
 if [[ "$entry_only" != 0 && "$entry_only" != 1 ]]; then exit 2; fi
 if [[ "$move_only" != 0 && "$move_only" != 1 ]]; then exit 2; fi
 if [[ "$evolution_only" != 0 && "$evolution_only" != 1 ]]; then exit 2; fi
@@ -120,6 +122,32 @@ sleep 0.4
 xdotool keyup x
 sleep 4
 capture c260-melonds-fat-favorite.xwd
+if [[ "$browser_only" == 1 ]]; then
+  press() { xdotool windowfocus --sync "$window"; xdotool keydown "$1"; sleep 0.3; xdotool keyup "$1"; sleep 1; }
+  tap() { xdotool mousemove --window "$window" "$1" "$2"; xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 1; }
+  for _ in 1 2 3 4 5; do press Right; press x; done
+  press Right; press Right; press z
+  for _ in 1 2 3; do press Down; done
+  press x; press w; capture c402-melonds-recent-first.xwd
+  for _ in 1 2 3 4 5; do press Down; done
+  capture c402-melonds-recent-second.xwd
+  tap 24 335; capture c402-melonds-recent-open.xwd
+  close_cleanly; python3 tests/c402_saved_browser_gate.py --fat "$sd_root/export" recent
+  launch; capture c402-melonds-recent-resumed.xwd
+  press z; press x; press s; capture c402-melonds-favorites-full.xwd
+  tap 24 383; capture c402-melonds-favorite-last-open.xwd
+  close_cleanly; python3 tests/c402_saved_browser_gate.py --fat "$sd_root/export" favorite
+  launch; capture c402-melonds-favorite-last-resumed.xwd
+  press z; press x; press s; press Down; press Down
+  capture c402-melonds-favorites-middle.xwd
+  press x; capture c402-melonds-favorites-removed.xwd
+  tap 24 383; capture c402-melonds-favorites-invalid.xwd
+  close_cleanly; python3 tests/c402_saved_browser_gate.py --fat "$sd_root/export" removed
+  launch; capture c402-melonds-favorites-resumed.xwd; close_cleanly
+  python3 tests/c402_saved_browser_gate.py --fat "$sd_root/export" removed
+  python3 tests/c402_saved_browser_gate.py c402-melonds-{recent-first,recent-second,recent-open,recent-resumed,favorites-full,favorite-last-open,favorite-last-resumed,favorites-middle,favorites-removed,favorites-invalid,favorites-resumed}.xwd
+  exit 0
+fi
 if [[ "$entry_only" == 1 ]]; then
   press() { xdotool windowfocus --sync "$window"; xdotool keydown "$1"; sleep 0.3; xdotool keyup "$1"; sleep 1; }
   tap() { xdotool mousemove --window "$window" "$1" "$2"; xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 1; }

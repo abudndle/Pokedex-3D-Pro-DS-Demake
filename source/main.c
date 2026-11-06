@@ -13,6 +13,7 @@
 #include "page_footer.h"
 #include "menu_navigation.h"
 #include "entry_navigation.h"
+#include "saved_entry_browser.h"
 #include "dsi_features.h"
 #include "challenge.h"
 #include "challenge_text.h"
@@ -846,6 +847,17 @@ static int save_progress(void){
 }
 
 
+/* Saved-list labels use recovered P3DX names only when present. */
+static void render_saved_entry_row(unsigned row,int selected,int species){
+    int console_row=p3dSavedEntryRow(row);
+    P3DDexText entry;
+    if(console_row<0)return;
+    if(species<0 || species>=649)
+        printf("\x1b[%d;1H%c Unavailable entry",console_row,selected?'>':' ');
+    else if(dex_text_ready && p3dDexTextRead(species,&entry) && entry.name[0])
+        printf("\x1b[%d;1H%c #%03d %.21s",console_row,selected?'>':' ',species+1,entry.name);
+    else printf("\x1b[%d;1H%c Pokemon #%03d",console_row,selected?'>':' ',species+1);
+}
 static void render(void) {
     /* View tracking happens on actual Dex-page visits, including forms.
      * Never mark unseen species when merely booting the home menu. */
@@ -978,8 +990,12 @@ static void render(void) {
             printf("L/R: rotate manually in Pokedex\n");
         } else if(state.page==P3D_PAGE_FAVORITES){
             printf("Saved favorites: %d / %d\n",state.favorites_count,P3D_FAVORITES_MAX);
-            if(state.favorites_count>0){
-                printf("Pokemon #%03d\n",state.favorites[favorite_index]+1);
+            if(state.favorites_count>0 && state.favorites_count<=P3D_FAVORITES_MAX){
+                int cursor=favorite_index>=0&&favorite_index<state.favorites_count?favorite_index:0;
+                P3DDexText entry;
+                int species=state.favorites[cursor];
+                if(dex_text_ready && p3dDexTextRead(species,&entry))printf("%.28s\n",entry.name);
+                else printf("Pokemon #%03d\n",species+1);
                 printf("LEFT/RIGHT: browse\n");
                 printf("A: remove favorite\n");
                 printf("Y: search this Pokemon\n");
@@ -1282,13 +1298,12 @@ static void render(void) {
                 printf("\x1b[19;1HFavorites: %d  Photos: %u",
                        state.favorites_count,(unsigned)records_photo_total());
             }else if(records_tab==1){
-                for(int i=0;i<5;i++){
-                    int row=(records_recent_cursor/5)*5+i;
-                    if(row>=P3D_RECORD_RECENT ||
-                       records.recent[row]==P3D_RECORD_NO_SPECIES)break;
-                    printf("\x1b[%d;1H%c Pokemon #%03d",11+i*2,
-                           row==records_recent_cursor?'>':' ',
-                           records.recent[row]+1);
+                int cursor=records_recent_cursor>=0&&records_recent_cursor<P3D_RECORD_RECENT?
+                    records_recent_cursor:0;
+                for(unsigned i=0;i<P3D_SAVED_RECENT_PAGE_SIZE;i++){
+                    unsigned index=(unsigned)(cursor/P3D_SAVED_RECENT_PAGE_SIZE)*P3D_SAVED_RECENT_PAGE_SIZE+i;
+                    if(index>=P3D_RECORD_RECENT || records.recent[index]==P3D_RECORD_NO_SPECIES)break;
+                    render_saved_entry_row(i,index==(unsigned)cursor,records.recent[index]);
                 }
             }else{
                 printf("\x1b[11;1HCompleted: %u",(unsigned)records.rounds);
@@ -1319,8 +1334,12 @@ static void render(void) {
             if(!storage_ready)printf("\x1b[23;1HStorage unavailable");
             else if(bookmark_settings.dirty)printf("\x1b[23;1HBookmark save pending");
         }else if(state.page==P3D_PAGE_FAVORITES){
-            printf("\x1b[13;1HSaved: %d / %d",state.favorites_count,P3D_FAVORITES_MAX);
-            printf("\x1b[15;1HChoose in Pokedex");
+            if(state.favorites_count>0 && state.favorites_count<=P3D_FAVORITES_MAX){
+                int cursor=favorite_index>=0&&favorite_index<state.favorites_count?favorite_index:0;
+                for(int i=0;i<state.favorites_count;i++)
+                    render_saved_entry_row((unsigned)i,i==cursor,state.favorites[i]);
+                printf("\x1b[23;1HA:remove X/tap:view Y:search");
+            }else printf("\x1b[13;1HNo saved favorites");
         }else if(state.page==P3D_PAGE_ALBUM){
             if(!storage_ready)printf("\x1b[13;1HFAT storage unavailable");
             else if(!album_ready)printf("\x1b[13;1HPhoto folder unavailable");
@@ -2026,6 +2045,18 @@ int main(void) {
                 }
             }
             if(state.page==P3D_PAGE_RECORDS){
+                if(records_recent_cursor<0 || records_recent_cursor>=P3D_RECORD_RECENT ||
+                   records.recent[records_recent_cursor]==P3D_RECORD_NO_SPECIES)
+                    records_recent_cursor=0;
+                if(records_tab==1 && !showing_original_art && (down&KEY_TOUCH) && !(down&~KEY_TOUCH)){
+                    touchPosition point;touchRead(&point);
+                    int hit=p3dRecentTouch(&records,records_recent_cursor,1,point.px,point.py);
+                    if(hit>=0 && p3dEntryOpenPokemon(&state,records.recent[hit],&dex_index,
+                        &selected_form,&dex_detail_tab,&down)){
+                        records_recent_cursor=0;
+                        reload_preview();progress_dirty=1;redraw=1;
+                    }
+                }
                 if((down&KEY_RIGHT) || (down&KEY_R)){
                     records_tab=(records_tab+1)%3;
                     records_recent_cursor=0;
@@ -2056,6 +2087,7 @@ int main(void) {
                        records.recent[records_recent_cursor]!=P3D_RECORD_NO_SPECIES){
                         if(p3dEntryOpenPokemon(&state,(int)records.recent[records_recent_cursor],
                             &dex_index,&selected_form,&dex_detail_tab,&down)){
+                            records_recent_cursor=0;
                             reload_preview();progress_dirty=1;redraw=1;
                         }
                     }else if(records_tab==0){
@@ -2192,9 +2224,20 @@ int main(void) {
                     state.page=P3D_PAGE_SEARCH;
                     redraw=1;
                 }
-                if((down&KEY_LEFT)&&favorite_index>0){favorite_index--;redraw=1;}
-                if((down&KEY_RIGHT)&&favorite_index<state.favorites_count-1){favorite_index++;redraw=1;}
-                if((down&KEY_A)&&state.favorites_count>0){
+                if(!showing_original_art && (down&KEY_TOUCH) && !(down&~KEY_TOUCH)){
+                    touchPosition point;touchRead(&point);
+                    int hit=p3dFavoriteTouch(&state,1,point.px,point.py);
+                    if(hit>=0 && p3dEntryOpenPokemon(&state,state.favorites[hit],&dex_index,
+                        &selected_form,&dex_detail_tab,&down)){
+                        favorite_index=hit;
+                        reload_preview();progress_dirty=1;redraw=1;
+                    }
+                }
+                int favorite_step=((down&(KEY_RIGHT|KEY_DOWN))!=0)-((down&(KEY_LEFT|KEY_UP))!=0);
+                if(favorite_step && state.favorites_count>0){
+                    favorite_index=p3dMenuScroll(favorite_index,state.favorites_count,favorite_step);redraw=1;
+                }
+                if((down&KEY_A) && !(down&KEY_TOUCH) && state.favorites_count>0){
                     if(favorite_index<0 || favorite_index>=state.favorites_count)
                         favorite_index=0;
                     int removed=p3dFavoriteToggle(&state,state.favorites[favorite_index]);
