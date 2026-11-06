@@ -7,6 +7,11 @@
 #define P3D_CHALLENGE_TEXT_UNLOCK 50
 #define P3D_CHALLENGE_QUESTIONS 10
 #define P3D_CHALLENGE_OPTIONS 4
+/* Zero-based libnds text rows shared by rendering and touch controls. */
+#define P3D_CHALLENGE_CHOICE_ROW 11
+#define P3D_CHALLENGE_CHOICE_ROW_STRIDE 3
+#define P3D_CHALLENGE_CONTINUE_ROW 19
+#define P3D_CHALLENGE_FOOTER_ROW 22
 typedef enum { P3D_CHALLENGE_PICKER=0, P3D_CHALLENGE_QUESTION=1, P3D_CHALLENGE_RESULTS=2, P3D_CHALLENGE_REVIEW=3 } P3DChallengeStage;
 typedef struct {
  P3DChallengeStage stage;
@@ -30,9 +35,9 @@ int p3dChallengeBeginSession(P3DChallenge *quiz,int mode,uint32_t *next_seed,int
 int p3dChallengeAnswer(P3DChallenge *quiz,int choice);
 /* Move from review to next question or final results. Does not score. */
 int p3dChallengeContinue(P3DChallenge *quiz);
-/* Fallback text UI only: console rows 11,14,17,20.
+/* Fallback text UI only: zero-based console rows 11,14,17,20.
  * Original bitmap artwork touch geometry is NOT inferred. */
 int p3dChallengeTouchChoice(int x,int y);
-/* Fallback review continuation text on console row 19. */
+/* Fallback review continuation text on zero-based console row 19. */
 int p3dChallengeTouchContinue(int x,int y);
 #endif

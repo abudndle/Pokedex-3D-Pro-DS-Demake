@@ -54,23 +54,34 @@ int main(void){
  for(int mode=0;mode<P3D_CHALLENGE_MODES;mode++)run_mode(mode);
  assert(p3dChallengeAnswer(NULL,0)==-1);
  assert(!p3dChallengeContinue(NULL));
+ /* Console H rows are zero-based: choice rows 11/14/17/20.
+  * A tap near the lower edge of the first choice used to select choice 2. */
+ assert(p3dChallengeTouchChoice(24,111)==0);
  for(int choice=0;choice<P3D_CHALLENGE_OPTIONS;choice++){
-  int y=80+choice*24;
+  int y=88+choice*24;
+  for(int pixel=0;pixel<8;pixel++)
+   assert(p3dChallengeTouchChoice(24,y+pixel)==choice);
   assert(p3dChallengeTouchChoice(8,y)==choice);
-  assert(p3dChallengeTouchChoice(247,y+23)==choice);
+  assert(p3dChallengeTouchChoice(247,choice==3?175:y+23)==choice);
  }
- assert(p3dChallengeTouchChoice(7,80)==-1);
- assert(p3dChallengeTouchChoice(248,80)==-1);
- assert(p3dChallengeTouchChoice(8,79)==-1);
+ assert(p3dChallengeTouchChoice(7,88)==-1);
+ assert(p3dChallengeTouchChoice(248,88)==-1);
+ assert(p3dChallengeTouchChoice(8,80)==-1);
+ assert(p3dChallengeTouchChoice(8,87)==-1);
+ /* Footer Back owns row 22 onward, even below the fourth choice. */
  assert(p3dChallengeTouchChoice(8,176)==-1);
+ assert(p3dChallengeTouchChoice(247,183)==-1);
  assert(p3dChallengeTouchChoice(-1,-1)==-1);
  assert(p3dChallengeTouchChoice(256,192)==-1);
- assert(p3dChallengeTouchContinue(8,144));
- assert(p3dChallengeTouchContinue(247,167));
- assert(!p3dChallengeTouchContinue(7,144));
- assert(!p3dChallengeTouchContinue(248,144));
- assert(!p3dChallengeTouchContinue(8,143));
- assert(!p3dChallengeTouchContinue(8,168));
+ for(int y=152;y<176;y++)assert(p3dChallengeTouchContinue(24,y));
+ assert(p3dChallengeTouchContinue(8,152));
+ assert(p3dChallengeTouchContinue(247,175));
+ assert(!p3dChallengeTouchContinue(7,152));
+ assert(!p3dChallengeTouchContinue(248,152));
+ assert(!p3dChallengeTouchContinue(8,144));
+ assert(!p3dChallengeTouchContinue(8,151));
+ assert(!p3dChallengeTouchContinue(8,176));
+ assert(!p3dChallengeTouchContinue(8,191));
  assert(!p3dChallengeTouchContinue(-1,-1));
  puts("C232 Challenge answer review, single scoring, and exact touch bounds: PASS");
  return 0;

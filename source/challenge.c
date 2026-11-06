@@ -83,12 +83,12 @@ int p3dChallengeContinue(P3DChallenge *q){
  return 1;
 }
 int p3dChallengeTouchChoice(int x,int y){
- /* Choice text starts on one-based console row 11 (y=80).
-  * Four choices each take 3 rows = 24px, ending before the footer. */
- if(x<8||x>=248||y<80||y>=176)return -1;
- return (y-80)/24;
+ /* The final choice stops at the footer rather than claiming Back taps. */
+ if(x<8||x>=248||y<P3D_CHALLENGE_CHOICE_ROW*8||
+    y>=P3D_CHALLENGE_FOOTER_ROW*8)return -1;
+ return (y-P3D_CHALLENGE_CHOICE_ROW*8)/(P3D_CHALLENGE_CHOICE_ROW_STRIDE*8);
 }
 int p3dChallengeTouchContinue(int x,int y){
- /* Visible review action is on one-based row 19 (y=144). */
- return x>=8&&x<248&&y>=144&&y<168;
+ return x>=8&&x<248&&y>=P3D_CHALLENGE_CONTINUE_ROW*8&&
+        y<P3D_CHALLENGE_FOOTER_ROW*8;
 }

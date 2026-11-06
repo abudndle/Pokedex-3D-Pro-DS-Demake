@@ -191,12 +191,12 @@ if [[ "$viewer_only" == 1 ]]; then
     capture c355-melonds-photo-next.xwd
     press Left
     capture c355-melonds-photo-return.xwd
-    xdotool mousemove --window "$window" 220 379
+    xdotool mousemove --window "$window" 220 391
     xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
     capture c355-melonds-photo-touch.xwd
-    xdotool mousemove --window "$window" 128 379
-    xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
     xdotool mousemove --window "$window" 128 391
+    xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
+    xdotool mousemove --window "$window" 80 399
     xdotool mousedown 1; sleep 0.4; xdotool mouseup 1; sleep 2
     capture c355-melonds-photo-reopen.xwd
     press z
