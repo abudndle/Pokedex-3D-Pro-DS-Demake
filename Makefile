@@ -36,6 +36,7 @@ check-host:
 	@sh tests/run_c359_model_zoom.sh
 	@sh tests/run_c360_move_navigation.sh
 	@sh tests/run_c398_footer_layout.sh
+	@sh tests/run_c400_album_touch.sh
 	@python3 -m unittest discover -s tests -p 'test_c360_move_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c359_zoom_frame_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c358_evolution_gate.py' -v

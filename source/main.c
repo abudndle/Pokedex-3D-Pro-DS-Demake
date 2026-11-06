@@ -56,6 +56,7 @@
 #include "search_touch.h"
 #include "photo_album.h"
 #include "photo_viewer.h"
+#include "album_touch.h"
 #include "records.h"
 #ifdef P3D_HAVE_FAT
 #include <fat.h>
@@ -1199,7 +1200,7 @@ static void render(void) {
                 }
             }
             if(preview_animation.ready && !source_geometry_ready)
-                printf("\x1b[12;1H[%-6s]      [Restart]",
+                printf("\x1b[%d;1H[%-6s]      [Restart]",P3D_PLAYBACK_CONTROL_ROW,
                        animation_playback.paused?"Resume":"Pause");
             printf("\x1b[13;1HPokemon %03d of 649",dex_index+1);
             if(preview_found)
@@ -1328,24 +1329,25 @@ static void render(void) {
                     printf("\x1b[13;1HPhoto %u x %u",album_view.width,album_view.height);
                 else printf("\x1b[13;1HPhoto unavailable or invalid");
                 printf("\x1b[16;1HLEFT / RIGHT: browse photos");
-                printf("\x1b[18;1HA: %s slideshow",album_view.playing?"pause":"play");
+                printf("\x1b[%d;1HA: %s slideshow",P3D_ALBUM_PLAY_ROW,album_view.playing?"pause":"play");
                 printf("\x1b[19;1H%s",album_view.playing?"Playing (5 sec / photo)":"Paused");
-                printf("\x1b[20;1HB: return to Album list");
-                printf("\x1b[22;1H< PREV     LIST     NEXT >");
+                printf("\x1b[%d;1HB: return to Album list",P3D_ALBUM_RETURN_ROW);
+                printf("\x1b[%d;1H< PREV     LIST     NEXT >",P3D_ALBUM_NAV_ROW);
             }else {
                 size_t total=0;
                 char names[P3D_ALBUM_PAGE_MAX][32];
                 size_t shown=p3dPhotoAlbumPage(&photo_album,names,P3D_ALBUM_PAGE_MAX,album_offset,&total);
-                printf("\x1b[11;1HPhotos: %u",(unsigned)total);
+                printf("\x1b[11;1HPhotos: %u  B: menu",(unsigned)total);
                 if(album_resume_unavailable)
                     printf("\x1b[12;1HSaved photo changed/unavailable");
                 size_t first=album_selected>=5?album_selected-4:0;
                 for(size_t row=0;row<5 && first+row<shown;row++){
                     size_t i=first+row;
-                    printf("\x1b[%d;1H%c%s",13+(int)row*2,i==album_selected?'>':' ',names[i]);
+                    printf("\x1b[%d;1H%c%s",P3D_ALBUM_LIST_ROW+(int)row*2,i==album_selected?'>':' ',names[i]);
                 }
-                printf("\x1b[23;1H%s",album_confirm_delete?"A: delete  B: cancel":"A: view photo   X: delete");
-                printf("\x1b[22;1HL/R: page   B: return");
+                printf("\x1b[%d;1H%s",P3D_ALBUM_ACTION_ROW,album_confirm_delete?"A: delete  B: cancel":"VIEW PHOTO      X: delete");
+                printf("\x1b[%d;1H< PREV",P3D_ALBUM_NAV_ROW);
+                printf("\x1b[%d;24HNEXT >",P3D_ALBUM_NAV_ROW);
             }
         }else if(state.page==P3D_PAGE_CHALLENGE){
             if(quiz.stage==P3D_CHALLENGE_PICKER){
@@ -1365,7 +1367,7 @@ static void render(void) {
                     printf("\x1b[13;1HAnswer: Pokemon #%03d",quiz.pokemon+1);
                     printf("\x1b[15;1HYou chose: #%03d",quiz.choices[quiz.selected]+1);
                 }
-                printf("\x1b[19;2HA / tap: %s",quiz.question+1==P3D_CHALLENGE_QUESTIONS?
+                printf("\x1b[%d;2HA / tap: %s",P3D_CHALLENGE_CONTINUE_ROW,quiz.question+1==P3D_CHALLENGE_QUESTIONS?
                        "results":"continue");
             }else{
                 printf("\x1b[8;1HQuestion %d / %d",quiz.question+1,P3D_CHALLENGE_QUESTIONS);
@@ -1373,7 +1375,7 @@ static void render(void) {
                 if(quiz.mode==P3D_CHALLENGE_TEXT_MODE){
                     if(p3dChallengeTextLoad(&original,&quiz)){
                         for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++)
-                            printf("\x1b[%d;2H%c %.24s",11+i*3,
+                            printf("\x1b[%d;2H%c %.24s",P3D_CHALLENGE_CHOICE_ROW+i*P3D_CHALLENGE_CHOICE_ROW_STRIDE,
                                    quiz.selected==i?'>':' ',original.names[i]);
                         printf("\x1b[23;1HTap answer or press A");
                     }else{
@@ -1382,7 +1384,7 @@ static void render(void) {
                     }
                 }else{
                     for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++)
-                        printf("\x1b[%d;2H%c Pokemon #%03d",11+i*3,
+                        printf("\x1b[%d;2H%c Pokemon #%03d",P3D_CHALLENGE_CHOICE_ROW+i*P3D_CHALLENGE_CHOICE_ROW_STRIDE,
                                quiz.selected==i?'>':' ',quiz.choices[i]+1);
                     printf("\x1b[23;1HTap answer or press A");
                 }
@@ -1393,7 +1395,7 @@ static void render(void) {
         if(state.page==P3D_PAGE_CHALLENGE &&
            (quiz.stage==P3D_CHALLENGE_QUESTION ||
             quiz.stage==P3D_CHALLENGE_REVIEW))
-            printf("\x1b[22;1HB: Return to menu");
+            printf("\x1b[%d;1HB: Return to menu",P3D_CHALLENGE_FOOTER_ROW);
         else {
             int footer_row=p3dPageFooterRow(state.page);
             if(footer_row)printf("\x1b[%d;1HB: Return to menu",footer_row);
@@ -1804,8 +1806,8 @@ int main(void) {
                         redraw=1;
                     }
                     /* Touch and A cannot submit two answers in one VBlank.
-                     * The first choice starts exactly at console row 11:
-                     * 80px, followed by three 24px-high label rows. */
+                     * Shared zero-based console rows define the visible
+                     * answer bands; the Back footer never submits an answer. */
                     if(down&KEY_TOUCH)
                         choice=p3dChallengeTouchChoice(touch_x,touch_y);
                     else if(down&KEY_A)
@@ -1957,14 +1959,13 @@ int main(void) {
                     if((down&KEY_TOUCH) &&
                        !(down&(KEY_A|KEY_X|KEY_Y|KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN))){
                         touchPosition point;touchRead(&point);
-                        if(point.py>=136 && point.py<152){
+                        int action=p3dAlbumViewerTouch(!showing_original_art,point.px,point.py);
+                        if(action==P3D_ALBUM_TOUCH_PLAY){
                             (void)p3dPhotoViewerPlay(&album_view);redraw=1;
-                        }
-                        if(point.py>=160 && point.py<184){
-                            if(point.px>=64 && point.px<192){
-                                p3dPhotoViewerClose(&album_view);art_page=-1;redraw=1;
-                            }else direction=point.px<64?-1:1;
-                        }
+                        }else if(action==P3D_ALBUM_TOUCH_LIST){
+                            p3dPhotoViewerClose(&album_view);art_page=-1;redraw=1;
+                        }else if(action==P3D_ALBUM_TOUCH_PREV)direction=-1;
+                        else if(action==P3D_ALBUM_TOUCH_NEXT)direction=1;
                     }
                     if(direction){
                         album_view.playing=0;album_view.dwell_frames=0;redraw=1;
@@ -2004,25 +2005,13 @@ int main(void) {
                     if((down&KEY_TOUCH) && !showing_original_art){
                         touchPosition point;
                         touchRead(&point);
-                        /* Only corner taps navigate; center taps select a
-                         * filename, even in the bottom two rows. */
-                        if(point.py>=150 && point.py<192 &&
-                           (point.px<64 || point.px>=192))
-                            direction=point.px<64?-1:1;
-                        /* Console row 13 starts at pixel 96. Keep the five
-                         * filename rows separate from the view button. */
-                        if(point.px>=64 && point.px<192 &&
-                           point.py>=96 && point.py<176){
-                            int hit=((int)point.py-96)/16;
-                            if(hit>=0 && hit<5 && (size_t)hit<shown){
-                                size_t first=album_selected>=5?album_selected-4:0;
-                                if(first+(size_t)hit<shown)album_selected=first+(size_t)hit;
-                                redraw=1;
-                                direction=0;
-                            }
-                        }
-                        if(point.py>=176 && point.py<184 && point.px>=64 && point.px<192)
-                            open_photo=1;
+                        size_t selected=album_selected;
+                        int action=p3dAlbumListTouch(shown,album_selected,1,point.px,point.py,&selected);
+                        if(action==P3D_ALBUM_TOUCH_SELECT){
+                            album_selected=selected;redraw=1;direction=0;
+                        }else if(action==P3D_ALBUM_TOUCH_OPEN)open_photo=1;
+                        else if(action==P3D_ALBUM_TOUCH_PREV)direction=-1;
+                        else if(action==P3D_ALBUM_TOUCH_NEXT)direction=1;
                     }
                     if(open_photo && shown && album_selected<shown && !album_confirm_delete){
                         p3dPhotoViewerOpen(&album_view,&photo_album,names[album_selected]);

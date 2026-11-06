@@ -27,6 +27,8 @@ jobs:
         run: sh tests/run_source_smoke.sh
       - name: C398 footer never overwrites page information or owned controls
         run: |
+          sh tests/run_c400_album_touch.sh
+          P3D_HOST_SANITIZERS='-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer' sh tests/run_c400_album_touch.sh
           sh tests/run_c398_footer_layout.sh
           P3D_HOST_SANITIZERS='-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer' sh tests/run_c398_footer_layout.sh
       - name: C360 Move Dex touch/keypad viewport reset and sanitizer regressions
