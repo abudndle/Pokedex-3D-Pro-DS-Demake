@@ -1,8 +1,8 @@
-# Development checkpoint - complete descriptions
+# Development checkpoint - complete descriptions and save boundaries
 
 ## Resume point
 
-Current branch: `codex/c403-complete-descriptions`, stacked on ready PR #401 (`codex/c402-saved-entry-browser`), then #400/#399/#397. Main inspected remains `b93ed521f953759e5e538049fa4ce08ad8414d2c`.
+Current branch: `codex/c404-save-boundary`, stacked on PR #403 (`codex/c403-complete-descriptions`, evidence head `73b781e5eca107be396860b12f51af5543617fd9`), then #401/#400/#399/#397. Main inspected remains `b93ed521f953759e5e538049fa4ce08ad8414d2c`.
 
 Previous verified source: `a683dec76c8067c5d21b288e2f487e41b09c580a`, with all 26 applicable CI workflows passing. Named six-entry Favorites and eight-entry paged Recent history, touch opening, middle removal, empty-row rejection and saved selection/reboot are complete. Private ROM/capture evidence and synthetic FAT/frame evidence are linked in PR #401. Do not repeat completed browser/navigation/Album/Search work.
 
@@ -28,6 +28,8 @@ The private BlocksDS 1.24 ROM compiled successfully. All 157 production source f
 
 ## Completed implementation retained
 
+C404 fixes a separately reproduced save-boundary defect: favorite ID 65536 was narrowed to species zero before validation, and capture reported success. Capture now validates signed native favorite IDs 0-648 before conversion and publishes a local candidate only after full validation. Rejected IDs, duplicate favorites or invalid counters leave the destination unchanged. Existing legacy resource-ID filtering on restore and save formats are preserved. The new regression failed on original code, then passed after the production fix; ordinary bridge, cross-process save/torn-slot and deep-resume runners pass locally. Independent read-only source review found no issues. Final hosted checks and private ROM outcome are recorded in the C404 PR; do not infer them from local host success.
+
 - Optional paginated source learnsets, exact detail resume and evolution links.
 - Album PNG viewing, exact photo resume, slideshow playback and distinct visible touch bands.
 - Bounded model zoom/reset and Move Dex viewport/field reset on explicit bookmark reopen.
@@ -45,7 +47,7 @@ The asset repository is confirmed private. Original assets, converted outputs, m
 
 ## Next tasks
 
-1. Read the current branch PR for exact source, independent review, all applicable CI and genuine private/synthetic emulator evidence; integrate only under repository check/approval rules. No merge has been performed.
+1. Read the current branch PR and PR #403 for exact source, independent review, all applicable CI and genuine private/synthetic emulator evidence; integrate only under repository check/approval rules. No merge has been performed. A superseded C403 source-head C260 run was cancelled by the checkpoint update; the replacement exact-head workflow must pass before readiness.
 2. Reuse #337 original species data, #339 learnsets, #156/#213 geometry and #227 emulator/hardware acceptance. No duplicate milestone was created; leave them open until actual acceptance is met.
 3. Recover authorized missing original inputs before claiming full model/material/skeletal/audio/UI parity. Advance independent gameplay/save gaps while blocked, with fail-first and real emulator evidence.
 4. Preserve all readable description characters, old save formats, source-change reset, missing-text honesty, original-art gating and model/animation/navigation controls in follow-up work.
