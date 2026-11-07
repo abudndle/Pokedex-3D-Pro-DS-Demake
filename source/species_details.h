@@ -9,7 +9,8 @@
 #define P3D_DETAIL_ABILITIES 2u
 #define P3D_DETAIL_EVOLUTIONS 4u
 #define P3D_DETAIL_MOVES 8u
-#define P3D_DETAIL_TABS 4
+#define P3D_DETAIL_DESCRIPTION_TAB 5
+#define P3D_DETAIL_TABS P3D_DETAIL_DESCRIPTION_TAB
 /* Source-verified optional metadata transport. A valid CRC proves byte
  * integrity only, NOT original Nintendo provenance: private sidecars must
  * be independently cross-checked against licensed source exports. */

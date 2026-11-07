@@ -50,6 +50,7 @@
 #include "move_dex.h"
 #include "move_text_view.h"
 #include "dex_text.h"
+#include "dex_description.h"
 #include "species_details.h"
 #include "species_learnset.h"
 #include "model_view.h"
@@ -140,6 +141,8 @@ static const char *native_texture_resolve(void *opaque,unsigned texture_id){
 
 static P3DAnimationPlayback animation_playback;
 static P3DModelView model_view={P3D_ZOOM_DEFAULT};
+static P3DDescription dex_description;
+static int description_resume_reset;
 static P3DModelMap species_models;
 static P3DFormMap alternate_models;
 static P3DFormNames form_names;
@@ -305,6 +308,13 @@ static void prepare_original_art(void){
 
 static void reload_preview(void){
     p3dModelViewReset(&model_view);
+    p3dDescriptionClear(&dex_description);
+    description_resume_reset=0;
+    if(!title_active && dex_text_ready){
+        P3DDexText entry;
+        if(p3dDexTextRead(dex_index,&entry))
+            (void)p3dDescriptionSet(&dex_description,entry.description);
+    }
     /* Optional form-specific metadata is never reconstructed from model
      * resources or public species databases. An absent private sidecar
      * becomes an explicitly unavailable detail screen. */
@@ -801,6 +811,13 @@ static P3DResumeState current_resume(void){
         view.dex_learnset_page=(uint8_t)dex_learnset_page;
         view.dex_learnset_checksum=dex_learnset.checksum;
     }
+    if(view.dex_detail_tab==P3D_DESCRIPTION_TAB){
+        view.dex_description_valid=dex_description.ready?1:0;
+        if(view.dex_description_valid){
+            view.dex_description_page=dex_description.page;
+            view.dex_description_checksum=dex_description.checksum;
+        }
+    }
     /* An active question/review is a real resume state, not just a mode.
      * The exact seed, asked set, choices and already-counted totals travel
      * together in the CRC-protected optional P3RV v4 checkpoint. */
@@ -896,8 +913,8 @@ static void render(void) {
             printf("Pokemon entry: %03d / 649\n",dex_index+1);
             printf("START: %s\n",dex_detail_tab?"close details":"details");
             if(dex_detail_tab)
-                printf("Details %s %d/4 (L/R)\n",
-                       p3dSpeciesDetailTabName(dex_detail_tab),dex_detail_tab);
+                printf("Details %s %d/%d (L/R)\n",
+                       p3dSpeciesDetailTabName(dex_detail_tab),dex_detail_tab,P3D_DETAIL_TABS);
             printf("LEFT/RIGHT: browse entries\n");
             printf("Form: %s",selected_form?"alternate":"base");
             if(selected_form){
@@ -1136,10 +1153,22 @@ static void render(void) {
     } else {
         printf("\x1b[9;1H%s",p3dPageName(state.page));
         if(state.page==P3D_PAGE_DEX && dex_detail_tab){
-            printf("\x1b[10;1H%s %d/4 - #%03d",
+            printf("\x1b[10;1H%s %d/%d - #%03d",
                    p3dSpeciesDetailTabName(dex_detail_tab),
-                   dex_detail_tab,dex_index+1);
-            if(dex_detail_tab==4 && dex_learnset.ready){
+                   dex_detail_tab,P3D_DETAIL_TABS,dex_index+1);
+            if(dex_detail_tab==P3D_DESCRIPTION_TAB){
+                if(description_resume_reset)
+                    printf("\x1b[9;1HText changed; page reset");
+                if(dex_description.ready){
+                    for(unsigned line=0;line<P3D_DESCRIPTION_LINES_PER_PAGE;line++){
+                        char text[P3D_DESCRIPTION_LINE_WIDTH+1];
+                        if(p3dDescriptionLine(&dex_description,line,text))
+                            printf("\x1b[%u;1H%s",11u+line*2u,text);
+                    }
+                    printf("\x1b[%d;1H< PREV(UP) %u/%u NEXT(DN) >",P3D_DESCRIPTION_CONTROL_ROW,
+                           (unsigned)dex_description.page+1,p3dDescriptionPages(&dex_description));
+                }else printf("\x1b[12;1HOriginal text unavailable");
+            }else if(dex_detail_tab==4 && dex_learnset.ready){
                 unsigned start=dex_learnset_page*P3D_LEARNSET_PAGE_ROWS;
                 printf("\x1b[11;1HComplete list %u/%u",
                        dex_learnset_page+1,
@@ -1602,6 +1631,13 @@ int main(void) {
        last_checkpoint.dex==dex_index && last_checkpoint.selected_form==selected_form)
         dex_learnset_page=p3dLearnsetRestorePage(&dex_learnset,
             last_checkpoint.dex_learnset_page,last_checkpoint.dex_learnset_checksum);
+    if(last_checkpoint_valid && !home && state.page==P3D_PAGE_DEX &&
+       dex_detail_tab==P3D_DESCRIPTION_TAB){
+        int restored=p3dDescriptionRestore(&dex_description,
+            last_checkpoint.dex_description_valid,last_checkpoint.dex_description_page,
+            last_checkpoint.dex_description_checksum);
+        description_resume_reset=last_checkpoint.dex_description_valid && !restored;
+    }
     count=(int)p3dMenuEntries(caps,pages);
     /* Reset/power-on with a valid checkpoint opens that same active page,
      * bypassing title. New games still use the genuine original 3DS title
@@ -2276,9 +2312,15 @@ int main(void) {
                 }
                 if(dex_detail_tab && ((down&KEY_L)!=0)!=((down&KEY_R)!=0)){
                     int delta=(down&KEY_R)?1:-1;
-                    dex_detail_tab=(dex_detail_tab+delta+3)%4+1;
+                    dex_detail_tab=(dex_detail_tab+delta+P3D_DETAIL_TABS-1)%P3D_DETAIL_TABS+1;
                     art_page=-1;
                     redraw=1;
+                }
+                if(dex_detail_tab==P3D_DESCRIPTION_TAB &&
+                   !(down&(KEY_A|KEY_B|KEY_X|KEY_Y|KEY_TOUCH|KEY_START|KEY_L|KEY_R|KEY_LEFT|KEY_RIGHT)) &&
+                   ((down&KEY_UP)!=0)!=((down&KEY_DOWN)!=0)){
+                    (void)p3dDescriptionStep(&dex_description,(down&KEY_DOWN)?1:-1);
+                    description_resume_reset=0;redraw=1;
                 }
                 /* Cycle only existing verified optional animation files;
                  * reset playback at the new keyframe sequence. */
@@ -2320,6 +2362,13 @@ int main(void) {
                     }
                 }
             }
+            if(!showing_original_art && state.page==P3D_PAGE_DEX &&
+               dex_detail_tab==P3D_DESCRIPTION_TAB && (down&KEY_TOUCH) && !(down&~KEY_TOUCH)){
+                touchPosition point;touchRead(&point);
+                if(p3dDescriptionTouch(&dex_description,1,point.px,point.py)){
+                    down=0;description_resume_reset=0;redraw=1;
+                }
+            }
             /* In text navigation mode, the bottom corners also browse entries.
              * Original-art mode retains its artwork without guessed hitboxes. */
             if(!showing_original_art && (down&KEY_TOUCH) && state.page!=P3D_PAGE_SEARCH){
@@ -2358,7 +2407,7 @@ int main(void) {
                 if(state.page==P3D_PAGE_DEX && dex_detail_tab &&
                    point.py>=160 && point.py<176){
                     int delta=point.px>=128?1:-1;
-                    dex_detail_tab=(dex_detail_tab+delta+3)%4+1;
+                    dex_detail_tab=(dex_detail_tab+delta+P3D_DETAIL_TABS-1)%P3D_DETAIL_TABS+1;
                     art_page=-1;redraw=1;
                 }
                 if(point.py>=150 && point.py<192 &&

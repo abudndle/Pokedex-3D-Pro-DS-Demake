@@ -65,6 +65,12 @@ def valid_resume_slots(root: Path):
                     or struct.unpack_from('<H', data, 78)[0] >= 10000
                     or not 1 <= struct.unpack_from('<I', data, 84)[0] <= 2*1024*1024):
                 continue
+        elif len(data) == 96 and data[:5] == b"P3RV\x08":
+            crc_at = 92
+            if (data[12:14] != bytes((0,1)) or data[76] != 5 or data[77] > 1
+                    or data[78] >= 48 or data[79] or any(data[84:92])
+                    or (data[77] == 0 and (data[78] or any(data[80:84])))):
+                continue
         else:
             continue
         if any(data[37:44]) or any(data[63:76]):

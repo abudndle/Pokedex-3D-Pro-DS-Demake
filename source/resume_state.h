@@ -32,6 +32,9 @@ typedef struct {
     uint8_t album_view_active;
     uint16_t album_photo_id;
     uint32_t album_photo_checksum,album_photo_bytes;
+    /* Optional v8: exact Description page, bound to the P3DX text bytes. */
+    uint8_t dex_description_valid,dex_description_page;
+    uint32_t dex_description_checksum;
 } P3DResumeState;
 int p3dResumeStateValid(const P3DResumeState *state);
 /* A previously completed round must never be resurrected by a stale
