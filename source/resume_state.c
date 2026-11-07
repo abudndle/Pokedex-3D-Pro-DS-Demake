@@ -3,6 +3,7 @@
 #include "photo_album.h"
 #include "photo_png.h"
 #include "records.h"
+#include "dex_description.h"
 #include <stdio.h>
 #include <string.h>
 #define P3RV_V1_SIZE 32u
@@ -12,6 +13,7 @@
 #define P3RV_V5_SIZE 96u /* Exact Pokédex detail tab only */
 #define P3RV_V6_SIZE 96u /* Learnset page and source fingerprint */
 #define P3RV_V7_SIZE 96u /* Exact Album photo content and filename */
+#define P3RV_V8_SIZE 96u /* Description page and original text fingerprint */
 static unsigned r16(const unsigned char *p){return (unsigned)p[0]|((unsigned)p[1]<<8);}
 static uint32_t r32(const unsigned char *p){
     return (uint32_t)r16(p)|((uint32_t)r16(p+2)<<16);
@@ -103,7 +105,7 @@ int p3dResumeStateValid(const P3DResumeState *s){
         (s->search_letter==0||(s->search_letter>='A'&&s->search_letter<='Z'))&&
         s->challenge_mode<7&&s->type_attack<17&&s->type_defend<17&&
         s->type_defend2_plus_one<=17&&s->favorites_selected<P3D_FAVORITES_MAX&&
-        s->quiz_active<=1 && valid_quiz(s) && s->dex_detail_tab<=4 &&
+        s->quiz_active<=1 && valid_quiz(s) && s->dex_detail_tab<=P3D_DESCRIPTION_TAB &&
         (!s->dex_detail_tab || (!s->home && !s->quiz_active &&
          s->page==P3D_PAGE_DEX)) && s->dex_learnset_valid<=1 &&
         (s->dex_learnset_valid?
@@ -114,7 +116,14 @@ int p3dResumeStateValid(const P3DResumeState *s){
          (!s->home && s->page==P3D_PAGE_ALBUM && !s->quiz_active &&
           !s->dex_detail_tab && s->album_photo_id<P3D_PHOTO_ID_COUNT &&
           s->album_photo_bytes>0 && s->album_photo_bytes<=P3D_PHOTO_FILE_MAX):
-         (!s->album_photo_id && !s->album_photo_checksum && !s->album_photo_bytes));
+         (!s->album_photo_id && !s->album_photo_checksum && !s->album_photo_bytes)) &&
+        s->dex_description_valid<=1 &&
+        (s->dex_detail_tab==P3D_DESCRIPTION_TAB?
+         (s->dex_description_valid?
+          s->dex_description_page<P3D_DESCRIPTION_MAX_PAGES:
+          (!s->dex_description_page && !s->dex_description_checksum)):
+         (!s->dex_description_valid && !s->dex_description_page &&
+          !s->dex_description_checksum));
 }
 /* P3RC wins if it already contains a completed round newer than the
  * live review's recorded-round generation. P3SV may lag behind a review
@@ -136,10 +145,12 @@ static int file_path(char path[256],const char *base,int slot){
 static unsigned pack(unsigned char b[P3RV_V4_SIZE],const P3DResumeState *s,uint32_t seq){
     unsigned size=s->quiz_active?P3RV_V4_SIZE:
                   (s->album_view_active?P3RV_V7_SIZE:
-                   (s->dex_detail_tab?P3RV_V5_SIZE:P3RV_V3_SIZE));
+                   (s->dex_detail_tab==P3D_DESCRIPTION_TAB?P3RV_V8_SIZE:
+                    (s->dex_detail_tab?P3RV_V5_SIZE:P3RV_V3_SIZE)));
     memset(b,0,P3RV_V4_SIZE);
     memcpy(b,"P3RV",4);b[4]=s->quiz_active?4:
-        (s->album_view_active?7:(s->dex_learnset_valid?6:(s->dex_detail_tab?5:3)));
+        (s->album_view_active?7:(s->dex_detail_tab==P3D_DESCRIPTION_TAB?8:
+         (s->dex_learnset_valid?6:(s->dex_detail_tab?5:3))));
     w32(b+8,seq);
     b[12]=s->home;b[13]=s->page;b[14]=s->highlight;b[15]=s->records_tab;
     w16(b+16,s->dex);w16(b+18,s->move);
@@ -177,7 +188,11 @@ static unsigned pack(unsigned char b[P3RV_V4_SIZE],const P3DResumeState *s,uint3
         w32(b+92,checksum(b,92));
     }else if(s->dex_detail_tab){
         b[76]=s->dex_detail_tab;
-        if(s->dex_learnset_valid){
+        if(s->dex_detail_tab==P3D_DESCRIPTION_TAB){
+            b[77]=s->dex_description_valid;
+            b[78]=s->dex_description_page;
+            w32(b+80,s->dex_description_checksum);
+        }else if(s->dex_learnset_valid){
             b[77]=s->dex_learnset_page;
             w32(b+80,s->dex_learnset_checksum);
         }
@@ -200,7 +215,8 @@ static int unpack(const unsigned char *b,unsigned size,
              (version==4 && size==P3RV_V4_SIZE) ||
              (version==5 && size==P3RV_V5_SIZE) ||
              (version==6 && size==P3RV_V6_SIZE) ||
-             (version==7 && size==P3RV_V7_SIZE)){
+             (version==7 && size==P3RV_V7_SIZE) ||
+             (version==8 && size==P3RV_V8_SIZE)){
         for(unsigned i=37;i<44;i++)if(b[i]!=0)return 0;
         for(unsigned i=63;i<76;i++)if(b[i]!=0)return 0;
         if(version==4){
@@ -218,6 +234,12 @@ static int unpack(const unsigned char *b,unsigned size,
         if(version==7){
           if(b[76]!=1||b[77])return 0;
           for(unsigned i=88;i<92;i++)if(b[i]!=0)return 0;
+        }
+        if(version==8){
+          if(b[76]!=P3D_DESCRIPTION_TAB || b[77]>1 ||
+             b[78]>=P3D_DESCRIPTION_MAX_PAGES || b[79])return 0;
+          for(unsigned i=84;i<92;i++)if(b[i]!=0)return 0;
+          if(!b[77] && (b[78] || r32(b+80)))return 0;
         }
         crc_offset=version==4?140:(version>=5?92:76);
     }else return 0;
@@ -242,7 +264,11 @@ static int unpack(const unsigned char *b,unsigned size,
         s->type_attack=b[59];s->type_defend=b[60];
         s->type_defend2_plus_one=b[61];s->favorites_selected=b[62];
     }
-    if(version==5||version==6)s->dex_detail_tab=b[76];
+    if(version==5||version==6||version==8)s->dex_detail_tab=b[76];
+    if(version==8){
+        s->dex_description_valid=b[77];s->dex_description_page=b[78];
+        s->dex_description_checksum=r32(b+80);
+    }
     if(version==7){
         s->album_view_active=1;s->album_photo_id=(uint16_t)r16(b+78);
         s->album_photo_checksum=r32(b+80);s->album_photo_bytes=r32(b+84);

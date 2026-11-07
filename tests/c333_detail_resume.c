@@ -45,7 +45,7 @@ int main(int argc,char **argv){
  }else if(!strcmp(argv[1],"fallback")){
   assert(p3dResumeLoad(argv[2],&s));
   assert(s.dex_detail_tab==1 && s.selected_form==2);
-  fixture(&s,5);assert(!p3dResumeStore(argv[2],&s));
+  fixture(&s,6);assert(!p3dResumeStore(argv[2],&s));
   fixture(&s,1);s.home=1;assert(!p3dResumeStore(argv[2],&s));
   fixture(&s,4);s.page=P3D_PAGE_SEARCH;assert(!p3dResumeStore(argv[2],&s));
   fixture(&s,2);s.quiz_active=1;assert(!p3dResumeStore(argv[2],&s));

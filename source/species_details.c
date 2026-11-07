@@ -92,6 +92,7 @@ const char *p3dSpeciesDetailTabName(int tab){
  case 2:return "ABILITIES";
  case 3:return "EVOLUTIONS";
  case 4:return "LEARNSET";
+ case P3D_DETAIL_DESCRIPTION_TAB:return "DESCRIPTION";
  default:return "ENTRY";
  }
 }

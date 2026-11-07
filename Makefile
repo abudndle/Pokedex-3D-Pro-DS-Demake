@@ -39,6 +39,9 @@ check-host:
 	@sh tests/run_c400_album_touch.sh
 	@sh tests/run_c401_entry_navigation.sh
 	@sh tests/run_c402_saved_entry_browser.sh
+	@sh tests/run_c403_description.sh
+	@sh tests/run_c403_description_resume.sh
+	@python3 -m unittest discover -s tests -p 'test_c403_description_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c402_saved_browser_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c401_entry_gate.py' -v
 	@python3 -m unittest discover -s tests -p 'test_c360_move_gate.py' -v

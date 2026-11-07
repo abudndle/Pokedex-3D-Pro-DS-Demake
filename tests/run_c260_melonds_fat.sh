@@ -9,6 +9,9 @@ evolution_only="${C358_EVOLUTION_ONLY:-0}"
 move_only="${C360_MOVE_ONLY:-0}"
 entry_only="${C401_ENTRY_ONLY:-0}"
 browser_only="${C402_BROWSER_ONLY:-0}"
+description_only="${C403_DESCRIPTION_ONLY:-0}"
+if [[ "$description_only" != 0 && "$description_only" != 1 ]]; then exit 2; fi
+if [[ "$description_only" == 1 ]]; then test -s "${C403_CHANGED_ROM:?changed synthetic ROM required}"; fi
 if [[ "$browser_only" != 0 && "$browser_only" != 1 ]]; then exit 2; fi
 if [[ "$entry_only" != 0 && "$entry_only" != 1 ]]; then exit 2; fi
 if [[ "$move_only" != 0 && "$move_only" != 1 ]]; then exit 2; fi
@@ -122,6 +125,32 @@ sleep 0.4
 xdotool keyup x
 sleep 4
 capture c260-melonds-fat-favorite.xwd
+if [[ "$description_only" == 1 ]]; then
+  press() { xdotool windowfocus --sync "$window"; xdotool keydown "$1"; sleep 0.3; xdotool keyup "$1"; sleep 1; }
+  tap() { xdotool mousemove --window "$window" "$1" "$2"; xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 1; }
+  press Return
+  for _ in 1 2 3 4; do press w; done
+  capture c403-melonds-first.xwd
+  press Down; capture c403-melonds-middle.xwd
+  tap 220 359; capture c403-melonds-last.xwd
+  press Down; capture c403-melonds-clamped.xwd
+  close_cleanly; python3 tests/c403_description_gate.py --fat "$sd_root/export" last
+  launch; capture c403-melonds-last-resumed.xwd
+  press Up; tap 24 359; capture c403-melonds-returned.xwd
+  press Right; capture c403-melonds-short.xwd
+  close_cleanly; python3 tests/c403_description_gate.py --fat "$sd_root/export" short
+  launch; capture c403-melonds-short-resumed.xwd
+  press Right; capture c403-melonds-empty.xwd
+  close_cleanly; python3 tests/c403_description_gate.py --fat "$sd_root/export" empty
+  launch; capture c403-melonds-empty-resumed.xwd
+  press Left; press Left; press Down; press Down
+  close_cleanly; python3 tests/c403_description_gate.py --fat "$sd_root/export" last
+  rom="$C403_CHANGED_ROM"
+  launch; capture c403-melonds-changed.xwd; close_cleanly
+  python3 tests/c403_description_gate.py --fat "$sd_root/export" changed
+  python3 tests/c403_description_gate.py c403-melonds-{first,middle,last,clamped,last-resumed,returned,short,short-resumed,empty,empty-resumed,changed}.xwd
+  exit 0
+fi
 if [[ "$browser_only" == 1 ]]; then
   press() { xdotool windowfocus --sync "$window"; xdotool keydown "$1"; sleep 0.3; xdotool keyup "$1"; sleep 1; }
   tap() { xdotool mousemove --window "$window" "$1" "$2"; xdotool mousedown 1; sleep 0.3; xdotool mouseup 1; sleep 1; }
