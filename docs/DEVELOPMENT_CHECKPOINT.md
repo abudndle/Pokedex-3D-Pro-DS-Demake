@@ -18,6 +18,14 @@ Native fail-first regressions cover missing description paging and old checkpoin
 
 The public synthetic emulator acceptance uses an authored 191-character/three-page fixture, a short description and an unavailable description. It exercises first/middle/last pages, clamping, previous controls, exact reboot, species changes and a changed source with the same number of pages. A pinned old-production baseline must fail that same acceptance for the expected checkpoint reason before the new ROM can pass.
 
+## Verification evidence
+
+Implementation commit: `01e9ba57c59f7cae3322cd94da2abf38b6ebe32f`, PR [#403](https://github.com/abudndle/Pokedex-3D-Pro-DS-Demake/pull/403), stacked on #401. [C403 independent melonDS 1.1 run](https://github.com/abudndle/Pokedex-3D-Pro-DS-Demake/actions/runs/42342745242) passed: the pinned old ROM rejected the same acceptance for its missing Description checkpoint; the new ROM passed eleven actual frame checks and five real FAT assertions across restarts, including changed-source reset. Its synthetic-only artifact expires after three days; logs preserve the command outcomes.
+
+Independent read-only review reran the downloaded eleven-frame gate and visually confirmed pages 1/3-3/3, exact 3/3 reboot, missing text and changed-source notice. Exported FAT files were not downloaded; FAT results are established by the hosted commands/logs. Linux full host/sanitizer suite and native BlocksDS development/smoke builds passed. Final applicable workflow status is recorded in PR #403; any missing/failing check blocks readiness or merge.
+
+The private BlocksDS 1.24 ROM compiled successfully. All 157 production source files byte-match this implementation. Isolated melonDS core0.9.3 rendered the available one-page original Bulbasaur description; paging touches and keypad clamps retained the same 1/1 frame. This is original-text display evidence, not multi-page original text, full-texture, hardware or DSi camera evidence. Private originals and captures remain outside the public checkout.
+
 ## Completed implementation retained
 
 - Optional paginated source learnsets, exact detail resume and evolution links.
