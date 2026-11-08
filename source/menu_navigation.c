@@ -8,7 +8,8 @@ int p3dMenuTouchIndex(int x,int y,int count,int cursor){
  if(x<0||x>=256||y<TOUCH_Y||y>=TOUCH_Y+TOUCH_STEP*VISIBLE||count<=0)return -1;
  size_t start=p3dMenuVisibleStart((size_t)count,cursor);
  size_t item=start+(size_t)((y-TOUCH_Y)/TOUCH_STEP);
- return item<(size_t)count?(int)item:-1;
+ if(item<(size_t)count)return (int)item;
+ else return -1;
 }
 int p3dMenuScroll(int cursor,int count,int direction){
  if(count<=0)return -1;
