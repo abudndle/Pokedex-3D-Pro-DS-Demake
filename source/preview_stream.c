@@ -70,7 +70,10 @@ int previewStreamLoad(int resource_index) {
     s_triangle_count=0;
     s_original_triangle_count=0;
     s_has_face_colors=0;
-    s_uv.ready=0;
+    /* Discard all metadata from the previous Pokémon before touching disk.
+     * In particular, a missing/corrupt next UV file must never retain the
+     * previous model's triangle count or original texture coordinates. */
+    memset(&s_uv,0,sizeof(s_uv));
     s_chunked=0;
     s_drawing_chunk=0;
     p3dChunkClose(&s_chunk_stream);
