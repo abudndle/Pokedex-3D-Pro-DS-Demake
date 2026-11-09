@@ -102,6 +102,8 @@ class C137Tests(unittest.TestCase):
             result=audit(package)
             self.assertFalse(result['native_preview_ready'])
             self.assertIn('orphan P3PX texture textures/p734/t000.p3px',result['issues'])
+            self.assertEqual(result['texture_payload_count'],2)
+            self.assertEqual(result['validated_texture_payload_count'],1)
             self.assertEqual(result['textured_candidate_model_count'],1)
 
     def test_reject_native_reserved_header_and_stage_does_not_modify_target(self):
