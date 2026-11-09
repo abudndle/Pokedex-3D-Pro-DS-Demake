@@ -94,7 +94,7 @@ int main(int argc,char **argv){
                 fprintf(stderr,"invalid UV companion p%03d\n",id);if(f)fclose(f);return 1;
             }
             expected_uv_words=(int)tri*6;
-            if(fread(expected_uv,sizeof(expected_uv[0]),(size_t)expected_uv_words,f)!=(size_t)expected_uv_words){fclose(f);return 1;}
+            if(fread(expected_uv,sizeof(expected_uv[0]),(size_t)expected_uv_words,f)!=(size_t)expected_uv_words || fgetc(f)!=EOF || ferror(f)) {\n                fprintf(stderr,"UV companion payload mismatch p%03d\n",id);\n                fclose(f);return 1;\n            }
             fclose(f);
             if(!previewStreamUvRangeUnit(0,(int)tri)){
                 fprintf(stderr,"nonunit UV accepted p%03d\n",id);return 1;
