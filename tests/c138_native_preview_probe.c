@@ -43,7 +43,7 @@ static unsigned read32(const unsigned char *p){return read16(p)|(read16(p+2)<<16
 int main(int argc,char **argv){
     if(argc!=2){fputs("usage: c138_probe <expected_uv_count>\n",stderr);return 2;}
     const int expected_uv_count=atoi(argv[1]);
-    if(expected_uv_count!=0&&expected_uv_count!=49){fputs("expected UV count must be 0 or 49\n",stderr);return 2;}
+    if(expected_uv_count<0||expected_uv_count>730){fputs("expected UV count must be between 0 and 730\n",stderr);return 2;}
     if(!previewStreamInit()){fputs("previewStreamInit failed\n",stderr);return 1;}
     int loaded=0, paired=0;
     for(int id=0;id<734;id++){
