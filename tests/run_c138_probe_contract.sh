@@ -99,6 +99,40 @@ if ! grep -q 'PASS 730/730 models; UV 730' "$tmp/out"; then
   cat "$tmp/out" >&2
   exit 1
 fi
+# Version 1 geometry may also have verified P3UV companions. Exercise
+# that pairing across the full roster, not just version 2 RGB meshes.
+python3 - "$tmp/nitrofs/preview" <<'PY'
+import pathlib
+import struct
+import sys
+root = pathlib.Path(sys.argv[1])
+payload = struct.pack('<4sHHII', b'DS3M', 1, 1, 0, 1) + bytes(18)
+for model in range(734):
+    if model not in (721, 722, 723, 724):
+        (root / f'p{model:03d}.ds3m').write_bytes(payload)
+PY
+if ! (cd "$tmp" && ./c138_probe 730) >"$tmp/out" 2>&1; then
+  echo "C138 rejected complete synthetic textured DS3M v1 roster" >&2
+  cat "$tmp/out" >&2
+  exit 1
+fi
+if ! grep -q 'PASS 730/730 models; UV 730' "$tmp/out"; then
+  echo "C138 textured DS3M v1 roster did not reach complete probe" >&2
+  cat "$tmp/out" >&2
+  exit 1
+fi
+# Restore v2 geometry for subsequent coverage and malformed-UV tests.
+python3 - "$tmp/nitrofs/preview" <<'PY'
+import pathlib
+import struct
+import sys
+root = pathlib.Path(sys.argv[1])
+payload = (struct.pack('<4sHHII', b'DS3M', 2, 1, 0, 1)
+           + bytes(18) + bytes((12, 34, 56)))
+for model in range(734):
+    if model not in (721, 722, 723, 724):
+        (root / f'p{model:03d}.ds3m').write_bytes(payload)
+PY
 # Coverage must be exact: a complete 730-pair roster cannot satisfy a
 # falsely reported 729-pair preflight result.
 if (cd "$tmp" && ./c138_probe 729) >"$tmp/out" 2>&1; then
