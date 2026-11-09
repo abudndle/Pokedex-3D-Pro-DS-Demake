@@ -61,12 +61,20 @@ jobs:
       - name: Install published BlocksDS Nitro Engine (includes DSMA)
         run: |
           set -eu
-          wf-pacman -Sy --noconfirm blocksds-nitroengine
+          if ! wf-pacman -Sy --noconfirm blocksds-nitroengine > /tmp/pacman.log 2>&1; then
+            echo "::error::C335 diag: wf-pacman failed: $(tail -6 /tmp/pacman.log | tr '\n' ' ' | cut -c1-600)"
+            echo "::error::C335 diag: search: $(wf-pacman -Ss nitroengine 2>&1 | head -4 | tr '\n' ' ' | cut -c1-400)"
+            exit 1
+          fi
           # BlocksDS docs: external libraries reside at BLOCKSDSEXT,
           # e.g. /opt/wonderful/thirdparty/blocksds/external in the container.
-          test -f "$BLOCKSDSEXT/nitro-engine/include/NEMain.h"
-          test -f "$BLOCKSDSEXT/nitro-engine/lib/libNE.a"
-          test -f "$BLOCKSDSEXT/nitro-engine/tools/obj2dl/obj2dl.py"
+          if ! { test -f "$BLOCKSDSEXT/nitro-engine/include/NEMain.h" &&
+                 test -f "$BLOCKSDSEXT/nitro-engine/lib/libNE.a" &&
+                 test -f "$BLOCKSDSEXT/nitro-engine/tools/obj2dl/obj2dl.py"; }; then
+            echo "::error::C335 diag: BLOCKSDSEXT=$BLOCKSDSEXT; ext dirs: $(ls -d /opt/*/external/* /opt/wonderful/thirdparty/blocksds/external/* 2>&1 | tr '\n' ' ' | cut -c1-400)"
+            echo "::error::C335 diag: found: $(find /opt -name NEMain.h -o -name libNE.a -o -name obj2dl.py 2>/dev/null | head -6 | tr '\n' ' ')"
+            exit 1
+          fi
       - name: Build native ROM linked with actual Nitro Engine and DSMA
         run: |
           # No private Nintendo files exist in public CI; keep NitroFS empty.
