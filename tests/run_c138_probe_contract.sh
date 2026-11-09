@@ -99,4 +99,16 @@ if ! grep -q 'PASS 730/730 models; UV 730' "$tmp/out"; then
   cat "$tmp/out" >&2
   exit 1
 fi
-echo 'C138 native probe: full v1/v2 and textured UV rosters, argument contract PASS'
+# A corrupt UV companion must fail the complete private probe instead
+# of silently reducing the UV-equipped count.
+printf 'P3UV' > "$tmp/nitrofs/preview/p000.p3uv"
+if (cd "$tmp" && ./c138_probe 730) >"$tmp/out" 2>&1; then
+  echo "C138 silently accepted a truncated private UV companion" >&2
+  exit 1
+fi
+if ! grep -q 'unexpected coverage loaded=730 uv=729 expected_uv=730' "$tmp/out"; then
+  echo "C138 corrupt UV companion did not fail the coverage contract" >&2
+  cat "$tmp/out" >&2
+  exit 1
+fi
+echo 'C138 native probe: full v1/v2 textured rosters and corrupt UV coverage gate PASS'
