@@ -99,6 +99,17 @@ if ! grep -q 'PASS 730/730 models; UV 730' "$tmp/out"; then
   cat "$tmp/out" >&2
   exit 1
 fi
+# Coverage must be exact: a complete 730-pair roster cannot satisfy a
+# falsely reported 729-pair preflight result.
+if (cd "$tmp" && ./c138_probe 729) >"$tmp/out" 2>&1; then
+  echo "C138 accepted a mismatched preflight UV count" >&2
+  exit 1
+fi
+if ! grep -q 'unexpected coverage loaded=730 uv=730 expected_uv=729' "$tmp/out"; then
+  echo "C138 did not report the UV coverage mismatch" >&2
+  cat "$tmp/out" >&2
+  exit 1
+fi
 # A corrupt UV companion must fail the complete private probe instead
 # of silently reducing the UV-equipped count.
 printf 'P3UV' > "$tmp/nitrofs/preview/p000.p3uv"
