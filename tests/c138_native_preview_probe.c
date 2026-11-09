@@ -110,7 +110,7 @@ int main(int argc,char **argv){
             previewStreamDrawMode(texture_width,texture_height);
             if(failed||color_calls!=1||vertex_calls!=(int)(tri*3)||
                uv_calls!=(int)(tri*3)){
-                fprintf(stderr,"native textured GL emission mismatch p%03d: vertices=%d uv=%d colors=%d\\n",
+                fprintf(stderr,"native textured GL emission mismatch p%03d: vertices=%d uv=%d colors=%d\n",
                         id,vertex_calls,uv_calls,color_calls);
                 return 1;
             }
