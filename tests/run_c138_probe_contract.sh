@@ -133,6 +133,35 @@ import sys
 path = pathlib.Path(sys.argv[1])
 path.write_bytes(path.read_bytes()[:-1])
 PY
+# A P3UV companion can be structurally complete but contain coordinates
+# outside the supported normalized range. Never permit that texture sample.
+python3 - "$tmp/nitrofs/preview/p000.p3uv" <<'PY'
+import pathlib
+import struct
+import sys
+path = pathlib.Path(sys.argv[1])
+data = bytearray(path.read_bytes())
+struct.pack_into('<h', data, 8, 4097)
+path.write_bytes(data)
+PY
+if (cd "$tmp" && ./c138_probe 730) >"$tmp/out" 2>&1; then
+  echo "C138 accepted an out-of-range private UV coordinate" >&2
+  exit 1
+fi
+if ! grep -q 'nonunit UV accepted p000' "$tmp/out"; then
+  echo "C138 did not reject an out-of-range UV coordinate" >&2
+  cat "$tmp/out" >&2
+  exit 1
+fi
+python3 - "$tmp/nitrofs/preview/p000.p3uv" <<'PY'
+import pathlib
+import struct
+import sys
+path = pathlib.Path(sys.argv[1])
+data = bytearray(path.read_bytes())
+struct.pack_into('<h', data, 8, 0)
+path.write_bytes(data)
+PY
 # A corrupt UV companion must fail the complete private probe instead
 # of silently reducing the UV-equipped count.
 printf 'P3UV' > "$tmp/nitrofs/preview/p000.p3uv"
