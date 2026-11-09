@@ -66,6 +66,17 @@ int main(void){
  emitted=0;uv_seen=0;white_seen=0;
  previewStreamDrawMode(8,8);
  assert(emitted==1800 && uv_seen==0 && white_seen==0);
+ /* Switching back to a UV-equipped Pokémon must restore its own companion,
+  * never stale coordinates or metadata from the UV-less preview. */
+ assert(previewStreamLoad(0));
+ assert(previewStreamHasUv());
+ assert(previewStreamTriangleCount()==1);
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawMode(8,16);
+ assert(emitted==3 && uv_seen==3 && white_seen==1);
+ assert(uv_u[1]==128 && uv_v[2]==256);
+ assert(previewStreamLoad(1));
+ assert(!previewStreamHasUv());
  emitted=0; previewStreamDraw(); assert(emitted==1800);
  assert(previewStreamLoad(3));
  emitted=0;red_seen=green_seen=0; previewStreamDraw();
