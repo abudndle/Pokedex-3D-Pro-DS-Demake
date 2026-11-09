@@ -54,4 +54,27 @@ if ! grep -q 'PASS 730/730 models; UV 0' "$tmp/out"; then
   cat "$tmp/out" >&2
   exit 1
 fi
-echo 'C138 private native probe: public compilation, v1 roster and argument contract PASS'
+# Rebuild the same asset-free roster as DS3M v2 with per-face RGB.
+# Validate the native probe's version-specific color contract end-to-end.
+python3 - "$tmp/nitrofs/preview" <<'PY'
+import pathlib
+import struct
+import sys
+root = pathlib.Path(sys.argv[1])
+payload = (struct.pack('<4sHHII', b'DS3M', 2, 1, 0, 1)
+           + bytes(18) + bytes((12, 34, 56)))
+for model in range(734):
+    if model not in (721, 722, 723, 724):
+        (root / f'p{model:03d}.ds3m').write_bytes(payload)
+PY
+if ! (cd "$tmp" && ./c138_probe 0) >"$tmp/out" 2>&1; then
+  echo "C138 rejected complete synthetic DS3M v2 roster" >&2
+  cat "$tmp/out" >&2
+  exit 1
+fi
+if ! grep -q 'PASS 730/730 models; UV 0' "$tmp/out"; then
+  echo "C138 synthetic DS3M v2 roster did not reach complete probe" >&2
+  cat "$tmp/out" >&2
+  exit 1
+fi
+echo 'C138 native probe: public compilation, full v1/v2 rosters and argument contract PASS'
