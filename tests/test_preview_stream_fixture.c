@@ -86,6 +86,17 @@ int main(void){
  assert(previewStreamLoad(1));
  assert(!previewStreamHasUv());
  emitted=0; previewStreamDraw(); assert(emitted==1800);
+ /* A truncated UV companion must fail closed while retaining source RGB.
+  * It must not reuse coordinates from the previously loaded Pokémon. */
+ assert(previewStreamLoad(0));
+ assert(previewStreamHasUv());
+ assert(previewStreamLoad(11));
+ assert(previewStreamHasModel() && !previewStreamHasUv());
+ assert(previewStreamTriangleCount()==1);
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawMode(8,16);
+ assert(emitted==3 && uv_seen==0 && white_seen==0);
+ assert(previewStreamLoad(1));
  assert(previewStreamLoad(3));
  emitted=0;red_seen=green_seen=0; previewStreamDraw();
  assert(emitted==6 && red_seen==1 && green_seen==1);
