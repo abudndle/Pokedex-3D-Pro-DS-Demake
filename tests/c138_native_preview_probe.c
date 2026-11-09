@@ -13,13 +13,17 @@ static int16_t expected_uv[MAX_TRI*6];
 static unsigned char expected_rgb[MAX_TRI*3];
 static int expected_xyz_words,expected_uv_words;
 static int vertex_calls,uv_calls,color_calls,failed;
+static int texture_probe,texture_width=8,texture_height=16;
 
 void glBegin(int mode){if(mode!=1)failed=1;}
 void glEnd(void){}
 void glColor3b(unsigned char r,unsigned char g,unsigned char b){
     if(color_calls==0){
-        if(r!=192||g!=224||b!=232)failed=1;
+        if(texture_probe){
+            if(r!=255||g!=255||b!=255)failed=1;
+        }else if(r!=192||g!=224||b!=232)failed=1;
     }else{
+        if(texture_probe)failed=1;
         int at=(color_calls-1)*3;
         if(at+2>=MAX_TRI*3||r!=expected_rgb[at]||
            g!=expected_rgb[at+1]||b!=expected_rgb[at+2])failed=1;
@@ -34,7 +38,13 @@ void glVertex3v16(short x,short y,short z){
 }
 void glTexCoord2t16(short u,short v){
     int at=uv_calls*2;
-    if(at+1>=expected_uv_words||u!=expected_uv[at]||v!=expected_uv[at+1])failed=1;
+    int expected_u=at<expected_uv_words?expected_uv[at]:0;
+    int expected_v=at+1<expected_uv_words?expected_uv[at+1]:0;
+    if(texture_probe){
+        expected_u=expected_u*texture_width/256;
+        expected_v=expected_v*texture_height/256;
+    }
+    if(at+1>=expected_uv_words||u!=expected_u||v!=expected_v)failed=1;
     uv_calls++;
 }
 static unsigned read16(const unsigned char *p){return (unsigned)p[0]|((unsigned)p[1]<<8);}
@@ -92,6 +102,20 @@ int main(int argc,char **argv){
                     id,vertex_calls,tri*3,uv_calls);
             return 1;
         }
+        /* Verify actual textured DS GL emissions for every private UV pair,
+         * not only the geometry-only path. No texture pixels are exported. */
+        if(has_uv){
+            texture_probe=1;
+            vertex_calls=uv_calls=color_calls=failed=0;
+            previewStreamDrawMode(texture_width,texture_height);
+            if(failed||color_calls!=1||vertex_calls!=(int)(tri*3)||
+               uv_calls!=(int)(tri*3)){
+                fprintf(stderr,"native textured GL emission mismatch p%03d: vertices=%d uv=%d colors=%d\\n",
+                        id,vertex_calls,uv_calls,color_calls);
+                return 1;
+            }
+            texture_probe=0;
+        }
         loaded++;
     }
     for(int id=721;id<=724;id++){
@@ -103,6 +127,6 @@ int main(int argc,char **argv){
         fprintf(stderr,"unexpected coverage loaded=%d uv=%d expected_uv=%d\n",loaded,paired,expected_uv_count);
         return 1;
     }
-    printf("C138 native preview loader: PASS 730/730 models; UV %d; exact XYZ/RGB/UV GL emission matched\n",paired);
+    printf("C138 native preview loader: PASS 730/730 models; UV %d; exact XYZ/RGB/UV and textured GL emission matched\n",paired);
     return 0;
 }
