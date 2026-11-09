@@ -31,4 +31,27 @@ for valid in 0 49 730; do
     exit 1
   fi
 done
-echo 'C138 private native probe: public compilation and argument contract PASS'
+# Exercise the complete 730-model probe with source-free DS3M v1 fixtures.
+# This catches native v1 header/color regressions without private assets.
+mkdir -p "$tmp/nitrofs/preview"
+python3 - "$tmp/nitrofs/preview" <<'PY'
+import pathlib
+import struct
+import sys
+root = pathlib.Path(sys.argv[1])
+payload = struct.pack('<4sHHII', b'DS3M', 1, 1, 0, 1) + bytes(18)
+for model in range(734):
+    if model not in (721, 722, 723, 724):
+        (root / f'p{model:03d}.ds3m').write_bytes(payload)
+PY
+if ! (cd "$tmp" && ./c138_probe 0) >"$tmp/out" 2>&1; then
+  echo "C138 rejected complete synthetic DS3M v1 roster" >&2
+  cat "$tmp/out" >&2
+  exit 1
+fi
+if ! grep -q 'PASS 730/730 models; UV 0' "$tmp/out"; then
+  echo "C138 synthetic DS3M v1 roster did not reach complete probe" >&2
+  cat "$tmp/out" >&2
+  exit 1
+fi
+echo 'C138 private native probe: public compilation, v1 roster and argument contract PASS'
