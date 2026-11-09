@@ -110,16 +110,25 @@ int main(int argc,char **argv){
         /* Verify actual textured DS GL emissions for every private UV pair,
          * not only the geometry-only path. No texture pixels are exported. */
         if(has_uv){
-            texture_probe=1;
-            vertex_calls=uv_calls=color_calls=failed=0;
-            previewStreamDrawMode(texture_width,texture_height);
-            if(failed||color_calls!=1||vertex_calls!=(int)(tri*3)||
-               uv_calls!=(int)(tri*3)){
-                fprintf(stderr,"native textured GL emission mismatch p%03d: vertices=%d uv=%d colors=%d\n",
-                        id,vertex_calls,uv_calls,color_calls);
-                return 1;
+            /* Exercise both the smallest supported dimensions and the
+             * largest source P3PX dimensions to catch UV scaling overflow. */
+            const int widths[2]={8,1024},heights[2]={16,1024};
+            for(int size=0;size<2;size++){
+                texture_width=widths[size];
+                texture_height=heights[size];
+                texture_probe=1;
+                vertex_calls=uv_calls=color_calls=failed=0;
+                previewStreamDrawMode(texture_width,texture_height);
+                if(failed||color_calls!=1||vertex_calls!=(int)(tri*3)||
+                   uv_calls!=(int)(tri*3)){
+                    fprintf(stderr,"native textured GL emission mismatch p%03d at %dx%d: vertices=%d uv=%d colors=%d\n",
+                            id,texture_width,texture_height,vertex_calls,uv_calls,color_calls);
+                    return 1;
+                }
             }
             texture_probe=0;
+            texture_width=8;
+            texture_height=16;
         }else{
             /* A texture request must not whiten a model without source UVs. */
             vertex_calls=uv_calls=color_calls=failed=0;
