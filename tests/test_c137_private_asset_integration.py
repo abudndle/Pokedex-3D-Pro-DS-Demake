@@ -41,6 +41,7 @@ class C137Tests(unittest.TestCase):
             self.assertEqual(result['native_preview_count'],730)
             self.assertEqual(result['unit_uv_pairs_accepted'],1)
             self.assertEqual(result['texture_payload_count'],1)
+            self.assertEqual(result['validated_texture_payload_count'],1)
             self.assertEqual(result['textured_candidate_model_count'],1)
             self.assertFalse(result['original_release_ready'])
             self.assertEqual(result['source_sidecars_missing']['source_material_ranges'],730)
@@ -88,6 +89,7 @@ class C137Tests(unittest.TestCase):
             self.assertTrue(result['native_preview_ready'])
             self.assertEqual(result['unit_uv_pairs_accepted'],1)
             self.assertEqual(result['texture_payload_count'],2)
+            self.assertEqual(result['validated_texture_payload_count'],2)
             self.assertEqual(result['textured_candidate_model_count'],1)
 
     def test_orphan_texture_cannot_count_as_renderable(self):
