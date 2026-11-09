@@ -77,6 +77,19 @@ class C137Tests(unittest.TestCase):
             self.assertEqual(result['unit_uv_pairs_accepted'],1)
             self.assertEqual(result['textured_candidate_model_count'],0)
 
+    def test_multiple_textures_count_as_one_pokemon_candidate(self):
+        with tempfile.TemporaryDirectory() as d:
+            package=pathlib.Path(d)/'multiple.zip'
+            make_zip(package,uv=True)
+            with zipfile.ZipFile(package,'a') as out:
+                out.writestr('textures/p000/t001.p3px',
+                             struct.pack('<4sHHH',b'P3PX',2,8,8)+bytes(128))
+            result=audit(package)
+            self.assertTrue(result['native_preview_ready'])
+            self.assertEqual(result['unit_uv_pairs_accepted'],1)
+            self.assertEqual(result['texture_payload_count'],2)
+            self.assertEqual(result['textured_candidate_model_count'],1)
+
     def test_orphan_texture_cannot_count_as_renderable(self):
         with tempfile.TemporaryDirectory() as d:
             package=pathlib.Path(d)/'orphan.zip'
