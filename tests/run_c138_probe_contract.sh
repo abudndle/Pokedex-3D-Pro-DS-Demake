@@ -116,7 +116,7 @@ python3 - "$tmp/nitrofs/preview/p000.p3uv" <<'PY'
 import pathlib
 import sys
 path = pathlib.Path(sys.argv[1])
-path.write_bytes(path.read_bytes() + b'\\x00')
+path.write_bytes(path.read_bytes() + bytes([0]))
 PY
 if (cd "$tmp" && ./c138_probe 730) >"$tmp/out" 2>&1; then
   echo "C138 accepted a UV companion with trailing bytes" >&2
