@@ -45,6 +45,19 @@ int main(void){
  previewStreamDrawRange(0,1,8,8);
  assert(emitted==3 && uv_seen==3 && white_seen==1);
  assert(uv_u[1]==128);
+ /* Regression: a requested texture must not turn unsupported negative
+  * or >1 source UV spans into falsely white/textured geometry. */
+ for(int face=1;face<=2;face++){
+     emitted=0;uv_seen=0;white_seen=0;
+     previewStreamDrawRange(face,1,8,8);
+     assert(emitted==3 && uv_seen==3);
+     assert(white_seen==0);
+ }
+ /* Mixed safe/unsafe spans are conservatively untextured as a group.
+  * The caller may split by material to texture only the safe span. */
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawRange(0,3,8,8);
+ assert(emitted==9 && uv_seen==9 && white_seen==0);
  assert(previewStreamLoad(1));
  assert(previewStreamTriangleCount()==600);
  assert(!previewStreamHasUv());
