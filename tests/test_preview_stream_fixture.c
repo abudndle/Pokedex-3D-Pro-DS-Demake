@@ -25,6 +25,14 @@ int main(void){
  assert(uv_u[0]==0 && uv_v[0]==0);
  assert(uv_u[1]==128 && uv_v[1]==0);
  assert(uv_u[2]==0 && uv_v[2]==256);
+ /* C138: max-size supported native P3PX dimensions must still emit
+  * representable DS 4.12 texture coordinates without wrapping. */
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawMode(1024,1024);
+ assert(emitted==3 && uv_seen==3 && white_seen==1);
+ assert(uv_u[0]==0 && uv_v[0]==0);
+ assert(uv_u[1]==16384 && uv_v[1]==0);
+ assert(uv_u[2]==0 && uv_v[2]==16384);
  /* C116: only original P3UV spans entirely in [0,1] are safe without
   * the unknown original GPU wrap/mirror sampler state. Excluded spans
   * must still be drawn untextured by the mixed-material renderer. */
