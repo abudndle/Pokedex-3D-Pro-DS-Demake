@@ -124,9 +124,13 @@ def audit(path, *, full_crc=False):
         texture_names = [name for name in names if P3PX.fullmatch(name)]
         valid_texture_models = set()
         for name in texture_names:
+            model = int(P3PX.fullmatch(name).group(1))
+            if model not in previews:
+                issues.append(f'orphan P3PX texture {name}')
+                continue
             try:
                 _texture_header(z, name)
-                valid_texture_models.add(int(P3PX.fullmatch(name).group(1)))
+                valid_texture_models.add(model)
             except ValueError as exc:
                 issues.append(f'{name}: {exc}')
         # Verify source-derived catalog, Dex, and Move Dex header contracts.
