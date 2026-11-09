@@ -14,6 +14,7 @@ static unsigned char expected_rgb[MAX_TRI*3];
 static int expected_xyz_words,expected_uv_words;
 static int vertex_calls,uv_calls,color_calls,failed;
 static int texture_probe,texture_width=8,texture_height=16;
+static int has_face_colors;
 
 void glBegin(int mode){if(mode!=1)failed=1;}
 void glEnd(void){}
@@ -23,7 +24,7 @@ void glColor3b(unsigned char r,unsigned char g,unsigned char b){
             if(r!=255||g!=255||b!=255)failed=1;
         }else if(r!=192||g!=224||b!=232)failed=1;
     }else{
-        if(texture_probe)failed=1;
+        if(texture_probe||!has_face_colors)failed=1;
         int at=(color_calls-1)*3;
         if(at+2>=MAX_TRI*3||r!=expected_rgb[at]||
            g!=expected_rgb[at+1]||b!=expected_rgb[at+2])failed=1;
@@ -68,15 +69,16 @@ int main(int argc,char **argv){
         FILE *f=fopen(filename,"rb");
         if(!f){fprintf(stderr,"missing DS3M p%03d\n",id);return 1;}
         unsigned char header[16];
-        if(fread(header,1,16,f)!=16||memcmp(header,"DS3M",4)||read16(header+4)!=2||
+        if(fread(header,1,16,f)!=16||memcmp(header,"DS3M",4)||(read16(header+4)!=1&&read16(header+4)!=2)||
            read32(header+8)!=0){fprintf(stderr,"invalid native DS3M header p%03d\n",id);fclose(f);return 1;}
         unsigned tri=read16(header+6),original=read32(header+12);
         if(tri<1||tri>MAX_TRI||original<tri||original>0x7fffffff){
             fprintf(stderr,"invalid triangle count p%03d\n",id);fclose(f);return 1;
         }
+        has_face_colors=read16(header+4)==2;
         expected_xyz_words=(int)tri*9;
         if(fread(expected_xyz,sizeof(expected_xyz[0]),(size_t)expected_xyz_words,f)!=(size_t)expected_xyz_words ||
-           fread(expected_rgb,3,tri,f)!=(size_t)tri || fgetc(f)!=EOF){fclose(f);return 1;}
+           (has_face_colors && fread(expected_rgb,3,tri,f)!=(size_t)tri) || fgetc(f)!=EOF){fclose(f);return 1;}
         fclose(f);
         if(!previewStreamLoad(id)||previewStreamIsChunked()||!previewStreamHasModel()||
            previewStreamTriangleCount()!=(int)tri||previewStreamOriginalTriangleCount()!=(int)original){
@@ -101,7 +103,7 @@ int main(int argc,char **argv){
         }
         vertex_calls=uv_calls=color_calls=failed=0;
         previewStreamDraw();
-        if(failed||color_calls!=(int)(tri+1)||vertex_calls!=(int)(tri*3)||
+        if(failed||color_calls!=(int)(has_face_colors?tri+1:1)||vertex_calls!=(int)(tri*3)||
            uv_calls!=(has_uv?(int)(tri*3):0)){
             fprintf(stderr,"native GL emission differs from source geometry p%03d: vertices=%d expected=%u uv=%d\n",
                     id,vertex_calls,tri*3,uv_calls);
