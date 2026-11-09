@@ -61,6 +61,11 @@ int main(void){
  assert(previewStreamLoad(1));
  assert(previewStreamTriangleCount()==600);
  assert(!previewStreamHasUv());
+ /* A caller requesting a texture cannot whiten or texture geometry when
+  * the original UV companion is missing. Preserve all 600 source faces. */
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawMode(8,8);
+ assert(emitted==1800 && uv_seen==0 && white_seen==0);
  emitted=0; previewStreamDraw(); assert(emitted==1800);
  assert(previewStreamLoad(3));
  emitted=0;red_seen=green_seen=0; previewStreamDraw();
