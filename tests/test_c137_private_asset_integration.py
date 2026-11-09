@@ -77,6 +77,18 @@ class C137Tests(unittest.TestCase):
             self.assertEqual(result['unit_uv_pairs_accepted'],1)
             self.assertEqual(result['textured_candidate_model_count'],0)
 
+    def test_orphan_texture_cannot_count_as_renderable(self):
+        with tempfile.TemporaryDirectory() as d:
+            package=pathlib.Path(d)/'orphan.zip'
+            make_zip(package,uv=True)
+            with zipfile.ZipFile(package,'a') as out:
+                out.writestr('textures/p734/t000.p3px',
+                             struct.pack('<4sHHH',b'P3PX',2,8,8)+bytes(128))
+            result=audit(package)
+            self.assertFalse(result['native_preview_ready'])
+            self.assertIn('orphan P3PX texture textures/p734/t000.p3px',result['issues'])
+            self.assertEqual(result['textured_candidate_model_count'],1)
+
     def test_reject_native_reserved_header_and_stage_does_not_modify_target(self):
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d)
