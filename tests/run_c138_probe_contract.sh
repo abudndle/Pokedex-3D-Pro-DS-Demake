@@ -110,6 +110,29 @@ if ! grep -q 'unexpected coverage loaded=730 uv=730 expected_uv=729' "$tmp/out";
   cat "$tmp/out" >&2
   exit 1
 fi
+# A companion with a correct header and payload but trailing garbage must
+# also fail; the native loader and audit require exact P3UV file lengths.
+python3 - "$tmp/nitrofs/preview/p000.p3uv" <<'PY'
+import pathlib
+import sys
+path = pathlib.Path(sys.argv[1])
+path.write_bytes(path.read_bytes() + b'\\x00')
+PY
+if (cd "$tmp" && ./c138_probe 730) >"$tmp/out" 2>&1; then
+  echo "C138 accepted a UV companion with trailing bytes" >&2
+  exit 1
+fi
+if ! grep -q 'unexpected coverage loaded=730 uv=729 expected_uv=730' "$tmp/out"; then
+  echo "C138 trailing UV bytes did not fail the coverage contract" >&2
+  cat "$tmp/out" >&2
+  exit 1
+fi
+python3 - "$tmp/nitrofs/preview/p000.p3uv" <<'PY'
+import pathlib
+import sys
+path = pathlib.Path(sys.argv[1])
+path.write_bytes(path.read_bytes()[:-1])
+PY
 # A corrupt UV companion must fail the complete private probe instead
 # of silently reducing the UV-equipped count.
 printf 'P3UV' > "$tmp/nitrofs/preview/p000.p3uv"
