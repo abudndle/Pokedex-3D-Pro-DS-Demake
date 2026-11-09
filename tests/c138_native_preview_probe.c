@@ -135,7 +135,7 @@ int main(int argc,char **argv){
             /* A texture request must not whiten a model without source UVs. */
             vertex_calls=uv_calls=color_calls=failed=0;
             previewStreamDrawMode(texture_width,texture_height);
-            if(failed||color_calls!=(int)(tri+1)||
+            if(failed||color_calls!=(int)(has_face_colors?tri+1:1)||
                vertex_calls!=(int)(tri*3)||uv_calls!=0){
                 fprintf(stderr,"unsafe texture fallback p%03d: vertices=%d uv=%d colors=%d\n",
                         id,vertex_calls,uv_calls,color_calls);
