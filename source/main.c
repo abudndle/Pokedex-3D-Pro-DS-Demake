@@ -2130,8 +2130,7 @@ int main(void) {
                     if(p3dDexNavigateSync(&dex_index,&state.selected_dex,-1)){selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
                 }
                 if((down&KEY_RIGHT) && !(down&KEY_LEFT)){
-                    int next=p3dDexNavigate(dex_index,1);
-                    if(next!=dex_index){dex_index=next;selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
+                    if(p3dDexNavigateSync(&dex_index,&state.selected_dex,1)){selected_form=0;reload_preview();progress_dirty=1;redraw=1;}
                 }
             }
             /* In text navigation mode, the bottom corners also browse entries.

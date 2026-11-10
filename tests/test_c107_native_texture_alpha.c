@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <nds.h> /* host GL stub: GL_RGB/GL_RGBA and capture prototypes */
 #include "ds_texture_upload.h"
 #include "texture_pixels.h"
 
