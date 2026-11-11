@@ -1,4 +1,5 @@
 #include "preview_chunk_stream.h"
+#include <limits.h>
 #include <string.h>
 #define P3CS_HEADER_BYTES 24u
 #define P3CS_INDEX_BYTES 16u
@@ -30,7 +31,7 @@ void p3dChunkClose(P3DChunkStream *s){
 int p3dChunkOpen(P3DChunkStream *s,const char *path,unsigned model_id){
     unsigned char h[P3CS_HEADER_BYTES],table[P3D_CHUNK_MAX*P3CS_INDEX_BYTES];
     FILE *f;long file_size;
-    uint32_t cursor,tri_cursor=0,total;
+    uint32_t cursor,tri_cursor=0,total,original;
     unsigned count;
     if(!s)return 0;
     p3dChunkClose(s);
@@ -44,9 +45,10 @@ int p3dChunkOpen(P3DChunkStream *s,const char *path,unsigned model_id){
     if(setvbuf(f,NULL,_IONBF,0)!=0){fclose(f);return 0;}
     if(fread(h,1,sizeof(h),f)!=sizeof(h)||memcmp(h,"P3CS",4)!=0||
        rd16(h+4)!=1||rd16(h+6)!=model_id||rd16(h+10)!=0){fclose(f);return 0;}
-    count=rd16(h+8);total=rd32(h+12);
+    count=rd16(h+8);total=rd32(h+12);original=rd32(h+16);
+    /* The preview API exposes the source face count as a signed int. */
     if(count<1||count>P3D_CHUNK_MAX||total<1||total>P3D_CHUNK_MAX_TOTAL||
-       rd32(h+16)<total||
+       original<total||original>(uint32_t)INT_MAX||
        fread(table,1,count*P3CS_INDEX_BYTES,f)!=count*P3CS_INDEX_BYTES||
        (crc_update(0xffffffffu,table,count*P3CS_INDEX_BYTES)^0xffffffffu)!=rd32(h+20)){
         fclose(f);return 0;
@@ -97,7 +99,7 @@ int p3dChunkOpen(P3DChunkStream *s,const char *path,unsigned model_id){
     s->model_id=(uint16_t)model_id;
     s->chunk_count=(uint16_t)count;
     s->total_triangles=total;
-    s->original_triangles=rd32(h+16);
+    s->original_triangles=original;
     s->ready=1;
     return 1;
 }

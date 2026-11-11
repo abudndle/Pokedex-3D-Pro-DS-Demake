@@ -68,7 +68,7 @@ int p3dDsMaterialUvPrepare(const P3DVerifiedGeometryPair *geometry,
     const P3DSourceShaderCaps *shader_caps,
     P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch){
     if(!geometry||!uv||!source||!materials||!textures||!shader_caps||
-       !cache||!cache->ready||!scratch)return 0;
+       !cache||!cache->ready||cache->manifest!=textures||!scratch)return 0;
     if(!p3dDsMaterialTextureBudgetValid(materials,textures,
           (unsigned)geometry->triangles))return 0;
     /* Reuse the same strict no-side-effects source walk as the native drawer.
