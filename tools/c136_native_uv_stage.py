@@ -86,7 +86,7 @@ def build(base_zip, candidates_zip, output_zip, *, mode="baseline",
             raise ValueError("duplicate source ZIP entries")
         # A source pack with old UV companions could silently bind stale
         # coordinates to a replaced geometry stream: fail closed.
-        if any(re.fullmatch(r"preview/p[0-9]{3}\\.p3uv", name) for name in names):
+        if any(re.fullmatch(r"preview/p[0-9]{3}\.p3uv", name) for name in names):
             raise ValueError("base contains pre-existing UVs; refuse stale geometry pair")
         source_models = {}
         for name in names:

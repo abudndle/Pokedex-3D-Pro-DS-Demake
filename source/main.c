@@ -1177,12 +1177,13 @@ static void render(void) {
                     const P3DLearnsetRow *row=&dex_learnset.rows[start+i];
                     P3DMove move;
                     if(move_catalog_ready&&p3dMoveDexRead(row->move,&move))
-                        printf("\x1b[%u;1H%-6s%3u %.19s",12u+i,
+                        printf("\x1b[%u;1H%-6s%3u %.19s",P3D_LEARNSET_FIRST_ROW+i,
                                p3dLearnsetMethod(row->method),row->level,move.name);
-                    else printf("\x1b[%u;1H%-6s%3u Move #%03u",12u+i,
+                    else printf("\x1b[%u;1H%-6s%3u Move #%03u",P3D_LEARNSET_FIRST_ROW+i,
                                 p3dLearnsetMethod(row->method),row->level,row->move+1u);
                 }
-                if(!dex_learnset.count)printf("\x1b[12;1HNo listed moves");
+                if(!dex_learnset.count)printf("\x1b[%u;1HNo listed moves",P3D_LEARNSET_FIRST_ROW);
+                else if(move_catalog_ready)printf("\x1b[16;1HTap a move to open Move Dex");
                 printf("\x1b[17;1H< PAGE UP      PAGE DOWN >");
                 printf("\x1b[18;1HUP/DOWN: learnset pages");
             }else if(!dex_details_ready){
@@ -2367,6 +2368,18 @@ int main(void) {
                 touchPosition point;touchRead(&point);
                 if(p3dDescriptionTouch(&dex_description,1,point.px,point.py)){
                     down=0;description_resume_reset=0;redraw=1;
+                }
+            }
+            if(!showing_original_art && state.page==P3D_PAGE_DEX &&
+               dex_detail_tab==4 && move_catalog_ready &&
+               (down&KEY_TOUCH) && !(down&~KEY_TOUCH) && !(held&~KEY_TOUCH)){
+                touchPosition point;touchRead(&point);
+                int target=p3dLearnsetTouchMove(&dex_learnset,dex_learnset_page,1,point.px,point.py);
+                P3DMove move;
+                if(target>=0 && p3dMoveDexRead(target,&move) &&
+                   p3dEntryOpenMove(&state,target,&move_index,&move_text_offset,&move_show_effect,&down)){
+                    dex_detail_tab=0;
+                    art_page=-1;progress_dirty=1;redraw=1;
                 }
             }
             /* In text navigation mode, the bottom corners also browse entries.

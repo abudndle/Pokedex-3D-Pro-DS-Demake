@@ -41,6 +41,9 @@ class C137Tests(unittest.TestCase):
             self.assertTrue(result['native_preview_ready'])
             self.assertEqual(result['native_preview_count'],730)
             self.assertEqual(result['unit_uv_pairs_accepted'],1)
+            self.assertEqual(result['texture_payload_count'],1)
+            self.assertEqual(result['validated_texture_payload_count'],1)
+            self.assertEqual(result['textured_candidate_model_count'],1)
             self.assertFalse(result['original_release_ready'])
             self.assertEqual(result['source_sidecars_missing']['source_material_ranges'],730)
             self.assertTrue(result['missing_release_ui_and_text'])
@@ -86,6 +89,65 @@ class C137Tests(unittest.TestCase):
                 result=audit(package)
                 self.assertFalse(result['runtime_species_preview_ready'])
                 self.assertEqual(result['runtime_species_preview_slots'],0)
+
+    def test_texture_and_uv_counts_must_overlap_on_same_model(self):
+        with tempfile.TemporaryDirectory() as d:
+            package=pathlib.Path(d)/'mismatch.zip'
+            make_zip(package,uv=False)
+            with zipfile.ZipFile(package,'a') as out:
+                out.writestr('preview/p001.p3uv',
+                             struct.pack('<4sHH',b'P3UV',1,1)+bytes(12))
+            result=audit(package)
+            self.assertTrue(result['native_preview_ready'])
+            self.assertEqual(result['unit_uv_pairs_accepted'],1)
+            self.assertEqual(result['texture_payload_count'],1)
+            self.assertEqual(result['textured_candidate_model_count'],0)
+
+    def test_invalid_texture_is_not_a_textured_candidate(self):
+        with tempfile.TemporaryDirectory() as d:
+            package=pathlib.Path(d)/'invalid_texture.zip'
+            make_zip(package,uv=True)
+            # Create a separate ZIP with the same valid preview roster but
+            # an invalid texture header (no duplicate archive entries).
+            rebuilt=pathlib.Path(d)/'rebuilt.zip'
+            with zipfile.ZipFile(package) as source, zipfile.ZipFile(rebuilt,'w') as out:
+                for name in source.namelist():
+                    data=source.read(name)
+                    if name=='textures/p000/t000.p3px':
+                        data=b'BAD!'
+                    out.writestr(name,data)
+            result=audit(rebuilt)
+            self.assertFalse(result['native_preview_ready'])
+            self.assertEqual(result['unit_uv_pairs_accepted'],1)
+            self.assertEqual(result['textured_candidate_model_count'],0)
+
+    def test_multiple_textures_count_as_one_pokemon_candidate(self):
+        with tempfile.TemporaryDirectory() as d:
+            package=pathlib.Path(d)/'multiple.zip'
+            make_zip(package,uv=True)
+            with zipfile.ZipFile(package,'a') as out:
+                out.writestr('textures/p000/t001.p3px',
+                             struct.pack('<4sHHH',b'P3PX',2,8,8)+bytes(128))
+            result=audit(package)
+            self.assertTrue(result['native_preview_ready'])
+            self.assertEqual(result['unit_uv_pairs_accepted'],1)
+            self.assertEqual(result['texture_payload_count'],2)
+            self.assertEqual(result['validated_texture_payload_count'],2)
+            self.assertEqual(result['textured_candidate_model_count'],1)
+
+    def test_orphan_texture_cannot_count_as_renderable(self):
+        with tempfile.TemporaryDirectory() as d:
+            package=pathlib.Path(d)/'orphan.zip'
+            make_zip(package,uv=True)
+            with zipfile.ZipFile(package,'a') as out:
+                out.writestr('textures/p734/t000.p3px',
+                             struct.pack('<4sHHH',b'P3PX',2,8,8)+bytes(128))
+            result=audit(package)
+            self.assertFalse(result['native_preview_ready'])
+            self.assertIn('orphan P3PX texture textures/p734/t000.p3px',result['issues'])
+            self.assertEqual(result['texture_payload_count'],2)
+            self.assertEqual(result['validated_texture_payload_count'],1)
+            self.assertEqual(result['textured_candidate_model_count'],1)
 
     def test_reject_native_reserved_header_and_stage_does_not_modify_target(self):
         with tempfile.TemporaryDirectory() as d:

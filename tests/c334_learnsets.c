@@ -27,6 +27,22 @@ int main(int argc,char **argv){
  assert(p3dLearnsetLoad(path,25,2,&s));
  assert(s.ready&&s.count==9&&s.species==25&&s.form==2);
  assert(s.rows[8].move==8&&s.rows[8].level==9);
+ /* The touch coordinates are the actual zero-based console rows H12–H15. */
+ assert(p3dLearnsetTouchMove(&s,0,1,8,96)==0);
+ assert(p3dLearnsetTouchMove(&s,0,1,247,127)==3);
+ assert(p3dLearnsetTouchMove(&s,1,1,24,104)==5);
+ assert(p3dLearnsetTouchMove(&s,2,1,24,103)==8);
+ assert(p3dLearnsetTouchMove(&s,2,1,24,104)==-1);
+ assert(p3dLearnsetTouchMove(&s,3,1,24,96)==-1);
+ assert(p3dLearnsetTouchMove(&s,UINT32_MAX,1,24,96)==-1);
+ assert(p3dLearnsetTouchMove(&s,0,0,24,96)==-1);
+ assert(p3dLearnsetTouchMove(&s,0,1,7,96)==-1);
+ assert(p3dLearnsetTouchMove(&s,0,1,248,96)==-1);
+ assert(p3dLearnsetTouchMove(&s,0,1,24,95)==-1);
+ assert(p3dLearnsetTouchMove(&s,0,1,24,128)==-1);
+ assert(p3dLearnsetTouchMove(NULL,0,1,24,96)==-1);
+ s.rows[0].move=559;assert(p3dLearnsetTouchMove(&s,0,1,24,96)==-1);s.rows[0].move=0;
+ s.count=257;assert(p3dLearnsetTouchMove(&s,0,1,24,96)==-1);s.count=9;
  assert(p3dLearnsetPage(&s,0,-1)==0);
  assert(p3dLearnsetPage(&s,0,1)==1);
  assert(p3dLearnsetPage(&s,1,1)==2);

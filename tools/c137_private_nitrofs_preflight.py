@@ -106,6 +106,7 @@ def audit(path, *, full_crc=False):
         for number in missing_models:
             issues.append(f'missing native DS3M preview p{number:03d}')
         uv_count = 0
+        valid_uv_models = set()
         for name in names:
             match = P3UV.fullmatch(name)
             if not match:
@@ -117,12 +118,21 @@ def audit(path, *, full_crc=False):
             try:
                 _uv_header(z.read(name), previews[model])
                 uv_count += 1
+                valid_uv_models.add(model)
             except ValueError as exc:
                 issues.append(f'{name}: {exc}')
         texture_names = [name for name in names if P3PX.fullmatch(name)]
+        valid_texture_models = set()
+        valid_texture_payload_count = 0
         for name in texture_names:
+            model = int(P3PX.fullmatch(name).group(1))
+            if model not in previews:
+                issues.append(f'orphan P3PX texture {name}')
+                continue
             try:
                 _texture_header(z, name)
+                valid_texture_models.add(model)
+                valid_texture_payload_count += 1
             except ValueError as exc:
                 issues.append(f'{name}: {exc}')
         # Verify source-derived catalog, Dex, and Move Dex header contracts.
@@ -214,6 +224,8 @@ def audit(path, *, full_crc=False):
             'runtime_species_identity_verified': False,
             'unit_uv_pairs_accepted': uv_count,
             'texture_payload_count': len(texture_names),
+            'validated_texture_payload_count': valid_texture_payload_count,
+            'textured_candidate_model_count': len(valid_uv_models & valid_texture_models),
             'source_sidecars_present': sidecar_counts,
             'source_sidecars_missing': missing_sidecars,
             'missing_release_ui_and_text': sorted(release_missing),
