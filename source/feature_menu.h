@@ -19,5 +19,7 @@ int p3dFavoriteContains(const P3DMenu *s,int model_index);
 const char *p3dTypeName(int type);
 int p3dTypeEffect(int attacking,int defending);
 int p3dTypeEffectDual(int attacking,int defending1,int defending2);
+/* Cycle a defending type, skipping the other active type. */
+int p3dTypeStepDefender(int current,int excluded,int direction);
 int p3dSearchNext(const char *const names[],size_t count,int from,char initial,int direction);
 #endif

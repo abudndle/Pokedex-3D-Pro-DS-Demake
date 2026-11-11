@@ -86,6 +86,12 @@ int main(void) {
     assert(p3dTypeEffectDual(1,4,-2)==-1);
     assert(p3dTypeEffectDual(-1,4,2)==-1);
     assert(p3dTypeEffectDual(1,4,17)==-1);
+    assert(p3dTypeStepDefender(3,4,1)==5);
+    assert(p3dTypeStepDefender(5,4,-1)==3);
+    assert(p3dTypeStepDefender(16,0,1)==1);
+    assert(p3dTypeStepDefender(0,16,-1)==15);
+    assert(p3dTypeStepDefender(16,-1,1)==0);
+    assert(p3dTypeStepDefender(4,5,0)==4);
     /* C311: Type Chart's original Pokémon Search path must reject bad
      * source pages and IDs without damaging a restored saved selection. */
     p3dMenuReset(&state);
