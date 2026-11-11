@@ -68,14 +68,14 @@ class C99Tests(unittest.TestCase):
             original=target.read_bytes()
             header=struct.pack(">IIBBBBB",256,192,8,2,0,0,0)
             # CRC-correct but decoded data far exceeds a single DS frame.
-            huge=(b"\\x00"+bytes((1,2,3)) *256)*400
-            oversized=(b"\\x89PNG\\r\\n\\x1a\\n"+chunk(b"IHDR",header)+
+            huge=(b"\x00"+bytes((1,2,3)) *256)*400
+            oversized=(b"\x89PNG\r\n\x1a\n"+chunk(b"IHDR",header)+
                        chunk(b"IDAT",zlib.compress(huge))+chunk(b"IEND",b""))
             target.write_bytes(oversized)
             with self.assertRaisesRegex(ValueError,"payload size"):
                 verify(root)
             # Valid PNG signatures/CRCs must not permit IDAT before IHDR.
-            wrong_order=(b"\\x89PNG\\r\\n\\x1a\\n"+
+            wrong_order=(b"\x89PNG\r\n\x1a\n"+
                          chunk(b"IDAT",zlib.compress(b"x"))+
                          chunk(b"IHDR",header)+chunk(b"IEND",b""))
             target.write_bytes(wrong_order)
