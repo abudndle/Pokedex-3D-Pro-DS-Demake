@@ -13,13 +13,18 @@ static int16_t expected_uv[MAX_TRI*6];
 static unsigned char expected_rgb[MAX_TRI*3];
 static int expected_xyz_words,expected_uv_words;
 static int vertex_calls,uv_calls,color_calls,failed;
+static int texture_probe,texture_width=8,texture_height=16;
+static int has_face_colors;
 
 void glBegin(int mode){if(mode!=1)failed=1;}
 void glEnd(void){}
 void glColor3b(unsigned char r,unsigned char g,unsigned char b){
     if(color_calls==0){
-        if(r!=192||g!=224||b!=232)failed=1;
+        if(texture_probe){
+            if(r!=255||g!=255||b!=255)failed=1;
+        }else if(r!=192||g!=224||b!=232)failed=1;
     }else{
+        if(texture_probe||!has_face_colors)failed=1;
         int at=(color_calls-1)*3;
         if(at+2>=MAX_TRI*3||r!=expected_rgb[at]||
            g!=expected_rgb[at+1]||b!=expected_rgb[at+2])failed=1;
@@ -34,7 +39,13 @@ void glVertex3v16(short x,short y,short z){
 }
 void glTexCoord2t16(short u,short v){
     int at=uv_calls*2;
-    if(at+1>=expected_uv_words||u!=expected_uv[at]||v!=expected_uv[at+1])failed=1;
+    int expected_u=at<expected_uv_words?expected_uv[at]:0;
+    int expected_v=at+1<expected_uv_words?expected_uv[at+1]:0;
+    if(texture_probe){
+        expected_u=expected_u*texture_width/256;
+        expected_v=expected_v*texture_height/256;
+    }
+    if(at+1>=expected_uv_words||u!=expected_u||v!=expected_v)failed=1;
     uv_calls++;
 }
 static unsigned read16(const unsigned char *p){return (unsigned)p[0]|((unsigned)p[1]<<8);}
@@ -42,8 +53,13 @@ static unsigned read32(const unsigned char *p){return read16(p)|(read16(p+2)<<16
 
 int main(int argc,char **argv){
     if(argc!=2){fputs("usage: c138_probe <expected_uv_count>\n",stderr);return 2;}
-    const int expected_uv_count=atoi(argv[1]);
-    if(expected_uv_count!=0&&expected_uv_count!=49){fputs("expected UV count must be 0 or 49\n",stderr);return 2;}
+    char *end=NULL;
+    const long parsed=strtol(argv[1],&end,10);
+    if(!argv[1][0]||!end||*end||parsed<0||parsed>730){
+        fputs("expected UV count must be an integer between 0 and 730\n",stderr);
+        return 2;
+    }
+    const int expected_uv_count=(int)parsed;
     if(!previewStreamInit()){fputs("previewStreamInit failed\n",stderr);return 1;}
     int loaded=0, paired=0;
     for(int id=0;id<734;id++){
@@ -53,15 +69,16 @@ int main(int argc,char **argv){
         FILE *f=fopen(filename,"rb");
         if(!f){fprintf(stderr,"missing DS3M p%03d\n",id);return 1;}
         unsigned char header[16];
-        if(fread(header,1,16,f)!=16||memcmp(header,"DS3M",4)||read16(header+4)!=2||
+        if(fread(header,1,16,f)!=16||memcmp(header,"DS3M",4)||(read16(header+4)!=1&&read16(header+4)!=2)||
            read32(header+8)!=0){fprintf(stderr,"invalid native DS3M header p%03d\n",id);fclose(f);return 1;}
         unsigned tri=read16(header+6),original=read32(header+12);
         if(tri<1||tri>MAX_TRI||original<tri||original>0x7fffffff){
             fprintf(stderr,"invalid triangle count p%03d\n",id);fclose(f);return 1;
         }
+        has_face_colors=read16(header+4)==2;
         expected_xyz_words=(int)tri*9;
         if(fread(expected_xyz,sizeof(expected_xyz[0]),(size_t)expected_xyz_words,f)!=(size_t)expected_xyz_words ||
-           fread(expected_rgb,3,tri,f)!=(size_t)tri || fgetc(f)!=EOF){fclose(f);return 1;}
+           (has_face_colors && fread(expected_rgb,3,tri,f)!=(size_t)tri) || fgetc(f)!=EOF){fclose(f);return 1;}
         fclose(f);
         if(!previewStreamLoad(id)||previewStreamIsChunked()||!previewStreamHasModel()||
            previewStreamTriangleCount()!=(int)tri||previewStreamOriginalTriangleCount()!=(int)original){
@@ -77,7 +94,10 @@ int main(int argc,char **argv){
                 fprintf(stderr,"invalid UV companion p%03d\n",id);if(f)fclose(f);return 1;
             }
             expected_uv_words=(int)tri*6;
-            if(fread(expected_uv,sizeof(expected_uv[0]),(size_t)expected_uv_words,f)!=(size_t)expected_uv_words){fclose(f);return 1;}
+            if(fread(expected_uv,sizeof(expected_uv[0]),(size_t)expected_uv_words,f)!=(size_t)expected_uv_words || fgetc(f)!=EOF || ferror(f)) {
+                fprintf(stderr,"UV companion payload mismatch p%03d\n",id);
+                fclose(f);return 1;
+            }
             fclose(f);
             if(!previewStreamUvRangeUnit(0,(int)tri)){
                 fprintf(stderr,"nonunit UV accepted p%03d\n",id);return 1;
@@ -86,11 +106,44 @@ int main(int argc,char **argv){
         }
         vertex_calls=uv_calls=color_calls=failed=0;
         previewStreamDraw();
-        if(failed||color_calls!=(int)(tri+1)||vertex_calls!=(int)(tri*3)||
+        if(failed||color_calls!=(int)(has_face_colors?tri+1:1)||vertex_calls!=(int)(tri*3)||
            uv_calls!=(has_uv?(int)(tri*3):0)){
             fprintf(stderr,"native GL emission differs from source geometry p%03d: vertices=%d expected=%u uv=%d\n",
                     id,vertex_calls,tri*3,uv_calls);
             return 1;
+        }
+        /* Verify actual textured DS GL emissions for every private UV pair,
+         * not only the geometry-only path. No texture pixels are exported. */
+        if(has_uv){
+            /* Exercise both the smallest supported dimensions and the
+             * largest source P3PX dimensions to catch UV scaling overflow. */
+            const int widths[2]={8,1024},heights[2]={16,1024};
+            for(int size=0;size<2;size++){
+                texture_width=widths[size];
+                texture_height=heights[size];
+                texture_probe=1;
+                vertex_calls=uv_calls=color_calls=failed=0;
+                previewStreamDrawMode(texture_width,texture_height);
+                if(failed||color_calls!=1||vertex_calls!=(int)(tri*3)||
+                   uv_calls!=(int)(tri*3)){
+                    fprintf(stderr,"native textured GL emission mismatch p%03d at %dx%d: vertices=%d uv=%d colors=%d\n",
+                            id,texture_width,texture_height,vertex_calls,uv_calls,color_calls);
+                    return 1;
+                }
+            }
+            texture_probe=0;
+            texture_width=8;
+            texture_height=16;
+        }else{
+            /* A texture request must not whiten a model without source UVs. */
+            vertex_calls=uv_calls=color_calls=failed=0;
+            previewStreamDrawMode(texture_width,texture_height);
+            if(failed||color_calls!=(int)(has_face_colors?tri+1:1)||
+               vertex_calls!=(int)(tri*3)||uv_calls!=0){
+                fprintf(stderr,"unsafe texture fallback p%03d: vertices=%d uv=%d colors=%d\n",
+                        id,vertex_calls,uv_calls,color_calls);
+                return 1;
+            }
         }
         loaded++;
     }
@@ -103,6 +156,6 @@ int main(int argc,char **argv){
         fprintf(stderr,"unexpected coverage loaded=%d uv=%d expected_uv=%d\n",loaded,paired,expected_uv_count);
         return 1;
     }
-    printf("C138 native preview loader: PASS 730/730 models; UV %d; exact XYZ/RGB/UV GL emission matched\n",paired);
+    printf("C138 native preview loader: PASS 730/730 models; UV %d; exact XYZ/RGB/UV and textured GL emission matched\n",paired);
     return 0;
 }

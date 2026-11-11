@@ -70,7 +70,10 @@ int previewStreamLoad(int resource_index) {
     s_triangle_count=0;
     s_original_triangle_count=0;
     s_has_face_colors=0;
-    s_uv.ready=0;
+    /* Discard all metadata from the previous Pokémon before touching disk.
+     * In particular, a missing/corrupt next UV file must never retain the
+     * previous model's triangle count or original texture coordinates. */
+    memset(&s_uv,0,sizeof(s_uv));
     s_chunked=0;
     s_drawing_chunk=0;
     p3dChunkClose(&s_chunk_stream);
@@ -139,7 +142,11 @@ int previewStreamIsChunked(void) { return s_loaded && s_chunked; }
 int previewStreamTriangleCount(void) { return s_triangle_count; }
 int previewStreamOriginalTriangleCount(void) { return s_original_triangle_count; }
 void previewStreamDrawRange(int first_triangle,int triangle_count,int texture_width,int texture_height) {
-    int textured=texture_width>0 && texture_height>0;
+    /* Only use original UVs when the entire requested material span is
+     * normalized. Unsupported repeat/mirror coordinates must not be sampled
+     * with the DS clamp sampler as though they were verified. */
+    int textured=texture_width>0 && texture_height>0 &&
+                 previewStreamUvRangeUnit(first_triangle,triangle_count);
     int i;
     if (!s_loaded || (s_chunked && !s_drawing_chunk) || first_triangle<0 || triangle_count<1 ||
         first_triangle>s_triangle_count || triangle_count>s_triangle_count-first_triangle) return;

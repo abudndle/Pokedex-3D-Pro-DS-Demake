@@ -54,7 +54,7 @@ check-host:
 	@sh tests/run_c334_learnset_resume.sh
 	@python3 -m unittest discover -s tests -p 'test_c334_fat_learnset_gate.py' -v
 	@set -eu; for test in \
-		run_c230_playback_controls.sh run_source_smoke.sh run_c174_native_p3ix_reader.sh run_c175_native_primitive_bridge.sh run_c176_native_primitive_draw.sh run_c177_native_vertex_stream.sh run_c178_native_geometry_pair.sh run_c289_native_vertex_uv.sh run_model_uv.sh run_preview_stream_fixture.sh run_c104_original_ui_pages.sh run_c107_native_texture_alpha.sh run_c108_material_binding.sh run_c109_original_material_refs.sh run_c110_shader_caps.sh run_c118_title_audio.sh \
+		run_c230_playback_controls.sh run_source_smoke.sh run_c174_native_p3ix_reader.sh run_c175_native_primitive_bridge.sh run_c176_native_primitive_draw.sh run_c177_native_vertex_stream.sh run_c178_native_geometry_pair.sh run_c289_native_vertex_uv.sh run_model_uv.sh run_preview_stream_fixture.sh run_c138_probe_contract.sh run_c104_original_ui_pages.sh run_c107_native_texture_alpha.sh run_c108_material_binding.sh run_c109_original_material_refs.sh run_c110_shader_caps.sh run_c118_title_audio.sh \
 		run_menu_layout_smoke.sh run_dsi_feature_gating.sh run_c337_dsi_camera_session.sh run_c338_dsi_camera_preview.sh \
 		run_feature_menu_smoke.sh run_save_store_smoke.sh run_c119_resume_idle.sh run_c121_deep_resume.sh run_c122_navigation_resume.sh run_c123_resume_integrity.sh run_c260_save_process_resume.sh \
 		run_challenge_smoke.sh run_c331_challenge_text.sh run_c332_quiz_checkpoint.sh run_c333_species_details.sh run_c333_detail_resume.sh run_c335_nitro_bridge.sh run_move_dex_smoke.sh \

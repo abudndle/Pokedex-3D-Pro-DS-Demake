@@ -38,6 +38,15 @@ uv=[(0,0,4096,0,0,4096),
 with open(sys.argv[1].replace("p000.ds3m","p010.p3uv"),"wb") as f:
     f.write(struct.pack("<4sHH",b"P3UV",1,3))
     for triangle_uv in uv:f.write(struct.pack("<6h",*triangle_uv))
+# A structurally valid mesh with a truncated UV companion must remain
+# drawable without reusing texture coordinates from the previous model.
+with open(sys.argv[1].replace("p000", "p011"), "wb") as f:
+    f.write(struct.pack("<4sHHII", b"DS3M", 2, 1, 0, 1))
+    f.write(struct.pack("<9h", *range(9)))
+    f.write(bytes((12, 34, 56)))
+with open(sys.argv[1].replace("p000.ds3m", "p011.p3uv"), "wb") as f:
+    f.write(struct.pack("<4sHH", b"P3UV", 1, 1))
+    f.write(struct.pack("<4h", 0, 0, 4096, 0))  # missing third UV
 with open(sys.argv[1].replace("p000", "p737"), "wb") as f:
     f.write(struct.pack("<4sHHII", b"DS3M", 1, 1, 0, 1))
     f.write(struct.pack("<9h", *range(9)))
