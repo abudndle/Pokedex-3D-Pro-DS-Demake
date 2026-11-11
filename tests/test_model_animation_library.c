@@ -44,6 +44,11 @@ int main(int argc,char **argv){
                  "%s/p005_a02.p3an",argv[1])>0);
  assert(remove(corrupt_path)==0);
  assert(!p3dAnimationLibraryStep(&library,&clip,argv[1],1));
+ assert(library.ready && library.selected==0 && clip.ready && clip.frames[0].yaw==1);
+ assert(snprintf(corrupt_path,sizeof(corrupt_path),
+                 "%s/p005.p3an",argv[1])>0);
+ assert(remove(corrupt_path)==0);
+ assert(!p3dAnimationLibraryStep(&library,&clip,argv[1],1));
  assert(!library.ready && !clip.ready);
  puts("Verified multi-clip animation selection: PASS");
  return 0;

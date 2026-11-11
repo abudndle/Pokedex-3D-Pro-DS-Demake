@@ -1,4 +1,10 @@
-# Development checkpoint - filtered Search navigation
+# Development checkpoint - paired UV traversal and focused Search
+
+The source-indexed UV bridge now validates CRCs and the paired mesh layout once per traversal, then checks every index before publishing any triangle. The 600-triangle host fixture preserves exact XYZ/UV order, rejects stale geometry and a late invalid index before callbacks, and honors a sink stop. Two traversals took 6.734 host CPU seconds before the fix and completed below the host timer's resolution afterward. The borrowed view needs unchanged inputs during the traversal. DS hardware speed is unmeasured.
+
+Focused Search from Pokédex, Favorites and Type Matchups now opens the requested species after clearing stale criteria and consuming the initiating input. Isolated melonDS reproduced the missing result on the old build and displayed the requested entry on the new build. Animation cycling retains the selected clip when alternatives fail and the selected file still validates. If it also fails, readiness clears.
+
+The branch integrates main `ce95cc2` into #427. Focused host tests and independent review passed. The pull request records private ROM and hosted verification. Prior hosted emulator runs failed at package mirror DNS or dependency installation, and several jobs were cancelled. The private stage remains without verified UV companions, complete original source mappings or skeletal playback inputs.
 
 The Search D-pad now moves between matching entries with an active query, region, scope or description filter. An empty National name search retains numeric steps. The authored melonDS fixture reproduced a disappearing result on Right in the previous ROM. The same controls now select the next match, and Left restores the first result frame exactly. Search, touch, animation-library, texture alpha and save synchronization host tests passed.
 

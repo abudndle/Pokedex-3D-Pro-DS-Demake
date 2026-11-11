@@ -23,6 +23,10 @@ void p3dVerifiedVertexUvClear(P3DVerifiedVertexUv *uv);
 /* Fails closed, clearing all previous model state on any mismatch/corruption. */
 int p3dVerifiedVertexUvLoad(P3DVerifiedVertexUv *uv,const char *path,
                             const P3DVerifiedGeometryPair *geometry);
+/* Returns the packed UV payload only after validating the entire pair.
+ * The returned view requires both inputs to remain unchanged while in use. */
+const uint8_t *p3dVerifiedVertexUvPairedPayload(const P3DVerifiedVertexUv *uv,
+    const P3DVerifiedGeometryPair *geometry);
 /* Returns false on unbound mesh or vertex. Output coordinates unchanged on failure. */
 int p3dVerifiedVertexUvGet(const P3DVerifiedVertexUv *uv,
                            unsigned mesh_index,unsigned vertex_index,

@@ -10,9 +10,10 @@ void p3dMenuReset(P3DMenu *s);
 size_t p3dMenuEntries(P3DCapabilities caps,P3DPage pages[P3D_MENU_MAX]);
 int p3dMenuEnter(P3DMenu *s,P3DCapabilities caps,P3DPage page);
 const char *p3dPageName(P3DPage page);
-/* Type Matchups -> original-name Pokémon Search. Reset stale query, but
- * preserve the selected national Pokédex species. Invalid source pages or
- * species never alter the menu state. */
+/* Focus Search on a national species from an entry, Favorites or Type Matchups.
+ * Clear the old text query and leave invalid requests unchanged. */
+int p3dMenuOpenPokemonSearch(P3DMenu *menu,int national_species);
+/* Compatibility entry point that only accepts Type Matchups as the source. */
 int p3dTypeChartOpenSearch(P3DMenu *s,int national_species);
 int p3dFavoriteToggle(P3DMenu *s,int model_index);
 int p3dFavoriteContains(const P3DMenu *s,int model_index);

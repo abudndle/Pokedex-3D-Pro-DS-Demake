@@ -5,12 +5,13 @@ static uint16_t rd16(const uint8_t *p){
     return (uint16_t)((uint16_t)p[0]|((uint16_t)p[1]<<8));
 }
 static int vertex(const P3DVerifiedGeometryPair *g,
-    const P3DVerifiedVertexUv *uv,unsigned mesh,unsigned index,
+    const uint8_t *payload,unsigned mesh,unsigned index,
     P3DPrimitiveUvVertex *out){
-    if(!out||mesh>=g->mesh_count||
-       !p3dVerifiedVertexUvGetPaired(uv,g,mesh,index,&out->u,&out->v))
-        return 0;
+    if(index>=g->meshes[mesh].vertex_count)return 0;
     out->xyz=g->meshes[mesh].xyz+(size_t)index*3u;
+    const uint8_t *uv=payload+(size_t)(out->xyz-g->xyz)/3u*4u;
+    out->u=(int16_t)rd16(uv);
+    out->v=(int16_t)rd16(uv+2);
     return 1;
 }
 int p3dVerifiedPrimitiveUvBridge(const P3DVerifiedGeometryPair *g,
@@ -25,8 +26,10 @@ int p3dVerifiedPrimitiveUvBridge(const P3DVerifiedGeometryPair *g,
        info.mesh_count!=g->mesh_count||info.triangles!=g->triangles||
        uv->model!=g->model||uv->mesh_count!=g->mesh_count)
         return 0;
-    /* Pass one is side-effect free: every indexed vertex must have a valid
-     * source-paired UV before the first renderer callback is allowed. */
+    const uint8_t *payload=p3dVerifiedVertexUvPairedPayload(uv,g);
+    if(!payload)return 0;
+    /* Check every index before invoking the first renderer callback. The
+     * payload and its mesh-to-XYZ layout have already been validated. */
     for(unsigned m=0;m<info.mesh_count;m++){
         uint16_t id=rd16(g->ix+pos);
         uint32_t count=(uint32_t)g->ix[pos+2]|
@@ -37,9 +40,8 @@ int p3dVerifiedPrimitiveUvBridge(const P3DVerifiedGeometryPair *g,
         for(uint32_t t=0;t<count;t++){
             uint16_t a=rd16(g->ix+pos),b=rd16(g->ix+pos+2),
                      c=rd16(g->ix+pos+4);
-            P3DPrimitiveUvVertex va,vb,vc;
-            if(!vertex(g,uv,m,a,&va)||!vertex(g,uv,m,b,&vb)||
-               !vertex(g,uv,m,c,&vc))return 0;
+            if(a>=g->meshes[m].vertex_count||b>=g->meshes[m].vertex_count||
+               c>=g->meshes[m].vertex_count)return 0;
             pos+=6;
         }
     }
@@ -56,8 +58,8 @@ int p3dVerifiedPrimitiveUvBridge(const P3DVerifiedGeometryPair *g,
             uint16_t a=rd16(g->ix+pos),b=rd16(g->ix+pos+2),
                      c=rd16(g->ix+pos+4);
             P3DPrimitiveUvVertex va,vb,vc;
-            if(!vertex(g,uv,m,a,&va)||!vertex(g,uv,m,b,&vb)||
-               !vertex(g,uv,m,c,&vc)||
+            if(!vertex(g,payload,m,a,&va)||!vertex(g,payload,m,b,&vb)||
+               !vertex(g,payload,m,c,&vc)||
                !sink(context,id,&va,&vb,&vc))return 0;
             pos+=6;
         }

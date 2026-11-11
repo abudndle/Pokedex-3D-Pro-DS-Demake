@@ -20,14 +20,15 @@ static uint32_t crc32_bytes(const uint8_t *p,size_t n){
 void p3dVerifiedVertexUvClear(P3DVerifiedVertexUv *uv){
     if(uv)memset(uv,0,sizeof(*uv));
 }
-static int validate(P3DVerifiedVertexUv *uv,const P3DVerifiedGeometryPair *g){
+static int validate(const P3DVerifiedVertexUv *uv,const P3DVerifiedGeometryPair *g,
+                    unsigned *vertex_count){
     unsigned count,cursor=0;
     size_t table_bytes,payload;
     if(!g||!g->ready||g->model>733||
        (g->model>=721&&g->model<=724)||!g->mesh_count||
        g->mesh_count>P3D_VERTEX_MAX_MESHES||
        !g->vx_size||g->vx_size>sizeof(g->vx)||
-       uv->size<UV_HEADER||memcmp(uv->bytes,"P3VU",4)!=0||
+       uv->size<UV_HEADER||uv->size>sizeof(uv->bytes)||memcmp(uv->bytes,"P3VU",4)!=0||
        rd16(uv->bytes+4)!=1||rd16(uv->bytes+6)!=g->model||
        rd16(uv->bytes+10)!=0)return 0;
     count=rd16(uv->bytes+8);
@@ -55,10 +56,7 @@ static int validate(P3DVerifiedVertexUv *uv,const P3DVerifiedGeometryPair *g){
         int16_t uvcoord=(int16_t)rd16(uv->bytes+payload+(size_t)i*2u);
         if(uvcoord<0||uvcoord>4096)return 0;
     }
-    uv->mesh_count=count;
-    uv->vertex_count=cursor;
-    uv->model=g->model;
-    uv->ready=1;
+    *vertex_count=cursor;
     return 1;
 }
 int p3dVerifiedVertexUvLoad(P3DVerifiedVertexUv *uv,const char *path,
@@ -86,11 +84,24 @@ int p3dVerifiedVertexUvLoad(P3DVerifiedVertexUv *uv,const char *path,
         p3dVerifiedVertexUvClear(uv);
         return 0;
     }
-    if(!validate(uv,geometry)){
+    if(!validate(uv,geometry,&uv->vertex_count)){
         p3dVerifiedVertexUvClear(uv);
         return 0;
     }
+    uv->mesh_count=(unsigned)geometry->mesh_count;
+    uv->model=geometry->model;
+    uv->ready=1;
     return 1;
+}
+
+const uint8_t *p3dVerifiedVertexUvPairedPayload(const P3DVerifiedVertexUv *uv,
+    const P3DVerifiedGeometryPair *geometry){
+    unsigned vertices;
+    if(!uv||!geometry||!uv->ready||uv->model!=geometry->model||
+       uv->mesh_count!=geometry->mesh_count||
+       !validate(uv,geometry,&vertices)||vertices!=uv->vertex_count)
+        return NULL;
+    return uv->bytes+UV_HEADER+(size_t)uv->mesh_count*UV_ROW;
 }
 int p3dVerifiedVertexUvGet(const P3DVerifiedVertexUv *uv,
                            unsigned mesh_index,unsigned vertex_index,
