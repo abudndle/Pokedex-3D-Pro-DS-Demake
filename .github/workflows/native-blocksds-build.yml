@@ -76,7 +76,10 @@ jobs:
             -o Acquire::http::Timeout=20 \
             -o Acquire::https::Timeout=20 \
             --no-install-recommends desmume xvfb x11-apps x11-utils xdotool strace
-          command -v desmume
+          test -x /usr/games/desmume-cli || {
+            echo 'DeSmuME CLI is missing at /usr/games/desmume-cli' >&2
+            exit 1
+          }
           command -v Xvfb
           command -v xdotool
       - name: Attempt ROM startup in DeSmuME CLI
