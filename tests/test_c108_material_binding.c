@@ -150,6 +150,12 @@ int main(int argc,char **argv){
     assert(p3dModelMaterialTexturesMatchMesh(&mat,&manifest,4));
     assert(!p3dPreviewTextureSetLoad(&set,&pixels,&mat,&manifest,argv[4]));
     assert(attempts==before && !set.ready && !set.count);
+    /* A maximal 16-bit range must not be accepted as covering a tiny mesh. */
+    mat.count=1;
+    mat.ranges[0].first_triangle=0;
+    mat.ranges[0].triangle_count=65535;
+    mat.ranges[0].texture_id=2;
+    assert(!p3dModelMaterialTexturesMatchMesh(&mat,&manifest,4));
     puts("C108: exact original mesh/material/UV texture bindings: PASS");
     return 0;
 }

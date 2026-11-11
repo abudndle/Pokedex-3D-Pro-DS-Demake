@@ -29,4 +29,8 @@ int p3dDexSelectionMatches(const char *query,int index,int field,int region,int 
  * no match, leave the numeric cursor alone and return 0. */
 int p3dDexRefreshSelection(const char *query,int *selection,int field,int region,int scope,
                            const P3DRecords *records,const P3DMenu *menu);
+/* Unfiltered keypad browsing keeps numeric offsets. Active filters step
+ * between matching entries and retain the cursor if no match exists. */
+int p3dDexKeypadSelection(const char *query,int selection,int delta,int field,int region,int scope,
+                         const P3DRecords *records,const P3DMenu *menu);
 #endif
