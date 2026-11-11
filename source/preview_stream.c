@@ -100,7 +100,7 @@ static int load_legacy(int resource_index) {
     if (fread(s_xyz,sizeof(s_xyz[0]),tri_count*9,f)!=(size_t)tri_count*9) goto invalid_legacy;
     /* v2 contract: packed RGB888 triplets, one per triangle, after all XYZ. */
     if (version==2 && fread(s_face_rgb,3,tri_count,f)!=(size_t)tri_count) goto invalid_legacy;
-    if (fgetc(f)!=EOF) goto invalid_legacy;
+    if (fgetc(f)!=EOF || ferror(f)) goto invalid_legacy;
     fclose(f);
     s_triangle_count=(int)tri_count;
     s_original_triangle_count=(int)get32(head+12);

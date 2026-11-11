@@ -1,5 +1,16 @@
 #include <assert.h>
 #include <stdio.h>
+static int fail_eof_check;
+int __real_fgetc(FILE *stream);
+int __wrap_fgetc(FILE *stream){
+    int result=__real_fgetc(stream);
+    if(fail_eof_check && result==EOF){
+        fail_eof_check=0;
+        /* Set the real stream error flag without changing the fixture. */
+        assert(fputc(0,stream)==EOF && ferror(stream));
+    }
+    return result;
+}
 #include "preview_stream.h"
 static int emitted;
 static int red_seen,green_seen;
@@ -20,6 +31,10 @@ static void corrupt_last_chunk(const char *path){
 }
 int main(void){
  assert(previewStreamInit());
+ fail_eof_check=1;
+ assert(previewStreamLoad(5));
+ assert(previewStreamIsChunked());
+ assert(!fail_eof_check);
  assert(previewStreamLoad(0));
  assert(previewStreamHasModel());
  assert(previewStreamTriangleCount()==1);
