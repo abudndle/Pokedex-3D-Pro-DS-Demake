@@ -9,8 +9,8 @@ on:
       - 'scripts/local_agent_propose.py'
       - 'AGENTS.md'
       - 'tests/test_local_agent_propose.py'
-  schedule:
-    - cron: '*/5 * * * *'
+  # Manual fallback only; free-full-milestone-agent.yml owns the single
+  # five-minute coding schedule so two models cannot compete for source PRs.
   workflow_dispatch:
 
 # Short-lived disposable GitHub runner, not an always-on service.
