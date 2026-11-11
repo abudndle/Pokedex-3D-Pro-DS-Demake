@@ -62,9 +62,23 @@ jobs:
           name: native-ds-smoke-rom
           path: emulator-rom
       - name: Install Nintendo DS emulator and virtual display
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y desmume xvfb x11-apps x11-utils xdotool strace
+          set -euo pipefail
+          # Mirror/DNS failures must not keep an emulator acceptance job stuck.
+          # Retry transient failures, then fail explicitly; never skip the test.
+          sudo DEBIAN_FRONTEND=noninteractive timeout 150s apt-get update \
+            -o Acquire::Retries=2 \
+            -o Acquire::http::Timeout=20 \
+            -o Acquire::https::Timeout=20
+          sudo DEBIAN_FRONTEND=noninteractive timeout 180s apt-get install -y \
+            -o Acquire::Retries=2 \
+            -o Acquire::http::Timeout=20 \
+            -o Acquire::https::Timeout=20 \
+            --no-install-recommends desmume xvfb x11-apps x11-utils xdotool strace
+          command -v desmume
+          command -v Xvfb
+          command -v xdotool
       - name: Attempt ROM startup in DeSmuME CLI
         shell: bash
         run: |
