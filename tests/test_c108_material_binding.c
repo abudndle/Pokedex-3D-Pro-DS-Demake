@@ -150,6 +150,17 @@ int main(int argc,char **argv){
     assert(p3dModelMaterialTexturesMatchMesh(&mat,&manifest,4));
     assert(!p3dPreviewTextureSetLoad(&set,&pixels,&mat,&manifest,argv[4]));
     assert(attempts==before && !set.ready && !set.count);
+    /* A hostile range sequence must not wrap unsigned coverage back to
+     * zero and accidentally appear to match a short Pokémon mesh. */
+    mat.count=2;
+    mat.ranges[0].first_triangle=0;
+    mat.ranges[0].triangle_count=~0u;
+    mat.ranges[0].texture_id=2;
+    mat.ranges[1].first_triangle=~0u;
+    mat.ranges[1].triangle_count=2;
+    mat.ranges[1].texture_id=7;
+    assert(!p3dModelMaterialTexturesValid(&mat,&manifest));
+    assert(!p3dModelMaterialTexturesMatchMesh(&mat,&manifest,1));
     puts("C108: exact original mesh/material/UV texture bindings: PASS");
     return 0;
 }
