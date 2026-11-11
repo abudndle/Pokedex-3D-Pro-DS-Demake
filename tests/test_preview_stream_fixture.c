@@ -101,13 +101,19 @@ int main(void){
  assert(previewStreamLoad(6)); /* invalid P3CS falls back to legacy DS3M */
  assert(!previewStreamIsChunked());
  assert(previewStreamTriangleCount()==1);
- assert(!previewStreamLoad(7)); /* P3CS-only corrupt source cannot render */
+ assert(!previewStreamLoad(7)); /* Both source files are invalid. */
  assert(!previewStreamHasModel());
  previewStreamPreferChunks(0);
  assert(!previewStreamPrefersChunks());
  assert(previewStreamLoad(5)); /* reverting to original 600-face setting */
  assert(!previewStreamIsChunked());
  assert(previewStreamTriangleCount()==1);
+ assert(previewStreamLoad(12)); /* Truncated DS3M must not hide valid P3CS. */
+ assert(previewStreamIsChunked());
+ assert(previewStreamTriangleCount()==1202);
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==1202*3);
  assert(!previewStreamLoad(4)); /* v2 colors truncated */
  assert(!previewStreamLoad(2)); /* 601 triangles must not overflow the buffer. */
  /* C103: invalid reserved header bytes, implausible source face
