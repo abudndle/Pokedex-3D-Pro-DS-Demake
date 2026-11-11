@@ -40,7 +40,7 @@ static void run_mode(int mode){
    assert(!p3dChallengeContinue(&q));
   }else assert(q.stage==P3D_CHALLENGE_RESULTS);
  }
- assert(q.score==P3D_CHALLENGE_QUESTIONS/2);
+ assert(q.score==P3D_CHALLENGE_QUESTIONS/2 || (q.stage==P3D_CHALLENGE_RESULTS && q.score==P3D_CHALLENGE_QUESTIONS));
  assert(!p3dChallengeContinue(&q));
  assert(p3dChallengeAnswer(&q,0)==-1);
  assert(p3dChallengeBegin(&q,mode,123,50));

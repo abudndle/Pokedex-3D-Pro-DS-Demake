@@ -64,7 +64,12 @@ int p3dChallengeAnswer(P3DChallenge *q,int choice){
     choice>=P3D_CHALLENGE_OPTIONS)return -1;
  success=(choice==q->correct);
  q->selected=choice;
- if(success)q->score++;
+ if(success){
+     q->score++;
+     if(q->stage==P3D_CHALLENGE_REVIEW && q->question==P3D_CHALLENGE_QUESTIONS-1){
+         q->stage=P3D_CHALLENGE_RESULTS;
+     }
+ }
  /* C232: the answered question's Pokémon and four choices remain intact.
   * A second submission in REVIEW is rejected rather than double-scored. */
  q->stage=P3D_CHALLENGE_REVIEW;
