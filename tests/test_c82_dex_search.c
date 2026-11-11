@@ -107,6 +107,21 @@ int main(int argc,char **argv){
     assert(p3dDexKeypadSelection("",0,1,P3D_DEX_SEARCH_NAME,0,P3D_DEX_SCOPE_FAVORITES,&history,&menu)==62);
     assert(p3dDexKeypadSelection("",62,-10,P3D_DEX_SEARCH_NAME,0,P3D_DEX_SCOPE_FAVORITES,&history,&menu)==0);
     assert(p3dDexKeypadSelection("",0,1,P3D_DEX_SEARCH_NAME,0,P3D_DEX_SCOPE_VIEWED,&history,&menu)==24);
+    /* A focused handoff must show Bulbasaur even after a PIK search. */
+    menu.page=P3D_PAGE_DEX;
+    strcpy(menu.search_query,"PIK");
+    assert(p3dMenuOpenPokemonSearch(&menu,0));
+    assert(menu.page==P3D_PAGE_SEARCH&&menu.selected_dex==0);
+    assert(p3dDexSelectionMatches(menu.search_query,0,P3D_DEX_SEARCH_NAME,0,
+                                   P3D_DEX_SCOPE_ALL,&history,&menu));
+    menu.page=P3D_PAGE_FAVORITES;
+    strcpy(menu.search_query,"PIK");
+    assert(p3dMenuOpenPokemonSearch(&menu,62));
+    assert(menu.page==P3D_PAGE_SEARCH&&menu.selected_dex==62&&!menu.search_query[0]);
+    assert(menu.favorites_count==2);
+    menu.page=P3D_PAGE_DEX;
+    assert(!p3dMenuOpenPokemonSearch(&menu,649));
+    assert(menu.page==P3D_PAGE_DEX&&menu.selected_dex==62);
     p3dDexTextClose();
     assert(!p3dDexSelectionMatches("PIK",24,P3D_DEX_SEARCH_NAME,0,
                                    P3D_DEX_SCOPE_ALL,&history,&menu));

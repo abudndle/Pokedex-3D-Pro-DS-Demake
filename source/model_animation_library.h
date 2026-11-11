@@ -19,8 +19,9 @@ typedef struct {
 int p3dAnimationLibraryLoad(P3DAnimationLibrary *library,
                              P3DAnimationClip *clip,
                              const char *directory,int resource_index);
-/* Cycle among validated clips. Returns 1 only for an actual selection
- * change; failure invalidates playback rather than rendering stale poses. */
+/* Cycle among validated clips. Returns 1 only for a selection change.
+ * If no alternative validates, keep the current selection only when its
+ * file still validates. Otherwise invalidate playback. */
 int p3dAnimationLibraryStep(P3DAnimationLibrary *library,
                              P3DAnimationClip *clip,
                              const char *directory,int direction);

@@ -175,6 +175,13 @@ static void refresh_search_selection(void){
         (void)p3dDexRefreshSelection(state.search_query,&state.selected_dex,
             search_field,search_region,search_scope,&records,&state);
 }
+static int open_focused_search(int species){
+    if(!p3dMenuOpenPokemonSearch(&state,species))return 0;
+    search_region=0;
+    search_scope=P3D_DEX_SCOPE_ALL;
+    search_field=P3D_DEX_SEARCH_NAME;
+    return 1;
+}
 static int move_text_offset=0;
 /* C100 shows actual original P3DM effect text; defaults to description. */
 static int move_show_effect=0;
@@ -2252,10 +2259,7 @@ int main(void) {
                  * destination never displays a different old query result.
                  * Consume the key to prevent same-frame search actions. */
                 if((down&KEY_A) && !(down&(KEY_Y|KEY_X|KEY_TOUCH)) &&
-                   p3dTypeChartOpenSearch(&state,dex_index)){
-                    search_region=P3D_DEX_SCOPE_ALL;
-                    search_scope=P3D_DEX_SCOPE_ALL;
-                    search_field=P3D_DEX_SEARCH_NAME;
+                   open_focused_search(dex_index)){
                     down=0;
                     redraw=1;
                 }
@@ -2285,13 +2289,11 @@ int main(void) {
                 if(favorite_index<0 || favorite_index>=state.favorites_count)
                     favorite_index=0;
                 if((down&KEY_Y) && !(down&(KEY_A|KEY_X))){
-                    if(state.favorites_count>0){
-                        state.selected_dex=state.favorites[favorite_index];
-                    }else{
-                        state.selected_dex=dex_index;
+                    int species=state.favorites_count>0?state.favorites[favorite_index]:dex_index;
+                    if(open_focused_search(species)){
+                        down=0;
+                        redraw=1;
                     }
-                    state.page=P3D_PAGE_SEARCH;
-                    redraw=1;
                 }
                 if(!showing_original_art && (down&KEY_TOUCH) && !(down&~KEY_TOUCH)){
                     touchPosition point;touchRead(&point);
@@ -2332,9 +2334,9 @@ int main(void) {
             /* Explicit entry controllers consume the initiating buttons.
              * Do not process Pokédex A/LEFT/RIGHT input again on the same frame; otherwise
              * X+A could immediately remove the just-opened favorite. */
-            if(state.page==P3D_PAGE_DEX && (down&KEY_X) && !(down&(KEY_A|KEY_Y))){
-                state.selected_dex=dex_index;
-                state.page=P3D_PAGE_SEARCH;
+            if(state.page==P3D_PAGE_DEX && (down&KEY_X) && !(down&(KEY_A|KEY_Y)) &&
+               open_focused_search(dex_index)){
+                down=0;
                 redraw=1;
             }
             if(state.page==P3D_PAGE_DEX && !(down&KEY_X)){
