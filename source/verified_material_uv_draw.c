@@ -1,5 +1,6 @@
 #include "verified_material_uv_draw.h"
 #include "source_material_texture_match.h"
+#include "source_color_ranges.h"
 typedef struct {
     const int *face_textures;
     unsigned triangle_count,next_triangle;
@@ -15,6 +16,8 @@ static int material_triangle(void *opaque,uint16_t mesh_id,
     if(!ctx||ctx->next_triangle>=ctx->triangle_count)return 0;
     tri=ctx->next_triangle++;
     texture_id=ctx->face_textures[tri];
+    if(texture_id==P3D_SOURCE_MATERIAL_NO_TEXTURE)
+        return ctx->sink(ctx->context,mesh_id,tri,(unsigned)texture_id,a,b,c);
     if(texture_id<0||
        !p3dSourceCandidateTextureRangeReady(ctx->face_textures,
           ctx->triangle_count,ctx->triangle_count,tri,1,
@@ -25,7 +28,7 @@ static int material_triangle(void *opaque,uint16_t mesh_id,
 int p3dVerifiedMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
     const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
     const P3DMaterialMap *materials,const P3DTextureManifest *textures,
-    const P3DSourceShaderCaps *shader_caps,
+    const P3DSourceShaderCaps *shader_caps,const P3DSourceMaterialWords *words,
     P3DVerifiedMaterialTriangleSink sink,void *context){
     int face_textures[600];
     MaterialDrawContext draw;
@@ -37,11 +40,21 @@ int p3dVerifiedMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
     if(source->triangle_count!=triangles||
        !p3dSourceMaterialTextureReferencesMatch(source,materials,textures,
           geometry->model,triangles)||
-       !p3dSourceShaderColorReferencesMatch(shader_caps,source,materials,
-          textures,geometry->model,triangles)||
        !p3dSourceCandidateTextureMap(source,materials,textures,
           geometry->model,triangles,face_textures,triangles))
         return 0;
+    if(words){
+        P3DSourceColorRanges ranges;
+        if(!p3dSourceColorRangesBuild(&ranges,words,shader_caps,source,
+            materials,textures,geometry->model,triangles)||!ranges.approved)return 0;
+        for(unsigned i=0;i<ranges.count;i++){
+            const P3DMaterialRange *range=&materials->ranges[i];
+            if(!ranges.enabled[i])
+                for(unsigned j=0;j<range->triangle_count;j++)
+                    face_textures[range->first_triangle+j]=P3D_SOURCE_MATERIAL_NO_TEXTURE;
+        }
+    }else if(!p3dSourceShaderColorReferencesMatch(shader_caps,source,materials,
+          textures,geometry->model,triangles))return 0;
     draw.face_textures=face_textures;
     draw.triangle_count=triangles;
     draw.next_triangle=0;

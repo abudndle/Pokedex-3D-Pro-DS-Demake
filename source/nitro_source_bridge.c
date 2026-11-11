@@ -85,6 +85,7 @@ int p3dNitroPayloadValidate(const P3DNitroManifest *m,
 static int initialized;
 static NE_Model *active_model;
 static NE_Animation *active_animation;
+static unsigned char *active_mesh_bytes,*active_animation_bytes;
 static int active_animated;
 static int build_path(char out[88],uint16_t id,const char *ext){
     int n=snprintf(out,88,"nitro:/models/nitro/p%03u.%s",
@@ -114,6 +115,8 @@ int p3dNitroBridgeInit(void){
 void p3dNitroBridgeUnload(void){
     if(active_model){NE_ModelDelete(active_model);active_model=NULL;}
     if(active_animation){NE_AnimationDelete(active_animation);active_animation=NULL;}
+    free(active_mesh_bytes);active_mesh_bytes=NULL;
+    free(active_animation_bytes);active_animation_bytes=NULL;
     active_animated=0;
 }
 int p3dNitroBridgeLoad(uint16_t resource,const void *vx,size_t vx_size,
@@ -142,23 +145,25 @@ int p3dNitroBridgeLoad(uint16_t resource,const void *vx,size_t vx_size,
         goto finish;
     active_model=NE_ModelCreate(m.kind==P3D_NITRO_STATIC?NE_Static:NE_Animated);
     if(!active_model)goto finish;
+    /* Nitro Engine's RAM loaders borrow these exact validated buffers. */
     if(m.kind==P3D_NITRO_STATIC){
-        if(!build_path(path,resource,"dl")||
-           !NE_ModelLoadStaticMeshFAT(active_model,path))goto finish;
+        if(!NE_ModelLoadStaticMesh(active_model,mesh))goto finish;
     }else{
-        if(!build_path(path,resource,"dsm")||
-           !NE_ModelLoadDSMFAT(active_model,path))goto finish;
+        if(!NE_ModelLoadDSM(active_model,mesh))goto finish;
         active_animation=NE_AnimationCreate();
-        if(!active_animation || !build_path(path,resource,"dsa")||
-           !NE_AnimationLoadFAT(active_animation,path))goto finish;
+        if(!active_animation || !NE_AnimationLoad(active_animation,animation))goto finish;
         NE_ModelSetAnimation(active_model,active_animation);
         NE_ModelAnimStart(active_model,NE_ANIM_LOOP,1<<11); /* 0.5 frame/VBL */
         active_animated=1;
     }
+    active_mesh_bytes=mesh;
+    active_animation_bytes=animation;
     ok=1;
 finish:
-    free(mesh);free(animation);
-    if(!ok)p3dNitroBridgeUnload();
+    if(!ok){
+        p3dNitroBridgeUnload();
+        free(mesh);free(animation);
+    }
     return ok;
 }
 int p3dNitroBridgeDraw(void){

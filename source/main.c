@@ -189,7 +189,7 @@ static P3DPhotoAlbum photo_album;
 static int album_ready=0;
 static size_t album_offset=0;
 static size_t album_selected=0;
-static int album_confirm_delete=0;
+static char album_delete_name[12];
 static P3DPhotoViewer album_view;
 static int showing_album_photo=0;
 static int album_resume_unavailable=0;
@@ -414,7 +414,7 @@ static void reload_preview(void){
                                &native_color_ranges,words,&native_shader_caps,
                                &native_source_materials,&native_materials,
                                &native_textures,(unsigned)resource,count)
-                           && native_color_ranges.approved==native_materials.count
+                           && native_color_ranges.approved>0
                            && native_color_ranges.count==native_materials.count
                            && p3dModelMaterialTexturesMatchMesh(
                                &native_materials,&native_textures,count)){
@@ -431,7 +431,7 @@ static void reload_preview(void){
                                !p3dDsMaterialUvPrepare(
                                    &source_geometry_pair,&source_geometry_uv,
                                    &native_source_materials,&native_materials,
-                                   &native_textures,&native_shader_caps,
+                                   &native_textures,&native_shader_caps,words,
                                    &native_texture_cache,&preview_pixels)){
                                 p3dDsMaterialTextureCacheDestroy(
                                     &native_texture_cache);
@@ -666,7 +666,8 @@ static void render_model(void){
             native_draw_ok=p3dDsMaterialUvDraw(
                 &source_geometry_pair,&source_geometry_uv,
                 &native_source_materials,&native_materials,&native_textures,
-                &native_shader_caps,&native_texture_cache,&preview_pixels,&drawn);
+                &native_shader_caps,&native_source_words,&native_texture_cache,
+                &preview_pixels,&drawn);
             if(!native_draw_ok){
                 /* C306: texturing is a GPU-wide display control. Turning
                  * it off immediately after submitting polygon commands
@@ -1098,8 +1099,8 @@ static void render(void) {
                 if(!shown)printf("No saved AR photos.\n");
                 for(size_t i=0;i<shown;i++)printf("%c%s\n",i==album_selected?'>':' ',photos[i]);
                 printf("UP/DOWN: select  L/R: page\n");
-                if(album_confirm_delete && shown)
-                    printf("Delete %s? A:yes B:no\n",photos[album_selected]);
+                if(album_delete_name[0])
+                    printf("Delete %s? A:yes B:no\n",album_delete_name);
                 else printf("X: delete (confirm with A)\n");
             }
         } else if(state.page==P3D_PAGE_CHALLENGE){
@@ -1433,7 +1434,7 @@ static void render(void) {
                     size_t i=first+row;
                     printf("\x1b[%d;1H%c%s",P3D_ALBUM_LIST_ROW+(int)row*2,i==album_selected?'>':' ',names[i]);
                 }
-                printf("\x1b[%d;1H%s",P3D_ALBUM_ACTION_ROW,album_confirm_delete?"A: delete  B: cancel":"VIEW PHOTO      X: delete");
+                printf("\x1b[%d;1H%s",P3D_ALBUM_ACTION_ROW,album_delete_name[0]?"A: delete  B: cancel":"VIEW PHOTO      X: delete");
                 printf("\x1b[%d;1H< PREV",P3D_ALBUM_NAV_ROW);
                 printf("\x1b[%d;24HNEXT >",P3D_ALBUM_NAV_ROW);
             }
@@ -1772,7 +1773,7 @@ int main(void) {
             prefer_original_art=!prefer_original_art;
             /* An invisible confirmation must never remain armed when the
              * screen mode changes, including returning to the text screen. */
-            album_confirm_delete=0;
+            album_delete_name[0]=0;
             art_page=-1; /* force re-evaluation of the same page */
             top_art_page=-1; /* refresh upper artwork or dev fallback too */
             redraw=1;
@@ -1822,8 +1823,8 @@ int main(void) {
                 }else if(state.page==P3D_PAGE_ALBUM && album_view.active){
                     p3dPhotoViewerClose(&album_view);
                     art_page=-1;
-                }else if(state.page==P3D_PAGE_ALBUM && album_confirm_delete){
-                    album_confirm_delete=0;
+                }else if(state.page==P3D_PAGE_ALBUM && album_delete_name[0]){
+                    album_delete_name[0]=0;
                 }else{
                     if(progress_dirty && save_progress())progress_dirty=0;
                     home=1;
@@ -2079,18 +2080,17 @@ int main(void) {
                         else p3dPhotoViewerClose(&album_view);
                         art_page=-1;redraw=1;
                     }
-                }else if(album_confirm_delete){
+                }else if(album_delete_name[0]){
                     /* A deletion must not be confirmed under an invisible
                      * bitmap-overlay prompt or after a simultaneous selection. */
-                    if((down&KEY_A) && !showing_original_art &&
-                       !(down&(KEY_UP|KEY_DOWN|KEY_LEFT|KEY_RIGHT|KEY_TOUCH))){
-                        if(shown && p3dPhotoAlbumDelete(&photo_album,names[album_selected]))
-                            redraw=1;
-                        album_confirm_delete=0;
+                    if(down==KEY_A && !showing_original_art){
+                        (void)p3dPhotoAlbumConfirmDelete(&photo_album,album_delete_name,
+                                                        shown?names[album_selected]:NULL);
+                        album_delete_name[0]=0;
                         redraw=1;
                     }
                     if((down&KEY_X) || showing_original_art){
-                        album_confirm_delete=0;redraw=1;
+                        album_delete_name[0]=0;redraw=1;
                     }
                 }else{
                     int open_photo=(down&KEY_A) &&
@@ -2099,9 +2099,9 @@ int main(void) {
                     if((down&KEY_DOWN) && album_selected+1<shown){album_selected++;redraw=1;}
                     /* Never request deletion while its confirmation is hidden
                      * beneath an original-art bitmap overlay. */
-                    if((down&KEY_X) && shown && !showing_original_art &&
-                       !(down&(KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN))){
-                        album_confirm_delete=1;redraw=1;
+                    if(down==KEY_X && shown && !showing_original_art){
+                        memcpy(album_delete_name,names[album_selected],sizeof(album_delete_name));
+                        redraw=1;
                     }
                     int direction=(down&(KEY_LEFT|KEY_L))?-1:((down&(KEY_RIGHT|KEY_R))?1:0);
                     if((down&KEY_TOUCH) && !showing_original_art){
@@ -2115,7 +2115,7 @@ int main(void) {
                         else if(action==P3D_ALBUM_TOUCH_PREV)direction=-1;
                         else if(action==P3D_ALBUM_TOUCH_NEXT)direction=1;
                     }
-                    if(open_photo && shown && album_selected<shown && !album_confirm_delete){
+                    if(open_photo && shown && album_selected<shown && !album_delete_name[0]){
                         p3dPhotoViewerOpen(&album_view,&photo_album,names[album_selected]);
                         art_page=-1;redraw=1;
                     }
@@ -2176,7 +2176,7 @@ int main(void) {
                         state.page=P3D_PAGE_ALBUM;
                         album_offset=0;
                         album_selected=0;
-                        album_confirm_delete=0;
+                        album_delete_name[0]=0;
                         redraw=1;
                     }
                 }

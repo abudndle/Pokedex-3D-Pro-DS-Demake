@@ -10,6 +10,18 @@ int main(void){
      assert(hit==(start+(size_t)row<(size_t)n?(int)(start+(size_t)row):-1) || (start+(size_t)row>P3D_MENU_VISIBLE_ROWS-1));
    }
  }
+ /* Lists longer than six rows must keep their actual saved cursor.
+  * Previously cursor 6/7 in a ten-entry list jumped to index 9,
+  * shifting the visible touchscreen hitboxes to the final page. */
+ assert(p3dMenuClampCursor(6,10)==6);
+ assert(p3dMenuClampCursor(7,10)==7);
+ assert(p3dMenuClampCursor(10,10)==9);
+ assert(p3dMenuVisibleStart(10,6)==2);
+ assert(p3dMenuVisibleStart(10,7)==3);
+ assert(p3dMenuVisibleStart(10,9)==4);
+ assert(p3dMenuHitTest(20,105,10,6)==2);
+ assert(p3dMenuHitTest(20,105,10,7)==3);
+ assert(p3dMenuHitTest(20,155,10,6)==7);
  assert(p3dMenuHitTest(13,105,6,0)==-1);
  assert(p3dFeatureHitTest(20,100,8)==0);
  assert(p3dAlbumPageTouch(20,185)==-1);

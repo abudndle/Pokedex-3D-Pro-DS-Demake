@@ -43,10 +43,13 @@ xwd -id "$window" -silent -out c306-blue.xwd
 xdotool keydown d; sleep 0.5; xdotool keyup d
 sleep 2
 xwd -id "$window" -silent -out c306-legacy.xwd
+xdotool keydown d; sleep 0.5; xdotool keyup d
+sleep 2
+xwd -id "$window" -silent -out c306-mixed.xwd
 xdotool keydown b; sleep 0.5; xdotool keyup b
 sleep 2
 xwd -id "$window" -silent -out c306-back.xwd
 kill -0 "$pid"
 python3 tests/c306_synthetic_texture_frame_gate.py \
-  c306-home.xwd c306-red.xwd c306-blue.xwd c306-legacy.xwd c306-back.xwd
+  c306-home.xwd c306-red.xwd c306-blue.xwd c306-legacy.xwd c306-mixed.xwd c306-back.xwd
 echo "C306 native and mixed legacy texture visual acceptance: PASS"
