@@ -1,4 +1,5 @@
 #include "model_material_texture.h"
+#include <limits.h>
 
 /* Validate source-derived material coverage, not only whether each texture ID
  * appears somewhere in a manifest. A stray/overlapping range can otherwise
@@ -22,6 +23,8 @@ static int valid_bindings(const P3DMaterialMap *materials,
    const P3DMaterialRange *range=&materials->ranges[i];
    if(range->first_triangle!=cursor||!range->triangle_count||
       !p3dTextureFind(textures,range->texture_id))return 0;
+   /* Prevent a malformed private range from wrapping the coverage cursor. */
+   if(range->triangle_count>UINT_MAX-cursor)return 0;
    cursor+=range->triangle_count;
    if(mesh_triangles && cursor>mesh_triangles)return 0;
  }
