@@ -1,4 +1,12 @@
-# Development checkpoint - learnset navigation and preview recovery
+# Development checkpoint - Type Matchups, preview recovery and UV staging
+
+## Runtime corrections
+
+Branch `codex/c441-runtime-correctness` stacks on #420. `main` was still `9cb9e34` at fetch. Type Matchups skips the other active defending type in either selector, treats a repeated type as one defense, and resumes older duplicate selections with the second slot off. Distinct dual-type multipliers are preserved. The old feature-menu regression reproduced the incorrect multiplier. The preceding ROM also reproduced Water against Grass/Grass at 0.25× in melonDS.
+
+The preview renderer now reopens a validated legacy mesh when a P3CS chunk fails its draw-time check. Earlier valid chunks may already be submitted in that frame. The next draw uses the legacy mesh, or emits nothing if it is unavailable. The host fixture changes a chunk after loading and checks the next frame's vertices and metadata. UV staging now rejects repeated model IDs in a provenance report before any output, so a conflicting source label cannot replace the first record.
+
+Read the pull request for BlocksDS, emulator and Linux CI evidence. Full original rendering and animation remain limited by the verified source inputs described below. Keep the private ROM and all original assets outside public source and CI.
 
 ## Current integration
 
