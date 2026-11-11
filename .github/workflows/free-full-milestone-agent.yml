@@ -47,7 +47,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pending="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName --jq '[.[] | select(.headRefName | startswith("agent/run-"))] | length')"
+          # Ignore expired bot proposals after the same two-hour period used
+          # by guarded-local-agent-merge.yml. A stale draft must not block
+          # all future five-minute coding attempts if merge CI is congested.
+          pending="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName,createdAt --jq '[.[] | select((.headRefName | startswith("agent/run-") or startswith("agent/free-") or startswith("agent/local-")) and (now - (.createdAt | fromdateiso8601) < 7200))] | length')"
           if (( pending > 0 )); then
             echo "Agent PR already open; defer new milestone."
             echo "run_agent=false" >> "$GITHUB_OUTPUT"
@@ -159,11 +162,11 @@ jobs:
           task="Implement this already-selected DS/DSi milestone in $target_source and $target_test.
           Required behavior: $objective.
           First inspect both files. Identify a real missing edge case matching that behavior. Add a regression that would fail against the old code, then implement the smallest correct source fix. Make actual code and test edits now. Do not ask which milestone, ask for permission, or merely describe a plan. If the requested edge case is already handled, find another real uncovered case in the same two files; do not make cosmetic edits or claim original 3DS parity. Preserve public source safety; never access proprietary assets, secrets, or workflows. Keep all changes within these two files."
-          timeout --signal=TERM --kill-after=30s 1500s \
+          timeout --signal=TERM --kill-after=30s 900s \
             "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:3b \
               --yes-always --no-auto-commits --no-gitignore --no-show-model-warnings \
               --no-check-update --no-restore-chat-history --no-detect-urls \
-              --edit-format diff --map-tokens 0 \
+              --edit-format whole --map-tokens 0 \
               --chat-history-file "$RUNNER_TEMP/aider-chat-history.md" \
               --input-history-file "$RUNNER_TEMP/aider-input-history" \
               --llm-history-file "$RUNNER_TEMP/aider-llm-history" \
@@ -202,6 +205,23 @@ jobs:
             printf 'Assigned: %s %s; changed: %s\n' "$AGENT_TARGET_SOURCE" "$AGENT_TARGET_TEST" "${changed_paths[*]}" >&2
             exit 1
           fi
+          # Reject cosmetic source changes and regression-test weakening before
+          # burning CI or opening a draft PR. Human-authored proposals may still
+          # use the normal pull-request review flow for intentional test changes.
+          if git diff --cached --ignore-all-space --quiet -- "$AGENT_TARGET_SOURCE"; then
+            echo "::error::Assigned source contains no non-whitespace change."
+            exit 1
+          fi
+          if git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
+             grep -E '^-[^-]*assert\(' >/dev/null; then
+            echo "::error::Existing regression assertion modified or removed."
+            exit 1
+          fi
+          if ! git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
+                grep -E '^\+[^+]*assert\(' >/dev/null; then
+            echo "::error::No added regression assertion for assigned fix."
+            exit 1
+          fi
           python3 tools/hosted_milestone_agent.py check
           echo "has_changes=true" >> "$GITHUB_OUTPUT"
 
@@ -215,6 +235,19 @@ jobs:
         run: |
           set -euo pipefail
           sh tests/run_source_smoke.sh
+          # Run the exact regression paired with the edited C module.
+          # run_source_smoke.sh alone does not exercise these three modules.
+          case "$AGENT_TARGET_TEST" in
+            tests/test_c119_resume_title_idle.c)
+              sh tests/run_c119_resume_idle.sh ;;
+            tests/test_c230_playback_controls.c)
+              sh tests/run_c230_playback_controls.sh ;;
+            tests/test_c232_challenge_review.c)
+              sh tests/run_challenge_smoke.sh ;;
+            *)
+              echo "::error::Unknown assigned test: $AGENT_TARGET_TEST"
+              exit 1 ;;
+          esac
 
       - name: Publish gated draft PR for independent CI (never auto-merge)
         if: steps.changes.outputs.has_changes == 'true'
@@ -246,7 +279,33 @@ jobs:
             printf 'Assigned: %s %s; changed: %s\n' "$AGENT_TARGET_SOURCE" "$AGENT_TARGET_TEST" "${changed_paths[*]}" >&2
             exit 1
           fi
+          # Reject cosmetic source changes and regression-test weakening before
+          # burning CI or opening a draft PR. Human-authored proposals may still
+          # use the normal pull-request review flow for intentional test changes.
+          if git diff --cached --ignore-all-space --quiet -- "$AGENT_TARGET_SOURCE"; then
+            echo "::error::Assigned source contains no non-whitespace change."
+            exit 1
+          fi
+          if git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
+             grep -E '^-[^-]*assert\(' >/dev/null; then
+            echo "::error::Existing regression assertion modified or removed."
+            exit 1
+          fi
+          if ! git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
+                grep -E '^\+[^+]*assert\(' >/dev/null; then
+            echo "::error::No added regression assertion for assigned fix."
+            exit 1
+          fi
           python3 tools/hosted_milestone_agent.py check
+          # Do not publish a new proposal based on a stale main checkout.
+          # Scheduled jobs may run for many minutes while independent fixes land.
+          # The next scheduled invocation will pick up the current main.
+          initial_main_sha="$(git rev-parse HEAD)"
+          current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$initial_main_sha" != "$current_main_sha" ]]; then
+            echo "::error::Main advanced during agent inference; no proposal published. Next scheduled run starts from current main."
+            exit 1
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "agent: propose bounded DS/DSi milestone implementation"

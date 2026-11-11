@@ -1,16 +1,8 @@
 name: Free bounded on-runner coding agent
 
+# Opt-in fallback only. The full-module agent owns the scheduled cadence.
+# Source or workflow commits must not trigger a second LLM job.
 on:
-  # Run this workflow once when its own configuration is changed.
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/local-linux-agent.yml'
-      - 'scripts/local_agent_propose.py'
-      - 'AGENTS.md'
-      - 'tests/test_local_agent_propose.py'
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 # Short-lived disposable GitHub runner, not an always-on service.
