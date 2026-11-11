@@ -114,3 +114,15 @@ int p3dDexRefreshSelection(const char *query,int *selection,int field,
  *selection=hit;
  return 1;
 }
+int p3dDexKeypadSelection(const char *query,int selection,int delta,int field,int region,int scope,
+                         const P3DRecords *records,const P3DMenu *menu){
+ if(!query||!delta)return selection;
+ if(!*query&&field==P3D_DEX_SEARCH_NAME&&region==0&&scope==P3D_DEX_SCOPE_ALL){
+  int64_t next=(int64_t)selection+delta;
+  if(next<0)return 0;
+  if(next>=P3D_NATIONAL_SPECIES_COUNT)return P3D_NATIONAL_SPECIES_COUNT-1;
+  return (int)next;
+ }
+ int hit=p3dDexFindScoped(query,selection,delta>0?1:-1,field,region,scope,records,menu);
+ return hit<0?selection:hit;
+}

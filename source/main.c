@@ -959,8 +959,11 @@ static void render(void) {
                 printf("SELECT: show text search UI\n");
             }
             printf("Pokemon number: %03d / 649\n",state.selected_dex+1);
-            printf("LEFT/RIGHT: +/- 1\n");
-            printf("UP/DOWN: +/- 10\n");
+            if(search_filtered())printf("Arrows: matching entries\n");
+            else{
+                printf("LEFT/RIGHT: +/- 1\n");
+                printf("UP/DOWN: +/- 10\n");
+            }
             if(search_actionable()){
                 printf("A: open this Pokemon\n");
                 printf("Y: toggle favorite (%s)\n",p3dFavoriteContains(&state,state.selected_dex)?"saved":"not saved");
@@ -1966,10 +1969,10 @@ int main(void) {
                                 if(hit>=0)next=hit;
                             }
                         }else{
-                            if(down&KEY_LEFT)next--;
-                            if(down&KEY_RIGHT)next++;
-                            if(down&KEY_UP)next-=10;
-                            if(down&KEY_DOWN)next+=10;
+                            int delta=((down&KEY_RIGHT)!=0)-((down&KEY_LEFT)!=0);
+                            delta+=10*(((down&KEY_DOWN)!=0)-((down&KEY_UP)!=0));
+                            next=p3dDexKeypadSelection(state.search_query,next,delta,
+                                search_field,search_region,search_scope,&records,&state);
                         }
                         if(next<0)next=0;
                         if(next>648)next=648;
