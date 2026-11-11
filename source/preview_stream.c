@@ -70,7 +70,10 @@ int previewStreamLoad(int resource_index) {
     s_triangle_count=0;
     s_original_triangle_count=0;
     s_has_face_colors=0;
-    s_uv.ready=0;
+    /* Discard all metadata from the previous Pokémon before touching disk.
+     * In particular, a missing/corrupt next UV file must never retain the
+     * previous model's triangle count or original texture coordinates. */
+    memset(&s_uv,0,sizeof(s_uv));
     s_chunked=0;
     s_drawing_chunk=0;
     p3dChunkClose(&s_chunk_stream);
@@ -82,23 +85,21 @@ int previewStreamLoad(int resource_index) {
 #endif
     if(s_prefer_source_chunks&&load_chunked((unsigned)resource_index))return 1;
     f=fopen(path,"rb");
-    if (!f){
-        return load_chunked((unsigned)resource_index);
-    }
-    if (fread(head,1,sizeof(head),f)!=sizeof(head)) {fclose(f);return 0;}
+    if (!f) goto chunk_fallback;
+    if (fread(head,1,sizeof(head),f)!=sizeof(head)) goto invalid_legacy;
     version=get16(head+4);
-    if (memcmp(head,"DS3M",4)!=0 || (version!=1 && version!=2)) {fclose(f);return 0;}
+    if (memcmp(head,"DS3M",4)!=0 || (version!=1 && version!=2)) goto invalid_legacy;
     tri_count=get16(head+6);
-    if (tri_count<1 || tri_count>C7_MAX_PREVIEW_TRIANGLES) {fclose(f);return 0;}
+    if (tri_count<1 || tri_count>C7_MAX_PREVIEW_TRIANGLES) goto invalid_legacy;
     /* DS3M v1/v2 reserve bytes 8..11. The source triangle count
      * must cover every emitted preview face and fit the native int API.
      * Do not display corrupted resource/provenance metadata. */
     if (get32(head+8)!=0 || get32(head+12)<tri_count ||
-        get32(head+12)>(uint32_t)INT_MAX) {fclose(f);return 0;}
-    if (fread(s_xyz,sizeof(s_xyz[0]),tri_count*9,f)!=(size_t)tri_count*9) {fclose(f);return 0;}
+        get32(head+12)>(uint32_t)INT_MAX) goto invalid_legacy;
+    if (fread(s_xyz,sizeof(s_xyz[0]),tri_count*9,f)!=(size_t)tri_count*9) goto invalid_legacy;
     /* v2 contract: packed RGB888 triplets, one per triangle, after all XYZ. */
-    if (version==2 && fread(s_face_rgb,3,tri_count,f)!=(size_t)tri_count) {fclose(f);return 0;}
-    if (fgetc(f)!=EOF) {fclose(f);return 0;}
+    if (version==2 && fread(s_face_rgb,3,tri_count,f)!=(size_t)tri_count) goto invalid_legacy;
+    if (fgetc(f)!=EOF) goto invalid_legacy;
     fclose(f);
     s_triangle_count=(int)tri_count;
     s_original_triangle_count=(int)get32(head+12);
@@ -117,6 +118,11 @@ int previewStreamLoad(int resource_index) {
         (void)s_xyz[j];
     }
     return 1;
+invalid_legacy:
+    fclose(f);
+chunk_fallback:
+    /* Chunk-preferred mode already attempted this resource above. */
+    return !s_prefer_source_chunks && load_chunked((unsigned)resource_index);
 }
 int previewStreamHasModel(void) { return s_loaded; }
 int previewStreamHasUv(void) { return s_loaded && !s_chunked && s_uv.ready; }
@@ -136,7 +142,11 @@ int previewStreamIsChunked(void) { return s_loaded && s_chunked; }
 int previewStreamTriangleCount(void) { return s_triangle_count; }
 int previewStreamOriginalTriangleCount(void) { return s_original_triangle_count; }
 void previewStreamDrawRange(int first_triangle,int triangle_count,int texture_width,int texture_height) {
-    int textured=texture_width>0 && texture_height>0;
+    /* Only use original UVs when the entire requested material span is
+     * normalized. Unsupported repeat/mirror coordinates must not be sampled
+     * with the DS clamp sampler as though they were verified. */
+    int textured=texture_width>0 && texture_height>0 &&
+                 previewStreamUvRangeUnit(first_triangle,triangle_count);
     int i;
     if (!s_loaded || (s_chunked && !s_drawing_chunk) || first_triangle<0 || triangle_count<1 ||
         first_triangle>s_triangle_count || triangle_count>s_triangle_count-first_triangle) return;

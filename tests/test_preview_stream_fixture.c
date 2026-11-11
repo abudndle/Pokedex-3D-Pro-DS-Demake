@@ -25,6 +25,14 @@ int main(void){
  assert(uv_u[0]==0 && uv_v[0]==0);
  assert(uv_u[1]==128 && uv_v[1]==0);
  assert(uv_u[2]==0 && uv_v[2]==256);
+ /* C138: max-size supported native P3PX dimensions must still emit
+  * representable DS 4.12 texture coordinates without wrapping. */
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawMode(1024,1024);
+ assert(emitted==3 && uv_seen==3 && white_seen==1);
+ assert(uv_u[0]==0 && uv_v[0]==0);
+ assert(uv_u[1]==16384 && uv_v[1]==0);
+ assert(uv_u[2]==0 && uv_v[2]==16384);
  /* C116: only original P3UV spans entirely in [0,1] are safe without
   * the unknown original GPU wrap/mirror sampler state. Excluded spans
   * must still be drawn untextured by the mixed-material renderer. */
@@ -45,10 +53,50 @@ int main(void){
  previewStreamDrawRange(0,1,8,8);
  assert(emitted==3 && uv_seen==3 && white_seen==1);
  assert(uv_u[1]==128);
+ /* Regression: a requested texture must not turn unsupported negative
+  * or >1 source UV spans into falsely white/textured geometry. */
+ for(int face=1;face<=2;face++){
+     emitted=0;uv_seen=0;white_seen=0;
+     previewStreamDrawRange(face,1,8,8);
+     assert(emitted==3 && uv_seen==3);
+     assert(white_seen==0);
+ }
+ /* Mixed safe/unsafe spans are conservatively untextured as a group.
+  * The caller may split by material to texture only the safe span. */
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawRange(0,3,8,8);
+ assert(emitted==9 && uv_seen==9 && white_seen==0);
  assert(previewStreamLoad(1));
  assert(previewStreamTriangleCount()==600);
  assert(!previewStreamHasUv());
+ /* A caller requesting a texture cannot whiten or texture geometry when
+  * the original UV companion is missing. Preserve all 600 source faces. */
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawMode(8,8);
+ assert(emitted==1800 && uv_seen==0 && white_seen==0);
+ /* Switching back to a UV-equipped Pokémon must restore its own companion,
+  * never stale coordinates or metadata from the UV-less preview. */
+ assert(previewStreamLoad(0));
+ assert(previewStreamHasUv());
+ assert(previewStreamTriangleCount()==1);
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawMode(8,16);
+ assert(emitted==3 && uv_seen==3 && white_seen==1);
+ assert(uv_u[1]==128 && uv_v[2]==256);
+ assert(previewStreamLoad(1));
+ assert(!previewStreamHasUv());
  emitted=0; previewStreamDraw(); assert(emitted==1800);
+ /* A truncated UV companion must fail closed while retaining source RGB.
+  * It must not reuse coordinates from the previously loaded Pokémon. */
+ assert(previewStreamLoad(0));
+ assert(previewStreamHasUv());
+ assert(previewStreamLoad(11));
+ assert(previewStreamHasModel() && !previewStreamHasUv());
+ assert(previewStreamTriangleCount()==1);
+ emitted=0;uv_seen=0;white_seen=0;
+ previewStreamDrawMode(8,16);
+ assert(emitted==3 && uv_seen==0 && white_seen==0);
+ assert(previewStreamLoad(1));
  assert(previewStreamLoad(3));
  emitted=0;red_seen=green_seen=0; previewStreamDraw();
  assert(emitted==6 && red_seen==1 && green_seen==1);
@@ -101,13 +149,19 @@ int main(void){
  assert(previewStreamLoad(6)); /* invalid P3CS falls back to legacy DS3M */
  assert(!previewStreamIsChunked());
  assert(previewStreamTriangleCount()==1);
- assert(!previewStreamLoad(7)); /* P3CS-only corrupt source cannot render */
+ assert(!previewStreamLoad(7)); /* Both source files are invalid. */
  assert(!previewStreamHasModel());
  previewStreamPreferChunks(0);
  assert(!previewStreamPrefersChunks());
  assert(previewStreamLoad(5)); /* reverting to original 600-face setting */
  assert(!previewStreamIsChunked());
  assert(previewStreamTriangleCount()==1);
+ assert(previewStreamLoad(12)); /* Truncated DS3M must not hide valid P3CS. */
+ assert(previewStreamIsChunked());
+ assert(previewStreamTriangleCount()==1202);
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==1202*3);
  assert(!previewStreamLoad(4)); /* v2 colors truncated */
  assert(!previewStreamLoad(2)); /* 601 triangles must not overflow the buffer. */
  /* C103: invalid reserved header bytes, implausible source face
