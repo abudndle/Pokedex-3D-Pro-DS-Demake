@@ -94,5 +94,5 @@ for model, original in ((14, 0x80000000), (15, 0x7fffffff)):
                 +struct.pack("<I",original)+full[20:])
 
 PY
-cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST -Itools/host_stub -Isource source/preview_stream.c source/preview_chunk_stream.c source/model_uv.c tests/test_preview_stream_fixture.c -o "$tmp/test_preview"
+cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST -Itools/host_stub -Isource source/preview_stream.c source/preview_chunk_stream.c source/model_uv.c tests/test_preview_stream_fixture.c -Wl,--wrap=fgetc -o "$tmp/test_preview"
 (cd "$tmp" && ./test_preview)
