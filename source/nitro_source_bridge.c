@@ -51,6 +51,45 @@ int p3dNitroManifestValidate(const void *raw,size_t size,uint16_t resource,
     *out=m;
     return 1;
 }
+/* The pinned md5_to_dsma converter packs four opcodes per FIFO command
+ * word, followed by their parameters in opcode order. Check its geometry
+ * commands and make sure restore slots belong to the paired animation. */
+static int animated_list_valid(const unsigned char *data,size_t size,uint32_t bones){
+    size_t pos=4;
+    while(pos<size){
+        uint32_t commands=get32(data+pos);
+        pos+=4;
+        for(unsigned i=0;i<4;i++,commands>>=8){
+            unsigned opcode=commands&0xffu;
+            unsigned words;
+            switch(opcode){
+            case 0x00: /* NOP */
+            case 0x41: /* END */
+                words=0;break;
+            case 0x14: /* MTX_RESTORE */
+            case 0x20: /* COLOR */
+            case 0x21: /* NORMAL */
+            case 0x22: /* TEXCOORD */
+            case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: /* Short vertices */
+            case 0x40: /* BEGIN */
+                words=1;break;
+            case 0x23: /* VTX_16 */
+                words=2;break;
+            default:
+                return 0;
+            }
+            if(words>(size-pos)/4u)return 0;
+            if(opcode==0x14){
+                uint32_t slot=get32(data+pos);
+                /* Slot 1 is used for the converter's optional normal overlay. */
+                if(slot!=1u&&(slot<31u-bones||slot>30u))return 0;
+            }
+            pos+=words*4u;
+        }
+    }
+    return 1;
+}
+
 int p3dNitroPayloadValidate(const P3DNitroManifest *m,
     const void *model,size_t model_size,const void *anim,size_t anim_size){
     const unsigned char *p=(const unsigned char *)model;
@@ -72,13 +111,13 @@ int p3dNitroPayloadValidate(const P3DNitroManifest *m,
         return 0;
     const unsigned char *a=(const unsigned char *)anim;
     /* Original DSMA DSA v1: version, frames, joints, then frame*joint
-     * records of (3 f32 position + 4 f32 quaternion)=28 bytes. */
+     * records of three fixed-point position and four quaternion words. */
     if(anim_size<12 || get32(a)!=1)return 0;
     uint32_t frames=get32(a+4),bones=get32(a+8);
     if(!frames||frames>P3D_NITRO_MAX_ANIM_FRAMES ||
        !bones||bones>P3D_NITRO_MAX_BONES ||
        12u+frames*bones*28u!=anim_size)return 0;
-    return 1;
+    return animated_list_valid(p,model_size,bones);
 }
 #ifdef P3D_USE_NITRO_ENGINE
 #include <NEMain.h>
