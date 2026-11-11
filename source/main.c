@@ -660,7 +660,8 @@ static void render_model(void){
         const unsigned triangle_total=(unsigned)previewStreamTriangleCount();
         for(unsigned i=0;i<preview_materials.count;i++){
             const P3DMaterialRange *range=&preview_materials.ranges[i];
-            if(range->first_triangle != covered ||
+            if(covered > triangle_total ||
+               range->first_triangle != covered ||
                range->triangle_count == 0 ||
                range->triangle_count > triangle_total-covered){
                 partition_valid=0;
