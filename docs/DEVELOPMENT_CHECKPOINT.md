@@ -1,4 +1,18 @@
-# Development checkpoint - complete descriptions and save boundaries
+# Development checkpoint - learnset navigation and preview recovery
+
+## Current integration
+
+Branch `codex/c440-learnset-model-recovery` builds on the reviewed #405 gameplay stack and integrates `main` at `9cb9e34f7b90359b68301fcbd90d83e1e2695536`. The C137 test conflict was resolved by retaining both the mapping and texture-validation cases. The earlier checkpoint below describes the prior stack.
+
+- Visible learnset rows with readable Move Dex records now open their exact move. Empty rows and combined touch/button input leave the learnset in place. This is DS navigation over recovered data.
+- A malformed legacy DS3M no longer hides a validated P3CS for the same model. The host fixture fails on the old loader and checks all 3,606 emitted vertices after fallback. A genuine melonDS capture shows an authored triangle loading through this route.
+- Both private UV staging modes reject pre-existing preview UVs before writing the output archive. The regression caught the previous acceptance and duplicate ZIP member.
+
+Focused learnset, resume, entry, preview and full 730-model synthetic roster host regressions passed. The C136 and merged C137 suites passed 6 and 11 tests respectively. Local `make check-host` stopped at the Windows photo symlink assertion in `tests/c355_photo_viewer.c:47`. The pull request records independent Linux CI and private ROM results.
+
+BlocksDS 1.24 built the authored fixture ROM. In isolated melonDS 0.9.3, the final partial learnset page retained its bottom screen after an empty-row tap, then opened Move 009 for the visible row. Screenshot inspection verified the preview and exact move. The fixture uses no proprietary assets.
+
+The private NitroFS still lacks verified species/form coverage and the source UV, material binding, skinning and animation inputs for full fidelity. Existing milestones #156, #213, #227, #337 and #339 remain open. See issue #301 for the regional Challenge clue gap. Keep original archives, derived assets and private build outputs out of public GitHub and CI.
 
 ## Resume point
 
