@@ -1683,6 +1683,7 @@ int main(void) {
      * bypassing title. New games still use the genuine original 3DS title
      * when the private source art is present. */
     if(last_checkpoint_valid || !show_original_title())render();
+    int search_x_pending=0;
     while(1) {
         swiWaitForVBlank();
         p3dNitroBridgeFrame();
@@ -1690,6 +1691,8 @@ int main(void) {
         scanKeys();
         unsigned down=keysDown();
         unsigned held=keysHeld();
+        if(home || state.page!=P3D_PAGE_SEARCH || (down&KEY_TOUCH))
+            search_x_pending=0;
 #ifdef P3D_EMULATOR_DIAGNOSTICS
         /* C237: asset-free CI only, never enabled in original-asset ROMs.
          * Capture actual ARM9 libnds key state while X11 keys are held.
@@ -1971,12 +1974,16 @@ int main(void) {
                         search_navigation=1;
                         redraw=1;
                     }
-                    /* X+arrows keep the existing original name-initial jump.
-                     * Numeric arrows still browse when no X key is held. */
-                    int source_search=(down&KEY_X) &&
-                        (down&(KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN));
-                    if(!search_navigation && (down&KEY_X) &&
-                       !(down&(KEY_A|KEY_Y)) && !source_search){
+                    /* Resolve a standalone X on release so a direction and
+                     * X can arrive in separate input scans. */
+                    const unsigned directions=KEY_LEFT|KEY_RIGHT|KEY_UP|KEY_DOWN;
+                    unsigned initial_keys=(held&KEY_X)?
+                        ((down&KEY_X)?held:down)&directions:0;
+                    if(down&KEY_X)search_x_pending=1;
+                    if(initial_keys || search_navigation || (down&(KEY_A|KEY_Y)))
+                        search_x_pending=0;
+                    if(search_x_pending && !(held&KEY_X)){
+                        search_x_pending=0;
                         state.page=P3D_PAGE_FAVORITES;
                         favorite_index=0;
                         search_navigation=1;
@@ -1984,26 +1991,25 @@ int main(void) {
                     }
                     if(!search_navigation){
                         int next=state.selected_dex;
-                        if(source_search){
-                            if(down&KEY_UP){
+                        if(initial_keys){
+                            if(initial_keys&KEY_UP){
                                 state.search_letter=state.search_letter=='Z'?
                                     'A':state.search_letter+1;
                                 redraw=1;
                             }
-                            if(down&KEY_DOWN){
+                            if(initial_keys&KEY_DOWN){
                                 state.search_letter=state.search_letter=='A'?
                                     'Z':state.search_letter-1;
                                 redraw=1;
                             }
                             if(dex_text_ready &&
-                               ((down&KEY_LEFT)!=0)!=((down&KEY_RIGHT)!=0)){
-                                char q[2]={state.search_letter,0};
-                                int hit=p3dDexFindScoped(q,state.selected_dex,
-                                    (down&KEY_RIGHT)?1:-1,P3D_DEX_SEARCH_NAME,
-                                    0,P3D_DEX_SCOPE_ALL,&records,&state);
-                                if(hit>=0)next=hit;
+                               ((initial_keys&KEY_LEFT)!=0)!=((initial_keys&KEY_RIGHT)!=0) &&
+                               p3dDexJumpInitial(&state,&search_field,(initial_keys&KEY_RIGHT)?1:-1,
+                                                 search_region,search_scope,&records)){
+                                next=state.selected_dex;
+                                redraw=1;
                             }
-                        }else{
+                        }else if(!(held&KEY_X)){
                             int delta=((down&KEY_RIGHT)!=0)-((down&KEY_LEFT)!=0);
                             delta+=10*(((down&KEY_DOWN)!=0)-((down&KEY_UP)!=0));
                             next=p3dDexKeypadSelection(state.search_query,next,delta,

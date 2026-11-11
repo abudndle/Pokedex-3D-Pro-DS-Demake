@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <nds.h>
 #include "verified_geometry_pair.h"
 #include "verified_vertex_uv.h"
 #include "verified_primitive_uv_bridge.h"
@@ -15,12 +16,27 @@ static uint8_t ix[]={ 'P','3','I','X',1,0,14,0,1,0,
 static uint8_t vu[20+8+12];
 
 static unsigned uv_triangles;
-static unsigned native_uv_draw_triangles;
-int p3dTestUvTriangle(uint16_t mesh,const P3DPrimitiveUvVertex *a,
-    const P3DPrimitiveUvVertex *b,const P3DPrimitiveUvVertex *c){
-    assert(mesh==7&&a->u==0&&b->u==4096&&c->v==4096);
-    native_uv_draw_triangles++;
-    return 1;
+static unsigned draw_commands;
+void glBegin(int mode){
+    assert(mode==GL_TRIANGLES && draw_commands==0);
+    draw_commands++;
+}
+void glTexCoord2t16(t16 u,t16 v){
+    static const int16_t expected[3][2]={{0,0},{4096,0},{0,4096}};
+    assert(draw_commands>=1 && draw_commands<=5 && draw_commands%2==1);
+    unsigned i=(draw_commands-1)/2;
+    assert(u==expected[i][0] && v==expected[i][1]);
+    draw_commands++;
+}
+void glVertex3v16(v16 x,v16 y,v16 z){
+    assert(draw_commands>=2 && draw_commands<=6 && draw_commands%2==0);
+    unsigned i=(draw_commands-2)/2*3;
+    assert(x==g.xyz[i] && y==g.xyz[i+1] && z==g.xyz[i+2]);
+    draw_commands++;
+}
+void glEnd(void){
+    assert(draw_commands==7);
+    draw_commands++;
 }
 static int uv_sink(void *ctx,uint16_t mesh,
     const P3DPrimitiveUvVertex *a,const P3DPrimitiveUvVertex *b,
@@ -174,14 +190,18 @@ int main(int argc,char **argv){
     assert(p3dVerifiedPrimitiveUvBridge(&g,&uv,uv_sink,NULL));
     assert(uv_triangles==1);
     /* C301: native DS draw adapter receives verified paired UV triangles. */
-    native_uv_draw_triangles=0;
+    draw_commands=0;
     {uint32_t drawn=0;assert(p3dVerifiedPrimitiveUvDraw(&g,&uv,&drawn));
-     assert(drawn==1&&native_uv_draw_triangles==1);}
+     assert(drawn==1&&draw_commands==8);}
     /* C298: bad UV payload must be rejected before any triangle is emitted. */
     {uint8_t original=uv.bytes[32];uv.bytes[32]^=1;
      uv_triangles=0;
      assert(!p3dVerifiedPrimitiveUvBridge(&g,&uv,uv_sink,NULL));
      assert(uv_triangles==0);
+     draw_commands=0;
+     uint32_t drawn=99;
+     assert(!p3dVerifiedPrimitiveUvDraw(&g,&uv,&drawn));
+     assert(drawn==0 && draw_commands==0);
      uv.bytes[32]=original;}
 
 

@@ -1,4 +1,10 @@
-# Development checkpoint - paired UV traversal and focused Search
+# Development checkpoint - Search chords and validated native draw
+
+The Search name-initial shortcut now respects the active region and scope. A match updates the displayed query, field and selected species together. X is resolved as a standalone Favorites action on release so a direction can join it across input scans. An authored melonDS fixture reproduced the old accidental Favorites transition. The updated ROM displayed the expected initial match, and a separate X tap still opened Favorites.
+
+The native UV adapter opens its GPU primitive only after whole-pair preflight reaches the first valid triangle. The production adapter is compiled against host GL stubs to verify zero commands for rejected data and the exact command order for valid data. The P3TB loader also rejects overlapping three-record owner groups even with a valid CRC. These checks preserve source evidence without inferring skeletal playback.
+
+Focused Search, touch, geometry, track binding and smoke tests passed, and independent review found no blockers. The branch stacks on #429. Private repository changes were validation workflows only, with no additional verified UV or loader assets found. Hosted results and private ROM smoke evidence are recorded in the pull request.
 
 The source-indexed UV bridge now validates CRCs and the paired mesh layout once per traversal, then checks every index before publishing any triangle. The 600-triangle host fixture preserves exact XYZ/UV order, rejects stale geometry and a late invalid index before callbacks, and honors a sink stop. Two traversals took 6.734 host CPU seconds before the fix and completed below the host timer's resolution afterward. The borrowed view needs unchanged inputs during the traversal. DS hardware speed is unmeasured.
 
