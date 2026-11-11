@@ -126,3 +126,14 @@ int p3dDexKeypadSelection(const char *query,int selection,int delta,int field,in
  int hit=p3dDexFindScoped(query,selection,delta>0?1:-1,field,region,scope,records,menu);
  return hit<0?selection:hit;
 }
+int p3dDexJumpInitial(P3DMenu *menu,int *field,int direction,int region,int scope,const P3DRecords *records){
+ if(!menu||!field||menu->page!=P3D_PAGE_SEARCH||menu->search_letter<'A'||menu->search_letter>'Z')return 0;
+ char query[2]={(char)menu->search_letter,0};
+ int hit=p3dDexFindScoped(query,menu->selected_dex,direction,P3D_DEX_SEARCH_NAME,region,scope,records,menu);
+ if(hit<0)return 0;
+ memset(menu->search_query,0,sizeof(menu->search_query));
+ menu->search_query[0]=query[0];
+ menu->selected_dex=hit;
+ *field=P3D_DEX_SEARCH_NAME;
+ return 1;
+}

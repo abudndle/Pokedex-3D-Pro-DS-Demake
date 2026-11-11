@@ -90,4 +90,9 @@ class C151NativeTrackBindingTests(unittest.TestCase):
         self.check('zero',sk,binding(sk,records=[]),False)
         self.check('too-many',sk,binding(sk,records=[(1,0,i*3,b'BoneRoot') for i in range(3)]),False)
 
+    def test_reject_overlapping_source_track_groups(self):
+        sk = fixture(14)
+        records = [(1, 0, 3, b'BoneRoot'), (0, 9, 5, b'Base')]
+        self.check('overlapping-groups', sk, binding(sk, records=records), False)
+
 if __name__=='__main__':unittest.main()

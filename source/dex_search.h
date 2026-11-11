@@ -33,4 +33,6 @@ int p3dDexRefreshSelection(const char *query,int *selection,int field,int region
  * between matching entries and retain the cursor if no match exists. */
 int p3dDexKeypadSelection(const char *query,int selection,int delta,int field,int region,int scope,
                          const P3DRecords *records,const P3DMenu *menu);
+/* Apply a name-initial jump only when the active region and scope have a match. */
+int p3dDexJumpInitial(P3DMenu *menu,int *field,int direction,int region,int scope,const P3DRecords *records);
 #endif
