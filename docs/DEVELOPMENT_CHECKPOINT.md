@@ -1,4 +1,8 @@
-# Development checkpoint - mixed textures, source checks and Move Dex scrolling
+# Development checkpoint - filtered Search navigation
+
+The Search D-pad now moves between matching entries with an active query, region, scope or description filter. An empty National name search retains numeric steps. The authored melonDS fixture reproduced a disappearing result on Right in the previous ROM. The same controls now select the next match, and Left restores the first result frame exactly. Search, touch, animation-library, texture alpha and save synchronization host tests passed.
+
+The branch integrates main `914285a` into the #426 stack. Conflict resolution preserves the existing Dex navigation and touch routes, the native save synchronization regression, and the texture host declarations. Main's renderer range validation is included. The pull request records hosted verification and private ROM startup. Original asset and physical hardware limits remain as documented below.
 
 ## Current integration
 

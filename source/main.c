@@ -696,6 +696,34 @@ static void render_model(void){
         return;
     }
     if(preview_gl_textures.ready){
+        /* A texture manifest alone does not prove that material ranges form
+         * an exact partition of the preview mesh. Never silently omit or
+         * double-draw triangles if a private manifest has gaps/overlaps or
+         * unordered ranges; preserve the complete untextured geometry. */
+        unsigned covered=0;
+        const unsigned triangle_total=(unsigned)previewStreamTriangleCount();
+        int partition_valid=preview_materials.count>0 && triangle_total>0;
+        /* Reject oversized or empty material tables before indexing them. */
+        if(preview_materials.count>triangle_total)
+            partition_valid=0;
+        for(unsigned i=0;partition_valid && i<preview_materials.count;i++){
+            const P3DMaterialRange *range=&preview_materials.ranges[i];
+            if(covered > triangle_total ||
+               range->first_triangle != covered ||
+               range->triangle_count == 0 ||
+               range->triangle_count > triangle_total-covered){
+                partition_valid=0;
+                break;
+            }
+            covered += range->triangle_count;
+        }
+        if(!partition_valid || covered != triangle_total){
+            glDisable(GL_TEXTURE_2D);
+            glBindTexture(0,0);
+            previewStreamDraw();
+            glFlush(0);
+            return;
+        }
         /* C115: draw EVERY original triangle exactly once. Only material
          * ranges supported by original-source C5 simple-colormap references
          * use a color texture. Unknown original bump/effect/dual-sampler
@@ -959,8 +987,11 @@ static void render(void) {
                 printf("SELECT: show text search UI\n");
             }
             printf("Pokemon number: %03d / 649\n",state.selected_dex+1);
-            printf("LEFT/RIGHT: +/- 1\n");
-            printf("UP/DOWN: +/- 10\n");
+            if(search_filtered())printf("Arrows: matching entries\n");
+            else{
+                printf("LEFT/RIGHT: +/- 1\n");
+                printf("UP/DOWN: +/- 10\n");
+            }
             if(search_actionable()){
                 printf("A: open this Pokemon\n");
                 printf("Y: toggle favorite (%s)\n",p3dFavoriteContains(&state,state.selected_dex)?"saved":"not saved");
@@ -1966,10 +1997,10 @@ int main(void) {
                                 if(hit>=0)next=hit;
                             }
                         }else{
-                            if(down&KEY_LEFT)next--;
-                            if(down&KEY_RIGHT)next++;
-                            if(down&KEY_UP)next-=10;
-                            if(down&KEY_DOWN)next+=10;
+                            int delta=((down&KEY_RIGHT)!=0)-((down&KEY_LEFT)!=0);
+                            delta+=10*(((down&KEY_DOWN)!=0)-((down&KEY_UP)!=0));
+                            next=p3dDexKeypadSelection(state.search_query,next,delta,
+                                search_field,search_region,search_scope,&records,&state);
                         }
                         if(next<0)next=0;
                         if(next>648)next=648;

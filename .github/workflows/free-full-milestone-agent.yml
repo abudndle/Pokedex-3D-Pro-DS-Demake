@@ -6,8 +6,11 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/free-full-milestone-agent.yml'
+      - 'source/**'
+      - 'tests/**'
+      - 'tools/hosted_milestone_agent.py'
   schedule:
-    - cron: '17 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -44,7 +47,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pending="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName --jq '[.[] | select(.headRefName | startswith("agent/"))] | length')"
+          pending="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName --jq '[.[] | select(.headRefName | startswith("agent/run-"))] | length')"
           if (( pending > 0 )); then
             echo "Agent PR already open; defer new milestone."
             echo "run_agent=false" >> "$GITHUB_OUTPUT"
@@ -114,6 +117,7 @@ jobs:
           choice="${pairs[$((GITHUB_RUN_NUMBER % ${#pairs[@]}))]}"
           read -r target_source target_test <<<"$choice"
           test -f "$target_source" && test -f "$target_test"
+          printf 'AGENT_TARGET_SOURCE=%s\nAGENT_TARGET_TEST=%s\n' "$target_source" "$target_test" >> "$GITHUB_ENV"
           # The 3B coding model needs an assigned, testable feature slice; never ask for a milestone.
           case "$target_source" in
             source/cloud_animation.c) target_focus='Audit cloud-search animation state transitions. Fix one actual frame-start, looping or rollover edge case and prove it with a focused failing-before-fix regression.' ;;
@@ -159,7 +163,7 @@ jobs:
             "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:3b \
               --yes-always --no-auto-commits --no-gitignore --no-show-model-warnings \
               --no-check-update --no-restore-chat-history --no-detect-urls \
-              --map-tokens 0 \
+              --edit-format diff --map-tokens 0 \
               --chat-history-file "$RUNNER_TEMP/aider-chat-history.md" \
               --input-history-file "$RUNNER_TEMP/aider-input-history" \
               --llm-history-file "$RUNNER_TEMP/aider-llm-history" \
@@ -188,6 +192,14 @@ jobs:
           if git diff --cached --quiet; then
             echo "No source/test changes generated; fail the run rather than reporting a false success."
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          mapfile -t changed_paths < <(git diff --cached --name-only)
+          if [[ "${#changed_paths[@]}" -ne 2 ]] ||
+             ! printf '%s\n' "${changed_paths[@]}" | grep -Fxq -- "$AGENT_TARGET_SOURCE" ||
+             ! printf '%s\n' "${changed_paths[@]}" | grep -Fxq -- "$AGENT_TARGET_TEST"; then
+            echo "::error::Agent proposal must change exactly its assigned source and regression test."
+            printf 'Assigned: %s %s; changed: %s\n' "$AGENT_TARGET_SOURCE" "$AGENT_TARGET_TEST" "${changed_paths[*]}" >&2
             exit 1
           fi
           python3 tools/hosted_milestone_agent.py check
@@ -225,6 +237,14 @@ jobs:
           done
           if (( ${#existing_roots[@]} > 0 )); then
             git add -A -- "${existing_roots[@]}"
+          fi
+          mapfile -t changed_paths < <(git diff --cached --name-only)
+          if [[ "${#changed_paths[@]}" -ne 2 ]] ||
+             ! printf '%s\n' "${changed_paths[@]}" | grep -Fxq -- "$AGENT_TARGET_SOURCE" ||
+             ! printf '%s\n' "${changed_paths[@]}" | grep -Fxq -- "$AGENT_TARGET_TEST"; then
+            echo "::error::Agent proposal must change exactly its assigned source and regression test."
+            printf 'Assigned: %s %s; changed: %s\n' "$AGENT_TARGET_SOURCE" "$AGENT_TARGET_TEST" "${changed_paths[*]}" >&2
+            exit 1
           fi
           python3 tools/hosted_milestone_agent.py check
           git config user.name "github-actions[bot]"
