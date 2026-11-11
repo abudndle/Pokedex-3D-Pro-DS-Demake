@@ -651,6 +651,30 @@ static void render_model(void){
         return;
     }
     if(preview_gl_textures.ready){
+        /* A texture manifest alone does not prove that material ranges form
+         * an exact partition of the preview mesh. Never silently omit or
+         * double-draw triangles if a private manifest has gaps/overlaps or
+         * unordered ranges; preserve the complete untextured geometry. */
+        unsigned covered=0;
+        int partition_valid=preview_materials.count>0;
+        const unsigned triangle_total=(unsigned)previewStreamTriangleCount();
+        for(unsigned i=0;i<preview_materials.count;i++){
+            const P3DMaterialRange *range=&preview_materials.ranges[i];
+            if(range->first_triangle != covered ||
+               range->triangle_count == 0 ||
+               range->triangle_count > triangle_total-covered){
+                partition_valid=0;
+                break;
+            }
+            covered += range->triangle_count;
+        }
+        if(!partition_valid || covered != triangle_total){
+            glDisable(GL_TEXTURE_2D);
+            glBindTexture(0,0);
+            previewStreamDraw();
+            glFlush(0);
+            return;
+        }
         /* C115: draw EVERY original triangle exactly once. Only material
          * ranges supported by original-source C5 simple-colormap references
          * use a color texture. Unknown original bump/effect/dual-sampler
