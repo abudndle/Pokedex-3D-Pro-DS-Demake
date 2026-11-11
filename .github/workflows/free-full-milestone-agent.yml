@@ -232,6 +232,19 @@ jobs:
         run: |
           set -euo pipefail
           sh tests/run_source_smoke.sh
+          # Run the exact regression paired with the edited C module.
+          # run_source_smoke.sh alone does not exercise these three modules.
+          case "$AGENT_TARGET_TEST" in
+            tests/test_c119_resume_title_idle.c)
+              sh tests/run_c119_resume_idle.sh ;;
+            tests/test_c230_playback_controls.c)
+              sh tests/run_c230_playback_controls.sh ;;
+            tests/test_c232_challenge_review.c)
+              sh tests/run_challenge_smoke.sh ;;
+            *)
+              echo "::error::Unknown assigned test: $AGENT_TARGET_TEST"
+              exit 1 ;;
+          esac
 
       - name: Publish gated draft PR for independent CI (never auto-merge)
         if: steps.changes.outputs.has_changes == 'true'
