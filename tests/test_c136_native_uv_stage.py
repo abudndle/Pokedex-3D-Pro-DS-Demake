@@ -94,6 +94,19 @@ class C136Tests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"pair missing"):
                 build(a,b,root/"invalid.zip",source_report=manifest)
 
+    def test_reject_base_uv_companion_before_creating_output(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            base, candidates, manifest = fixture(root)
+            with zipfile.ZipFile(base, "a") as archive:
+                archive.writestr("preview/p009.p3uv", uv((0, 0, 0, 4096, 4096, 0)))
+            for mode in ("baseline", "unit-uv-qa"):
+                with self.subTest(mode=mode):
+                    output = root / f"{mode}.zip"
+                    with self.assertRaisesRegex(ValueError, "pre-existing UVs"):
+                        build(base, candidates, output, mode=mode, source_report=manifest)
+                    self.assertFalse(output.exists())
+
     def test_requires_complete_original_roster_and_provenance(self):
         with tempfile.TemporaryDirectory() as folder:
             root=pathlib.Path(folder)

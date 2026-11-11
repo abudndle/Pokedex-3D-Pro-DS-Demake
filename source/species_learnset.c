@@ -69,6 +69,16 @@ unsigned p3dLearnsetRestorePage(const P3DLearnset *set,unsigned page,uint32_t ch
      * unrelated row. A normal navigation clamp is deliberately separate. */
     return p3dLearnsetPage(set,page,0)==page?page:0;
 }
+int p3dLearnsetTouchMove(const P3DLearnset *set,unsigned page,int visible,int x,int y){
+    const int top=(int)P3D_LEARNSET_FIRST_ROW*8;
+    const int bottom=top+(int)P3D_LEARNSET_PAGE_ROWS*8;
+    if(!visible||!set||!set->ready||!set->count||set->count>P3D_LEARNSET_MAX||
+       page>(set->count-1u)/P3D_LEARNSET_PAGE_ROWS||x<8||x>=248||y<top||y>=bottom)
+        return -1;
+    unsigned index=page*P3D_LEARNSET_PAGE_ROWS+(unsigned)(y-top)/8u;
+    if(index>=set->count||set->rows[index].move>=P3D_DETAIL_MOVE_INDEX_COUNT)return -1;
+    return set->rows[index].move;
+}
 const char *p3dLearnsetMethod(unsigned method){
     switch(method){
     case 1:return "LV";case 2:return "TM";case 3:return "EGG";
