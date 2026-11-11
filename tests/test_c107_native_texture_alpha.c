@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <nds.h> /* Host GL constants and capture declarations. */
 #include "ds_texture_upload.h"
 #include "texture_pixels.h"
 
