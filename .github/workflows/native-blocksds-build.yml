@@ -76,7 +76,10 @@ jobs:
             -o Acquire::http::Timeout=20 \
             -o Acquire::https::Timeout=20 \
             --no-install-recommends desmume xvfb x11-apps x11-utils xdotool strace
-          command -v desmume
+          # Ubuntu installs the CLI in /usr/games, which is not guaranteed
+          # to be present in the non-login Actions runner PATH.
+          # Check the exact executable used by the following smoke step.
+          test -x /usr/games/desmume-cli
           command -v Xvfb
           command -v xdotool
       - name: Attempt ROM startup in DeSmuME CLI
