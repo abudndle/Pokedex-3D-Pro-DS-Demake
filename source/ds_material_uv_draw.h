@@ -4,6 +4,7 @@
 #include "verified_material_uv_draw.h"
 /* C312: validate all source triangles, then upload their entire native texture
  * set before the first 3D drawing frame. Never emit a polygon here.
+ * The cache must have been initialized with the supplied texture manifest.
  * On any partial upload failure the cache is destroyed for safe fallback. */
 int p3dDsMaterialUvPrepare(const P3DVerifiedGeometryPair *geometry,
     const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,

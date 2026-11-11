@@ -16,8 +16,13 @@ int p3dMoveTextScroll(int current,const char *text,int direction){
     last=length>84u?(int)(length-84u):0;
     if(current<0)current=0;
     if(current>last)current=last;
-    if(direction<0)return current>=28?current-28:0;
-    if(direction>0)return current>last-28?last:current+28;
+    /* Keep line-aligned stops and one final full viewport. A short step to
+     * that final viewport reverses to the preceding line-aligned stop. */
+    if(direction<0)return current?((current-1)/28)*28:0;
+    if(direction>0){
+        int next=(current/28+1)*28;
+        return next>last?last:next;
+    }
     return current;
 }
 /* Select a bounded Move Dex entry and reset its text viewport together.

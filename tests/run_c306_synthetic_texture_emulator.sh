@@ -27,6 +27,11 @@ done
 if [ -z "$window" ]; then cat "$temp/desmume.log"; exit 1; fi
 sleep 12
 xdotool windowfocus --sync "$window"
+press() { xdotool keydown "$1"; sleep 0.3; xdotool keyup "$1"; sleep 0.5; }
+# Keep both authored legacy triangles visible at the capture angle.
+for _ in 1 2 3 4 5 6; do press k; done
+press x; press x; press b
+for _ in 1 2 3 4 5 6; do press i; done
 xwd -id "$window" -silent -out c306-home.xwd
 # First two synthetic Dex species map to distinct matched material textures.
 xdotool keydown x; sleep 0.5; xdotool keyup x
@@ -35,10 +40,13 @@ xwd -id "$window" -silent -out c306-red.xwd
 xdotool keydown d; sleep 0.5; xdotool keyup d
 sleep 2
 xwd -id "$window" -silent -out c306-blue.xwd
+xdotool keydown d; sleep 0.5; xdotool keyup d
+sleep 2
+xwd -id "$window" -silent -out c306-legacy.xwd
 xdotool keydown b; sleep 0.5; xdotool keyup b
 sleep 2
 xwd -id "$window" -silent -out c306-back.xwd
 kill -0 "$pid"
 python3 tests/c306_synthetic_texture_frame_gate.py \
-  c306-home.xwd c306-red.xwd c306-blue.xwd c306-back.xwd
-echo "C306 two-species synthetic native material texture visual acceptance: PASS"
+  c306-home.xwd c306-red.xwd c306-blue.xwd c306-legacy.xwd c306-back.xwd
+echo "C306 native and mixed legacy texture visual acceptance: PASS"

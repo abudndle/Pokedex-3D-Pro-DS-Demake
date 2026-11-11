@@ -700,6 +700,9 @@ static void render_model(void){
          * ranges supported by original-source C5 simple-colormap references
          * use a color texture. Unknown original bump/effect/dual-sampler
          * ranges keep their original geometry and untextured face colors. */
+        /* Texture enable is global to the deferred rasterizer. Keep it
+         * enabled through display and use texture zero for plain polygons. */
+        glEnable(GL_TEXTURE_2D);
         for(unsigned i=0;i<preview_materials.count;i++){
             const P3DMaterialRange *range=&preview_materials.ranges[i];
             /* C139: the renderer itself repeats the source face, sampler
@@ -720,18 +723,15 @@ static void render_model(void){
             const P3DPreviewTexture *tex=range_ready?
                 p3dPreviewTextureSetFind(&preview_gl_textures,range->texture_id):NULL;
             if(tex && tex->gl_id>0){
-                glEnable(GL_TEXTURE_2D);
                 glBindTexture(0,tex->gl_id);
                 previewStreamDrawRange(range->first_triangle,range->triangle_count,
                                        tex->width,tex->height);
             }else{
-                glDisable(GL_TEXTURE_2D);
                 glBindTexture(0,0);
                 previewStreamDrawRange(range->first_triangle,range->triangle_count,
                                        0,0);
             }
         }
-        glDisable(GL_TEXTURE_2D);
         glBindTexture(0,0);
     }else{
         glDisable(GL_TEXTURE_2D);

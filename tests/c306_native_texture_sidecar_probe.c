@@ -85,6 +85,14 @@ int main(int argc,char **argv){
                "cache initialize",model);
         uint32_t drawn=0;
         begins=verts=uvs=ends=0;
+        /* Texture IDs are model-local. A cache from another manifest must
+         * not supply its 8-wide payload for a validated 16-wide texture. */
+        P3DTextureManifest other=t;
+        other.entries[0].width=16;
+        expect(!p3dDsMaterialUvDraw(&g,&uv,&source,&m,&other,&caps,
+                                    &cache,&pixels,&drawn),"reject foreign texture cache",model);
+        expect(!drawn&&!begins&&!cache.count&&cache.ready,
+               "foreign texture cache has no side effects",model);
         expect(p3dDsMaterialUvDraw(&g,&uv,&source,&m,&t,&caps,
                                    &cache,&pixels,&drawn),"native draw",model);
         expect(drawn==1&&begins==1&&verts==3&&uvs==3&&ends==1,

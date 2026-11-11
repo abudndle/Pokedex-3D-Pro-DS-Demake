@@ -9,7 +9,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from c306_synthetic_texture_stage import stage
-from c306_synthetic_texture_frame_gate import verify, safe_png
+from c306_synthetic_texture_frame_gate import verify, safe_png, verify_legacy_mixed
 from test_c235_emulator_frame_gate import make_xwd, paint_region
 
 
@@ -34,11 +34,11 @@ class C306SyntheticTextureVisualTests(unittest.TestCase):
         stage_root = self.root / "fixture"
         stage_root.mkdir()
         out = stage(stage_root)
-        self.assertEqual(len(list(out.rglob("*.p3px"))), 2)
+        self.assertEqual(len(list(out.rglob("*.p3px"))), 3)
         self.assertEqual(len(list(out.rglob("*.p3vu"))), 2)
-        self.assertEqual(len(list(out.rglob("*.p3mr"))), 2)
+        self.assertEqual(len(list(out.rglob("*.p3mr"))), 3)
         mapping = (out / "models/species_map.p3sm").read_bytes()
-        self.assertEqual(struct.unpack_from("<2H", mapping, 8), (2, 3))
+        self.assertEqual(struct.unpack_from("<3H", mapping, 8), (2, 3, 4))
         for model, texture, pixel in ((2, 7, 0x801f), (3, 8, 0xfc00)):
             name = f"p{model:03d}"
             vx = (out / "geometry" / (name + ".p3vx")).read_bytes()
@@ -94,6 +94,19 @@ class C306SyntheticTextureVisualTests(unittest.TestCase):
         colored(paths[2], 0x00ff0000)
         with self.assertRaisesRegex(ValueError, "not visible"):
             verify(*paths)
+
+    def test_legacy_frame_requires_both_texture_and_untextured_face(self):
+        legacy = self.frames()[0]
+        colored(legacy, 0x00ff0000, (125, 70, 160, 125))
+        with self.assertRaisesRegex(ValueError, "green texture"):
+            verify_legacy_mixed(legacy)
+        colored(legacy, 0x0000ff00, (85, 70, 120, 125))
+        result = verify_legacy_mixed(legacy)
+        self.assertGreater(result["legacy_green_texture_samples"], 100)
+        self.assertGreater(result["legacy_red_face_samples"], 100)
+        colored(legacy, 0x0000ff00, (125, 70, 160, 125))
+        with self.assertRaisesRegex(ValueError, "red face color"):
+            verify_legacy_mixed(legacy)
 
     def test_forged_non_native_rgb_header_fails(self):
         paths = self.frames()
