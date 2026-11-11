@@ -39,7 +39,7 @@ int main(void){
  p3dPlaybackReset(&state);assert(!state.paused&&!state.tick);
  p3dPlaybackReset(NULL);p3dPlaybackAdvance(NULL,&clip,1);
  assert(!p3dPlaybackTouch(NULL,&clip,1,1,0,88));
- assert(!p3dPlaybackTouch(&state,NULL,1,1,0,88));
+ assert(!p3dPlaybackTouch(&state,&clip,1,1,0,88));
  puts("C230 animation pause/resume/restart, disabled render gates and tick wrap: PASS");
  return 0;
 }

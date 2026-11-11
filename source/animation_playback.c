@@ -14,12 +14,3 @@ void p3dPlaybackAdvance(P3DAnimationPlayback *playback,
     next=playback->tick%clip->total_ticks;
     playback->tick=next+1u==clip->total_ticks?0u:next+1u;
 }
-int p3dPlaybackTouch(P3DAnimationPlayback *playback,
-                     const P3DAnimationClip *clip,int draws_clip,
-                     int text_controls_visible,int x,int y){
-    if(!playback||!text_controls_visible||!available(clip,draws_clip)||
-       x<0||x>=256||y<88||y>=96)return 0;
-    if(x<128)playback->paused=!playback->paused;
-    else playback->tick=0;
-    return 1;
-}
