@@ -30,5 +30,8 @@ int p3dDsMaterialTextureCacheGet(P3DDsMaterialTextureCache *cache,
  * coverage, unknown formats, or resource usage beyond bank B. */
 int p3dDsMaterialTextureBudgetValid(const P3DMaterialMap *materials,
     const P3DTextureManifest *manifest,unsigned triangle_count);
+/* Budget the union of resident textures and IDs approved for this draw. */
+int p3dDsMaterialTextureCacheFits(const P3DDsMaterialTextureCache *cache,
+    const unsigned *needed,unsigned count);
 void p3dDsMaterialTextureCacheDestroy(P3DDsMaterialTextureCache *cache);
 #endif

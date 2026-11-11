@@ -94,12 +94,13 @@ int p3dDsMaterialUvPrepare(const P3DVerifiedGeometryPair *geometry,
     PreflightTextures needed={0};
     if(!geometry||!uv||!source||!materials||!textures||!shader_caps||
        !cache||!cache->ready||cache->manifest!=textures||!scratch)return 0;
-    if(!p3dDsMaterialTextureBudgetValid(materials,textures,
+    if(!p3dModelMaterialTexturesMatchMesh(materials,textures,
           (unsigned)geometry->triangles))return 0;
     /* Reuse the same strict no-side-effects source walk as the native drawer.
      * No hardware drawing is permitted in this model-loading phase. */
     if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
         shader_caps,words,preflight_triangle,&needed))return 0;
+    if(!p3dDsMaterialTextureCacheFits(cache,needed.ids,needed.count))return 0;
     for(unsigned i=0;i<needed.count;i++){
         int hardware_id=0;
         if(!p3dDsMaterialTextureCacheGet(cache,

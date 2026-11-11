@@ -76,7 +76,8 @@ int main(int argc,char **argv){
                 &m,&t,model,triangles),"simple-color range gate",model);
         expect(ranges.approved==1&&ranges.count==m.count,
                "color range coverage",model);
-        expect(p3dDsMaterialTextureBudgetValid(&m,&t,triangles),"VRAM budget",model);
+        expect(p3dDsMaterialTextureBudgetValid(&m,&t,triangles)==(model!=5),
+               "complete manifest VRAM budget",model);
         unsigned count=0;
         expect(p3dVerifiedMaterialUvDraw(&g,&uv,&source,&m,&t,&caps,NULL,sink,&count)==(model!=5),
                "material UV preflight",model);

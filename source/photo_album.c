@@ -199,3 +199,20 @@ int p3dPhotoAlbumConfirmDelete(P3DPhotoAlbum *album,const char *requested,const 
  if(!valid_name(requested)||!selected||strcmp(requested,selected)!=0)return 0;
  return p3dPhotoAlbumDelete(album,requested);
 }
+void p3dPhotoAlbumClampSelection(size_t total,size_t *offset,size_t *selected){
+ if(!offset||!selected||offset==selected)return;
+ if(!total){
+  *offset=0;
+  *selected=0;
+  return;
+ }
+ if(*offset>=total){
+  size_t last=total-1;
+  *offset=last/P3D_ALBUM_PAGE_MAX*P3D_ALBUM_PAGE_MAX;
+  *selected=last%P3D_ALBUM_PAGE_MAX;
+  return;
+ }
+ size_t shown=total-*offset;
+ if(shown>P3D_ALBUM_PAGE_MAX)shown=P3D_ALBUM_PAGE_MAX;
+ if(*selected>=shown)*selected=shown-1;
+}

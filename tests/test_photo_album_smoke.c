@@ -47,6 +47,24 @@ int main(int argc,char **argv){
  assert(!p3dPhotoAlbumDelete(&a,"AR_0011.png"));
  assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==9);
 #endif
+ /* Delete the only photo on page two and keep the nearest surviving row. */
+ assert(p3dPhotoAlbumDelete(&a,"AR_0002.png"));
+ size_t offset=P3D_ALBUM_PAGE_MAX,selected=0;
+ assert(p3dPhotoAlbumPage(&a,names,P3D_ALBUM_PAGE_MAX,offset,&total)==1&&total==8);
+ assert(!strcmp(names[0],"AR_0001.png"));
+ assert(p3dPhotoAlbumConfirmDelete(&a,"AR_0001.png",names[0]));
+ p3dPhotoAlbumClampSelection(total-1,&offset,&selected);
+ assert(offset==0&&selected==6);
+ assert(p3dPhotoAlbumPage(&a,names,P3D_ALBUM_PAGE_MAX,offset,&total)==7&&total==7);
+ assert(!strcmp(names[selected],"AR_0003.png"));
+ p3dPhotoAlbumClampSelection(5,&offset,&selected);
+ assert(offset==0&&selected==4);
+ p3dPhotoAlbumClampSelection(0,&offset,&selected);
+ assert(offset==0&&selected==0);
+ for(int i=1;i<=2;i++){
+  snprintf(path,sizeof(path),"%s/AR_%04d.png",argv[1],i);
+  f=fopen(path,"wb");assert(f);assert(!fclose(f));
+ }
  assert(!p3dPhotoAlbumDelete(&a,"../bad.png"));
  assert(p3dPhotoAlbumDelete(&a,"AR_0002.png"));
  assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==8);

@@ -60,7 +60,7 @@ def stage_mixed_native(destination):
     put(materials / "p005.p3mt", struct.pack("<4sHH8H", b"P3MT", 1, 2,
         0, 1, 0, 9, 1, 1, 1, 10))
     put(materials / "p005.p3tx", struct.pack("<4sHH8H", b"P3TX", 1, 2,
-        9, 8, 8, 1, 10, 8, 8, 1))
+        9, 8, 8, 1, 10, 256, 256, 1))
     source = struct.pack("<12H", 0, 1, 0, 9, 0xffff, 0x0c02,
                          1, 1, 1, 10, 0xffff, 0x0c02)
     put(materials / "p005.p3mr", pack_crc_header(b"P3MR", 1, 5, 2, 2, source))
