@@ -61,7 +61,7 @@ static int probe(const char *root,unsigned model){
                                             (unsigned)geometry.triangles));
     drawn=0;
     REQUIRE(p3dVerifiedMaterialUvDraw(&geometry,&uv,&source,&materials,
-                                    &textures,&caps,sink,NULL));
+                                    &textures,&caps,NULL,sink,NULL));
     REQUIRE(drawn==geometry.triangles);
     fprintf(stdout,"C306: native verified model %u material/UV triangles %u: PASS\\n",
             model,drawn);

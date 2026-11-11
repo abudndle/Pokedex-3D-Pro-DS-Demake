@@ -9,14 +9,14 @@
 int p3dDsMaterialUvPrepare(const P3DVerifiedGeometryPair *geometry,
     const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
     const P3DMaterialMap *materials,const P3DTextureManifest *textures,
-    const P3DSourceShaderCaps *shader_caps,
+    const P3DSourceShaderCaps *shader_caps,const P3DSourceMaterialWords *words,
     P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch);
 /* Emits only triangles accepted by the complete source/material/UV gate.
  * Projection, model transforms, lighting and GL frame setup remain caller-owned. */
 int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
     const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
     const P3DMaterialMap *materials,const P3DTextureManifest *textures,
-    const P3DSourceShaderCaps *shader_caps,
+    const P3DSourceShaderCaps *shader_caps,const P3DSourceMaterialWords *words,
     P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch,
     uint32_t *drawn_triangles);
 #endif

@@ -21,6 +21,8 @@ static int valid(const char *path){
     /* Fail closed even if a caller corrupts an already validated rig. */
     rig.records[56+48]=1;rig.records[56+49]=0;
     if(p3dOriginalSkeletonIsAncestor(&rig,0,1))return 5;
+    rig.records[48]=1;rig.records[49]=0;
+    if(p3dOriginalSkeletonIsAncestor(&rig,1,0))return 7;
     p3dOriginalSkeletonClear(&rig);
     if(p3dOriginalSkeletonFindNode(&rig,"Base")!=-1 ||
        p3dOriginalSkeletonIsAncestor(&rig,0,1))return 6;

@@ -86,6 +86,18 @@ def verify_legacy_mixed(path):
     return {"legacy_green_texture_samples": green, "legacy_red_face_samples": red}
 
 
+def verify_native_mixed(path):
+    frame = frame_rgb(path)
+    green = count_dominant(frame, 1, (0, 0, 256, 192))
+    color = frame[2]
+    plain = sum(150 <= r <= 215 and 205 <= g <= b and b >= 220
+                for y in range(0, 192, 2) for x in range(0, 256, 2)
+                for r, g, b in (color(x, y),))
+    if min(green, plain) < 12:
+        raise ValueError(f"mixed native frame needs green and plain faces: {green=}, {plain=}")
+    return {"native_green_texture_samples": green, "native_plain_face_samples": plain}
+
+
 def png_chunk(tag, data):
     return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data))
 
@@ -104,12 +116,12 @@ def safe_png(xwd_path, png_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 6:
-        raise SystemExit("usage: c306_synthetic_texture_frame_gate.py HOME RED BLUE LEGACY BACK")
-    home, red, blue, legacy, back = sys.argv[1:]
+    if len(sys.argv) != 7:
+        raise SystemExit("usage: c306_synthetic_texture_frame_gate.py HOME RED BLUE LEGACY MIXED BACK")
+    home, red, blue, legacy, mixed, back = sys.argv[1:]
     # Preserve only the authored synthetic captures even when the strict
     # color gate fails; no native ROM or private original bytes are uploaded.
-    for key, path in zip(("home", "red", "blue", "legacy", "back"), sys.argv[1:]):
+    for key, path in zip(("home", "red", "blue", "legacy", "mixed", "back"), sys.argv[1:]):
         safe_png(path, f"c306-{key}.png")
     for key, path in (("red", red), ("blue", blue)):
         frame = frame_rgb(path)
@@ -119,4 +131,5 @@ if __name__ == "__main__":
               flush=True)
     result = verify(home, red, blue, back)
     result.update(verify_legacy_mixed(legacy))
+    result.update(verify_native_mixed(mixed))
     print(json.dumps(result, sort_keys=True))

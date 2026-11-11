@@ -22,9 +22,10 @@ static int16_t xyz[9]={0,0,0,4096,0,0,0,4096,0};
 int p3dVerifiedMaterialUvDraw(const P3DVerifiedGeometryPair *g,
     const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
     const P3DMaterialMap *materials,const P3DTextureManifest *textures,
-    const P3DSourceShaderCaps *caps,P3DVerifiedMaterialTriangleSink sink,
+    const P3DSourceShaderCaps *caps,const P3DSourceMaterialWords *words,
+    P3DVerifiedMaterialTriangleSink sink,
     void *context){
-    (void)uv;(void)source;(void)materials;(void)textures;(void)caps;
+    (void)uv;(void)source;(void)materials;(void)textures;(void)caps;(void)words;
     assert(g && g->triangles==2 && sink);
     preflight_calls++;
     if(!allow_source)return 0;
@@ -82,13 +83,13 @@ int main(void){
     /* A corrupt/denied source stream must not upload any private texture. */
     allow_source=0;
     assert(!p3dDsMaterialUvDraw(&g,&uv,&source,&materials,&textures,
-           &caps,&cache,scratch,&drawn));
+           &caps,NULL,&cache,scratch,&drawn));
     assert(preflight_calls==1 && !drawn && !cache.count && cache.ready);
     assert(!begin_calls && !draw_calls);
     /* Missing second texture rolls back the first upload completely. */
     allow_source=1;
     assert(!p3dDsMaterialUvDraw(&g,&uv,&source,&materials,&textures,
-           &caps,&cache,scratch,&drawn));
+           &caps,NULL,&cache,scratch,&drawn));
     assert(preflight_calls==2 && !drawn && !cache.count && !cache.ready);
     assert(!begin_calls && !draw_calls);
     make_texture("t008.p3px");
@@ -97,13 +98,13 @@ int main(void){
      * model frame. Renaming the source texture files then proves that two
      * successive frames never reopen their backing payloads. */
     assert(p3dDsMaterialUvPrepare(&g,&uv,&source,&materials,&textures,
-                                 &caps,&cache,scratch));
+                                 &caps,NULL,&cache,scratch));
     assert(cache.ready && cache.count==2);
     assert(!begin_calls && !draw_calls && !vertices && !uv_calls);
     assert(!rename("t007.p3px","t007.prepared"));
     assert(!rename("t008.p3px","t008.prepared"));
     assert(p3dDsMaterialUvDraw(&g,&uv,&source,&materials,&textures,
-           &caps,&cache,scratch,&drawn));
+           &caps,NULL,&cache,scratch,&drawn));
     assert(drawn==2 && preflight_calls==5 && begin_calls==2 &&
            draw_calls==2 && uv_calls==6 && vertices==6 && cache.count==2);
     /* C305 independent synthetic draw trace: two distinct binds, and
@@ -133,7 +134,7 @@ int main(void){
         int first=vals_a[0],second=vals_a[8];
         trace_count=0;
         assert(p3dDsMaterialUvDraw(&g,&uv,&source,&materials,&textures,
-              &caps,&cache,scratch,&drawn));
+              &caps,NULL,&cache,scratch,&drawn));
         assert(drawn==2&&cache.count==2&&trace_count==16);
         assert(vals_a[0]==first&&vals_a[8]==second);
         for(unsigned i=0;i<16;i++)assert(kinds[i]==expected_kinds[i]);

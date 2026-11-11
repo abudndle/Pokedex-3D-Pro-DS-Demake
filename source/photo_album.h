@@ -10,6 +10,8 @@ typedef struct {char folder[P3D_PHOTO_PATH_MAX];} P3DPhotoAlbum;
 int p3dPhotoAlbumOpen(P3DPhotoAlbum *album,const char *photo_folder);
 size_t p3dPhotoAlbumPage(const P3DPhotoAlbum *album,char names[][32],size_t page_size,size_t offset,size_t *total);
 int p3dPhotoAlbumDelete(P3DPhotoAlbum *album,const char *photo_name);
+/* Confirm only the file named by the original prompt and still selected. */
+int p3dPhotoAlbumConfirmDelete(P3DPhotoAlbum *album,const char *requested,const char *selected);
 /* Read-only regular-file handle; never accepts arbitrary paths or symlinks. */
 FILE *p3dPhotoAlbumRead(const P3DPhotoAlbum *album,const char *photo_name);
 /* One bounded directory scan. Failure leaves both selection fields intact. */

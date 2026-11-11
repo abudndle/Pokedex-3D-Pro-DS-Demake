@@ -22,8 +22,8 @@ static P3DSourceColorRanges ranges;
 static P3DDsMaterialTextureCache cache;
 static P3DTexturePixels pixels;
 static char dir[240],texture_path[280];
-static unsigned begins,verts,uvs,ends;
-int p3dTestMaterialBegin(int id){ assert(id>0);begins++;return 1; }
+static unsigned begins,verts,uvs,ends,plain;
+int p3dTestMaterialBegin(int id){ assert(id>=0);begins++;plain+=id==0;return 1; }
 void p3dTestMaterialTexCoord(int16_t u,int16_t v){
     assert(u>=0&&u<=4096&&v>=0&&v<=4096);uvs++;
 }
@@ -52,50 +52,53 @@ static int sink(void *opaque,uint16_t mesh,unsigned triangle,
 int main(int argc,char **argv){
     char p[280],q[280];
     if(argc!=2)return 2;
-    for(unsigned model=2;model<=3;model++){
+    const unsigned models[]={2,3,5};
+    for(unsigned i=0;i<sizeof(models)/sizeof(models[0]);i++){
+        unsigned model=models[i],triangles=model==5?2:1;
         path(p,sizeof(p),argv[1],"geometry",model,"p3vx");
         path(q,sizeof(q),argv[1],"geometry",model,"p3ix");
         expect(p3dVerifiedGeometryPairLoad(&g,p,q,model),"geometry pair",model);
         path(p,sizeof(p),argv[1],"geometry",model,"p3vu");
         expect(p3dVerifiedVertexUvLoad(&uv,p,&g),"paired UV",model);
         path(p,sizeof(p),argv[1],"materials",model,"p3mt");
-        expect(p3dMaterialMapLoad(&m,p,1),"P3MT",model);
+        expect(p3dMaterialMapLoad(&m,p,triangles),"P3MT",model);
         path(p,sizeof(p),argv[1],"materials",model,"p3tx");
         expect(p3dTextureManifestLoad(&t,p),"P3TX",model);
         path(p,sizeof(p),argv[1],"materials",model,"p3mr");
-        expect(p3dSourceMaterialLoad(&source,p,model,1),"P3MR",model);
+        expect(p3dSourceMaterialLoad(&source,p,model,triangles),"P3MR",model);
         path(p,sizeof(p),argv[1],"materials",model,"p3sc");
         expect(p3dSourceShaderCapsLoad(&caps,p,model),"P3SC",model);
         path(p,sizeof(p),argv[1],"materials",model,"p3sw");
         expect(p3dSourceMaterialWordsLoad(&words,p,model),"P3SW",model);
-        expect(p3dSourceMaterialWordsMatch(&words,&caps,&source,model,1),
+        expect(p3dSourceMaterialWordsMatch(&words,&caps,&source,model,triangles),
                "source words match",model);
         expect(p3dSourceColorRangesBuild(&ranges,&words,&caps,&source,
-                &m,&t,model,1),"simple-color range gate",model);
-        expect(ranges.approved==m.count&&ranges.count==m.count,
+                &m,&t,model,triangles),"simple-color range gate",model);
+        expect(ranges.approved==1&&ranges.count==m.count,
                "color range coverage",model);
-        expect(p3dDsMaterialTextureBudgetValid(&m,&t,1),"VRAM budget",model);
+        expect(p3dDsMaterialTextureBudgetValid(&m,&t,triangles),"VRAM budget",model);
         unsigned count=0;
-        expect(p3dVerifiedMaterialUvDraw(&g,&uv,&source,&m,&t,&caps,sink,&count),
+        expect(p3dVerifiedMaterialUvDraw(&g,&uv,&source,&m,&t,&caps,NULL,sink,&count)==(model!=5),
                "material UV preflight",model);
-        expect(count==1,"triangle count",model);
+        expect(count==(model==5?0u:1u),"triangle count",model);
         int n=snprintf(dir,sizeof(dir),"%s/textures/p%03u",argv[1],model);
         expect(n>0&&(unsigned)n<sizeof(dir),"texture directory",model);
         expect(p3dDsMaterialTextureCacheInit(&cache,&t,resolve,NULL),
                "cache initialize",model);
         uint32_t drawn=0;
-        begins=verts=uvs=ends=0;
+        begins=verts=uvs=ends=plain=0;
         /* Texture IDs are model-local. A cache from another manifest must
          * not supply its 8-wide payload for a validated 16-wide texture. */
         P3DTextureManifest other=t;
         other.entries[0].width=16;
-        expect(!p3dDsMaterialUvDraw(&g,&uv,&source,&m,&other,&caps,
+        expect(!p3dDsMaterialUvDraw(&g,&uv,&source,&m,&other,&caps,NULL,
                                     &cache,&pixels,&drawn),"reject foreign texture cache",model);
         expect(!drawn&&!begins&&!cache.count&&cache.ready,
                "foreign texture cache has no side effects",model);
-        expect(p3dDsMaterialUvDraw(&g,&uv,&source,&m,&t,&caps,
+        expect(p3dDsMaterialUvDraw(&g,&uv,&source,&m,&t,&caps,&words,
                                    &cache,&pixels,&drawn),"native draw",model);
-        expect(drawn==1&&begins==1&&verts==3&&uvs==3&&ends==1,
+        expect(drawn==triangles&&begins==triangles&&verts==3*triangles&&uvs==3&&
+               ends==triangles&&plain==triangles-1&&cache.count==1,
                "draw trace",model);
         printf("C306 model %u: genuine C data gate and host material draw PASS\n",model);
         p3dDsMaterialTextureCacheDestroy(&cache);

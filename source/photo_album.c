@@ -195,3 +195,7 @@ int p3dPhotoAlbumDelete(P3DPhotoAlbum *a,const char *name){
  return n>0&&(size_t)n<sizeof(path)&&remove(path)==0;
 #endif
 }
+int p3dPhotoAlbumConfirmDelete(P3DPhotoAlbum *album,const char *requested,const char *selected){
+ if(!valid_name(requested)||!selected||strcmp(requested,selected)!=0)return 0;
+ return p3dPhotoAlbumDelete(album,requested);
+}

@@ -17,6 +17,21 @@ int main(int argc,char **argv){
  for(int i=1;i<=9;i++){snprintf(path,sizeof(path),"%s/AR_%04d.png",argv[1],i);f=fopen(path,"wb");assert(f);fclose(f);}
  assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==9);
  assert(strcmp(names[0],"AR_0009.png")==0&&strcmp(names[1],"AR_0008.png")==0);
+ /* The photo above the requested row disappears before confirmation. */
+ char requested[12];memcpy(requested,names[1],sizeof(requested));
+ assert(p3dPhotoAlbumDelete(&a,names[0]));
+ assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==8);
+ assert(!strcmp(names[1],"AR_0007.png"));
+ assert(!p3dPhotoAlbumConfirmDelete(&a,requested,names[1]));
+ assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==8);
+ assert(!strcmp(names[0],requested)&&!strcmp(names[1],"AR_0007.png"));
+ assert(!p3dPhotoAlbumConfirmDelete(&a,requested,NULL));
+ assert(p3dPhotoAlbumConfirmDelete(&a,requested,names[0]));
+ assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==7);
+ for(int i=8;i<=9;i++){
+  snprintf(path,sizeof(path),"%s/AR_%04d.png",argv[1],i);
+  f=fopen(path,"wb");assert(f);assert(!fclose(f));
+ }
  assert(p3dPhotoAlbumPage(&a,names,2,8,&total)==1&&strcmp(names[0],"AR_0001.png")==0);
  assert(p3dPhotoAlbumPage(&a,names,8,0,&total)==7&&total==9);
  assert(strcmp(names[6],"AR_0003.png")==0);

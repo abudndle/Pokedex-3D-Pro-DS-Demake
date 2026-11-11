@@ -122,9 +122,8 @@ int p3dOriginalSkeletonIsAncestor(const P3DOriginalSkeleton *s,
     unsigned current=descendant;
     for(unsigned depth=0;depth<s->node_count;depth++){
         int parent=p3dOriginalSkeletonParent(s,current);
-        if(parent<0||parent>=(int)s->node_count)return 0;
+        if(parent<0||(unsigned)parent>=current)return 0;
         if((unsigned)parent==ancestor)return 1;
-        if((unsigned)parent>=current)return 0;
         current=(unsigned)parent;
     }
     return 0;
