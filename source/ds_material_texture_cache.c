@@ -8,25 +8,46 @@ static void release_texture(int id){(void)id;}
 #include <nds.h>
 static void release_texture(int id){if(id>0)glDeleteTextures(1,&id);}
 #endif
+typedef struct {
+    uint16_t ids[P3D_DS_TEXTURE_CACHE_MAX];
+    unsigned count,bytes;
+} TextureBudget;
+static int budget_add(TextureBudget *budget,const P3DTextureManifest *manifest,
+                      unsigned id){
+    for(unsigned i=0;i<budget->count;i++)
+        if(budget->ids[i]==id)return 1;
+    const P3DTextureEntry *entry=p3dTextureFind(manifest,id);
+    if(!entry || entry->format!=1 || entry->width<8 || entry->height<8 ||
+       entry->width>256 || entry->height>256 ||
+       (entry->width&(entry->width-1)) || (entry->height&(entry->height-1)) ||
+       budget->count>=P3D_DS_TEXTURE_CACHE_MAX)return 0;
+    unsigned size=(unsigned)entry->width*(unsigned)entry->height*2u;
+    if(size>P3D_DS_TEXTURE_VRAM_BYTES-budget->bytes)return 0;
+    budget->ids[budget->count++]=(uint16_t)id;
+    budget->bytes+=size;
+    return 1;
+}
 int p3dDsMaterialTextureBudgetValid(const P3DMaterialMap *materials,
     const P3DTextureManifest *manifest,unsigned triangle_count){
-    uint16_t seen[P3D_DS_TEXTURE_CACHE_MAX];
-    unsigned count=0,bytes=0;
+    TextureBudget budget={0};
     if(!p3dModelMaterialTexturesMatchMesh(materials,manifest,triangle_count))
         return 0;
-    for(unsigned i=0;i<materials->count;i++){
-        unsigned id=materials->ranges[i].texture_id;
-        const P3DTextureEntry *entry=p3dTextureFind(manifest,id);
-        int duplicate=0;
-        for(unsigned j=0;j<count;j++)if(seen[j]==id){duplicate=1;break;}
-        if(duplicate)continue;
-        if(!entry||count>=P3D_DS_TEXTURE_CACHE_MAX)return 0;
-        unsigned size=(unsigned)entry->width*(unsigned)entry->height*2u;
-        if(size>P3D_DS_TEXTURE_VRAM_BYTES-bytes)return 0;
-        seen[count++]=(uint16_t)id;
-        bytes+=size;
-    }
-    return count>0;
+    for(unsigned i=0;i<materials->count;i++)
+        if(!budget_add(&budget,manifest,materials->ranges[i].texture_id))return 0;
+    return budget.count>0;
+}
+int p3dDsMaterialTextureCacheFits(const P3DDsMaterialTextureCache *cache,
+    const unsigned *needed,unsigned count){
+    TextureBudget budget={0};
+    if(!cache || !cache->ready || !cache->manifest ||
+       cache->manifest->count>P3D_TEXTURE_MAX || !needed || !count ||
+       count>P3D_DS_TEXTURE_CACHE_MAX || cache->count>P3D_DS_TEXTURE_CACHE_MAX)
+        return 0;
+    for(unsigned i=0;i<cache->count;i++)
+        if(!budget_add(&budget,cache->manifest,cache->ids[i]))return 0;
+    for(unsigned i=0;i<count;i++)
+        if(!budget_add(&budget,cache->manifest,needed[i]))return 0;
+    return 1;
 }
 int p3dDsMaterialTextureCacheInit(P3DDsMaterialTextureCache *cache,
     const P3DTextureManifest *manifest,P3DDsTexturePathResolver resolver,

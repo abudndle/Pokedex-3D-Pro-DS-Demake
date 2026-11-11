@@ -17,4 +17,6 @@ FILE *p3dPhotoAlbumRead(const P3DPhotoAlbum *album,const char *photo_name);
 /* One bounded directory scan. Failure leaves both selection fields intact. */
 int p3dPhotoAlbumLocate(const P3DPhotoAlbum *album,unsigned photo_id,
                          size_t *offset,size_t *selected);
+/* Keep the nearest surviving selection after the album becomes shorter. */
+void p3dPhotoAlbumClampSelection(size_t total,size_t *offset,size_t *selected);
 #endif

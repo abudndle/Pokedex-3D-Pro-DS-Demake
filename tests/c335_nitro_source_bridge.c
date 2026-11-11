@@ -108,6 +108,25 @@ int main(void){
           dl,sizeof dl,dsa,sizeof dsa);
  assert(p3dNitroManifestValidate(b,36,25,vx,8,ix,8,&m));
  assert(p3dNitroPayloadValidate(&m,dl,sizeof dl,dsa,sizeof dsa));
+ /* Official DSMA packets encode four command bytes then parameters. A
+  * one-joint DSA only initializes joint matrix slot 30. */
+ unsigned char joint_dl[16]={0};
+ w32(joint_dl,3);w32(joint_dl+4,0x00411440); /* begin, restore, end, nop */
+ w32(joint_dl+12,30);
+ manifest(b,25,P3D_NITRO_ANIMATED,vx,8,ix,8,
+          joint_dl,sizeof joint_dl,dsa,sizeof dsa);
+ assert(p3dNitroManifestValidate(b,36,25,vx,8,ix,8,&m));
+ assert(p3dNitroPayloadValidate(&m,joint_dl,sizeof joint_dl,dsa,sizeof dsa));
+ w32(joint_dl+12,29); /* Valid for two joints, never populated by this DSA. */
+ manifest(b,25,P3D_NITRO_ANIMATED,vx,8,ix,8,
+          joint_dl,sizeof joint_dl,dsa,sizeof dsa);
+ assert(p3dNitroManifestValidate(b,36,25,vx,8,ix,8,&m));
+ assert(!p3dNitroPayloadValidate(&m,joint_dl,sizeof joint_dl,dsa,sizeof dsa));
+ w32(joint_dl,2); /* Declared word count is valid, but restore lacks its argument. */
+ manifest(b,25,P3D_NITRO_ANIMATED,vx,8,ix,8,
+          joint_dl,12,dsa,sizeof dsa);
+ assert(p3dNitroManifestValidate(b,36,25,vx,8,ix,8,&m));
+ assert(!p3dNitroPayloadValidate(&m,joint_dl,12,dsa,sizeof dsa));
  memcpy(changed,dsa,sizeof dsa);w32(changed+8,29); /* >28 stack-bounded bones */
  manifest(b,25,P3D_NITRO_ANIMATED,vx,8,ix,8,
           dl,sizeof dl,changed,sizeof changed);

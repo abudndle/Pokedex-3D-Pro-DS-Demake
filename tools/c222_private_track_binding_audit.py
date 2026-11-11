@@ -53,6 +53,7 @@ def _node_table(raw: bytes):
     if not 0x78 <= strings < len(raw):
         raise ValueError("C5 string table outside source model")
     nodes, unique = [], set()
+    roots = 0
     for index in range(count):
         at = start + index*56
         matrix = struct.unpack_from("<12f", raw, at)
@@ -62,6 +63,8 @@ def _node_table(raw: bytes):
         parent, kind = flags & 0xffff, flags >> 16
         if kind != 1 or (parent != 0xffff and parent >= index):
             raise ValueError("invalid original node kind/parent")
+        if parent == 0xffff:
+            roots += 1
         if offset > 16384 or strings+offset >= len(raw):
             raise ValueError("source node name offset outside C5 strings")
         pos = strings + offset
@@ -75,15 +78,17 @@ def _node_table(raw: bytes):
             raise ValueError("duplicate original node name")
         unique.add(name)
         nodes.append((offset, name))
-    return count, start, stop, strings, nodes
+    return count, roots, start, stop, strings, nodes
 
 def _build_model(raw: bytes, model_id: int, skeleton: bytes, expected_links: int):
-    count, node_start, node_stop, string_start, nodes = _node_table(raw)
+    count, source_roots, node_start, node_stop, string_start, nodes = _node_table(raw)
     if len(skeleton) < P3SK_HEADER.size:
         raise ValueError("truncated P3SK sidecar")
     magic, version, sk_model, sk_nodes, roots, string_len, expected_crc = P3SK_HEADER.unpack_from(skeleton)
     if (magic, version, sk_model, sk_nodes) != (b"P3SK", 1, model_id, count):
         raise ValueError("P3SK model ID or node count mismatch")
+    if roots != source_roots:
+        raise ValueError("P3SK root count differs from original C5 source")
     content = skeleton[P3SK_HEADER.size:]
     if len(content) != count*56 + string_len or _crc(content) != expected_crc:
         raise ValueError("P3SK length/CRC mismatch")

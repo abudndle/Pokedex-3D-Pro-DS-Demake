@@ -57,6 +57,16 @@ int main(void){
         textures.entries[1].format=1;
         materials.ranges[1].texture_id=8;
         assert(!p3dDsMaterialTextureBudgetValid(&materials,&textures,2));
+        /* Only texture 8 is approved, but a resident full-bank texture
+         * must still count against the actual upload budget. */
+        const unsigned small[]={8},large[]={7,7};
+        assert(p3dDsMaterialTextureCacheInit(&cache,&textures,resolve,NULL));
+        assert(p3dDsMaterialTextureCacheFits(&cache,small,1));
+        cache.ids[0]=7;cache.count=1;
+        assert(!p3dDsMaterialTextureCacheFits(&cache,small,1));
+        assert(p3dDsMaterialTextureCacheFits(&cache,large,2));
+        cache.count=0;
+        p3dDsMaterialTextureCacheDestroy(&cache);
         textures.entries[0].width=128;
         assert(p3dDsMaterialTextureBudgetValid(&materials,&textures,2));
         textures.entries[0].width=8;

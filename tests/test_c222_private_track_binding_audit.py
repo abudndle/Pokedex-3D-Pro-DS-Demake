@@ -47,6 +47,13 @@ class C222PrivateTrackBindingAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"exact source node"):
             _build_model(bytes(wrong),14,sk,1)
 
+    def test_reject_skeleton_root_count_that_disagrees_with_source(self):
+        raw, sk = fixture_model(14)
+        wrong_roots = bytearray(sk)
+        struct.pack_into("<H", wrong_roots, 10, 2)
+        with self.assertRaisesRegex(ValueError, "root count"):
+            _build_model(raw, 14, bytes(wrong_roots), 1)
+
     def test_full_730_model_roster_synthetic_audit_and_private_export(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=pathlib.Path(tmp);parts=[]

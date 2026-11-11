@@ -2084,8 +2084,10 @@ int main(void) {
                     /* A deletion must not be confirmed under an invisible
                      * bitmap-overlay prompt or after a simultaneous selection. */
                     if(down==KEY_A && !showing_original_art){
-                        (void)p3dPhotoAlbumConfirmDelete(&photo_album,album_delete_name,
-                                                        shown?names[album_selected]:NULL);
+                        if(shown && p3dPhotoAlbumConfirmDelete(&photo_album,album_delete_name,
+                                                              names[album_selected])){
+                            p3dPhotoAlbumClampSelection(total-1,&album_offset,&album_selected);
+                        }
                         album_delete_name[0]=0;
                         redraw=1;
                     }

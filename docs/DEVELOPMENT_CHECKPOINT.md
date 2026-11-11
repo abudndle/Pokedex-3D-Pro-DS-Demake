@@ -1,4 +1,10 @@
-# Development checkpoint - mixed native materials and runtime asset identity
+# Development checkpoint - approved texture budget and animation preflight
+
+Native mixed previews now budget the union of already resident textures and the approved texture IDs actually needed for the draw. All material and source references still validate. An unsupported 256×256 metadata entry used to exhaust the budget before the supported texture could load. The authored host regression reproduced that failure and the updated melonDS build retained the green textured face beside the plain face. A resident full-bank texture still prevents an additional allocation.
+
+Animated Nitro Engine display lists now validate converter command lengths and joint matrix slots before submission. The host regression rejects a CRC-valid list that selects a slot outside the paired animation's initialized range. The validator also accepted authored output from the pinned converter with its normal overlay enabled. The private C222 packer checks the staged P3SK root count against original C5 parent fields.
+
+Deleting the sole photo on an Album page now selects the nearest surviving photo before saving. The host regression mutates a temporary eight-photo album and verifies the page and selection after deletion. Focused tests and independent review passed. This branch stacks on #433, with hosted and private runtime results recorded in the pull request. Original source coverage and physical hardware testing remain open.
 
 The source-indexed renderer now keeps verified color textures in mixed-material models and draws unsupported ranges as plain geometry. It preflights the complete pair and uploads only approved textures. The complete material manifest still has to satisfy the existing DS budget. The authored melonDS fixture changed from two plain faces to one green textured face alongside one plain face. Its unsupported texture payload is deliberately absent. The host probe verifies both triangles, one upload and an untextured bind, and hosted visual CI now requires both faces.
 
