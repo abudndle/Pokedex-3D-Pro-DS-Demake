@@ -34,7 +34,7 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_c306_synthetic_texture_visual.py' -v
       - name: C359 reject missing zoom/reset rendering evidence
         run: python3 -m unittest discover -s tests -p 'test_c359_zoom_frame_gate.py' -v
-      - name: Stage two fully synthetic red/blue source-indexed species outside checkout
+      - name: Stage synthetic source-indexed and mixed legacy species outside checkout
         shell: bash
         run: |
           set -euo pipefail
@@ -63,7 +63,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y desmume xvfb x11-apps x11-utils xdotool
-      - name: Verify native red/blue texture frame difference in real DeSmuME
+      - name: Verify native and mixed legacy textures in real DeSmuME
         shell: bash
         run: |
           xvfb-run -a -s '-screen 0 1024x768x24' timeout 90s \

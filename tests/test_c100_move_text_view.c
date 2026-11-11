@@ -16,6 +16,18 @@ int main(void){
     assert(p3dMoveTextScroll(10000,entry.description,0)==0);
     assert(p3dMoveTextScroll(-100,entry.effect,-1)==0);
     assert(p3dMoveTextScroll(0,NULL,+1)==0);
+    /* A short last step must reverse to the same viewport the player left. */
+    memset(entry.effect,'E',114);
+    entry.effect[114]=0;
+    int first_step=p3dMoveTextScroll(0,entry.effect,1);
+    int tail=p3dMoveTextScroll(first_step,entry.effect,1);
+    assert(first_step==28&&tail==30);
+    assert(p3dMoveTextScroll(tail,entry.effect,-1)==first_step);
+    assert(p3dMoveTextScroll(tail,entry.effect,1)==tail);
+    /* An older off-grid checkpoint remains readable, then rejoins the grid. */
+    assert(p3dMoveTextScroll(2,entry.effect,0)==2);
+    assert(p3dMoveTextScroll(2,entry.effect,1)==28);
+    assert(p3dMoveTextScroll(2,entry.effect,-1)==0);
     memset(entry.effect,'E',sizeof(entry.effect)-1);
     entry.effect[sizeof(entry.effect)-1]=0;
     assert(p3dMoveTextScroll(0,entry.effect,1)==28);

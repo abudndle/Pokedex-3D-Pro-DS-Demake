@@ -1,4 +1,15 @@
-# Development checkpoint - Type Matchups, preview recovery and UV staging
+# Development checkpoint - mixed textures, source checks and Move Dex scrolling
+
+## Current integration
+
+Branch `codex/c442-runtime-resilience` stacks on #421. `main` remained `9cb9e34` at fetch.
+
+- Mixed legacy previews keep DS texture sampling enabled while the frame is rasterized. Untextured ranges bind texture zero and retain their face colors. The authored C306 ROM showed a white face before this change and a green textured face afterward, beside the same red fallback face. The independent emulator workflow now requires both colors as well as the earlier source-indexed model checks.
+- Native material drawing requires the cache to reference the manifest used by the draw. The host probe rejects a foreign manifest with a conflicting texture size before any upload or triangle.
+- The chunk parser rejects original face counts above `INT_MAX`. The host fixture verifies legacy fallback on malformed metadata and accepts the signed maximum.
+- Move Dex text stepping returns to the preceding line-aligned viewport from the final partial step. A stored offset remains readable when the older checkpoint first opens.
+
+Focused host tests and read-only review passed. BlocksDS, emulator and complete Linux results are recorded in the pull request. The original stage has zero verified UV companions. Missing original mapping, sampler semantics, skinning and action data, incomplete gameplay and physical DS/DSi checks still limit release fidelity.
 
 ## Runtime corrections
 

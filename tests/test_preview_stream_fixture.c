@@ -166,6 +166,15 @@ int main(void){
  assert(previewStreamLoad(6)); /* invalid P3CS falls back to legacy DS3M */
  assert(!previewStreamIsChunked());
  assert(previewStreamTriangleCount()==1);
+ assert(previewStreamLoad(14)); /* Overflowing P3CS count must use valid DS3M. */
+ assert(!previewStreamIsChunked());
+ assert(previewStreamOriginalTriangleCount()==42);
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==3);
+ assert(previewStreamLoad(15)); /* Largest representable source count. */
+ assert(previewStreamIsChunked());
+ assert(previewStreamOriginalTriangleCount()==2147483647);
  assert(!previewStreamLoad(7)); /* Both source files are invalid. */
  assert(!previewStreamHasModel());
  previewStreamPreferChunks(0);

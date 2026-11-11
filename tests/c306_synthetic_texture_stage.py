@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""C306: fully synthetic, visually distinct native P3VX/P3VU/P3MT/P3PX ROM.
+"""C306: synthetic source-indexed and mixed legacy texture previews.
 Only authored geometric/color fixtures are staged. No Nintendo assets or
 private manifests are read, hashed, copied, or included in public artifacts.
 """
@@ -20,6 +20,32 @@ def pack_crc_header(magic, version, model, count_a, count_b, records):
                         zlib.crc32(records)) + records)
 
 
+def stage_legacy(destination):
+    # Separate triangles let the frame gate distinguish the textured range
+    # from the face-color fallback for an out-of-unit UV range.
+    xyz = (-2900, -1500, 0, -150, -1500, 0, -1500, 1900, 0,
+            150, -1500, 0, 2900, -1500, 0, 1500, 1900, 0)
+    put(destination / "preview/p004.ds3m",
+        struct.pack("<4sHHII18h6B", b"DS3M", 2, 2, 0, 2, *xyz,
+                    255, 255, 255, 235, 20, 30))
+    put(destination / "preview/p004.p3uv",
+        struct.pack("<4sHH12h", b"P3UV", 1, 2, 0, 0, 4096, 0, 0, 4096,
+                    -1, 0, 4096, 0, 0, 4096))
+    materials = destination / "materials"
+    put(materials / "p004.p3mt",
+        struct.pack("<4sHH8H", b"P3MT", 1, 2, 0, 1, 0, 9, 1, 1, 0, 9))
+    put(materials / "p004.p3tx",
+        struct.pack("<4sHH4H", b"P3TX", 1, 1, 9, 8, 8, 1))
+    put(materials / "p004.p3mr", pack_crc_header(
+        b"P3MR", 1, 4, 2, 1, struct.pack("<6H", 0, 2, 0, 9, 0xffff, 0x0c02)))
+    put(materials / "p004.p3sc", pack_crc_header(
+        b"P3SC", 2, 4, 1, 0, struct.pack("<5H", 0, 0, 9, 0xffff, 1)))
+    put(materials / "p004.p3sw", pack_crc_header(
+        b"P3SW", 1, 4, 1, 0, struct.pack("<13I", 0, 0xffff0009, *([0] * 11))))
+    put(destination / "textures/p004/t009.p3px",
+        struct.pack("<4sHHH64H", b"P3PX", 2, 8, 8, *([0x83e0] * 64)))
+
+
 def stage(root):
     root = Path(root)
     if root.is_symlink() or not root.is_dir() or list(root.iterdir()):
@@ -27,7 +53,7 @@ def stage(root):
     destination = root / "staged"
     try:
         mapping = [0xffff] * 649
-        mapping[0], mapping[1] = 2, 3
+        mapping[:3] = [2, 3, 4]
         put(destination / "models/species_map.p3sm",
             struct.pack("<4sHH649H", b"P3SM", 1, 649, *mapping))
         for model, tex_id, color in ((2, 7, 0x801f), (3, 8, 0xfc00)):
@@ -63,6 +89,7 @@ def stage(root):
             put(destination / "textures" / stem / f"t{tex_id:03d}.p3px",
                 struct.pack("<4sHHH", b"P3PX", 2, 8, 8) +
                 struct.pack("<64H", *([color] * 64)))
+        stage_legacy(destination)
         return destination
     except Exception:
         # A failed synthetic stage must not leave partially usable private-
@@ -78,7 +105,7 @@ if __name__ == "__main__":
     args = p.parse_args()
     output = stage(args.empty_temp_dir)
     print(json.dumps({"schema": "c306-synthetic-texture-visual-v1",
-                      "staged": str(output), "models": [2, 3],
-                      "synthetic_texture_colors": ["red", "blue"],
+                      "staged": str(output), "models": [2, 3, 4],
+                      "synthetic_texture_colors": ["red", "blue", "green"],
                       "nintendo_assets_included": False,
                       "original_visual_parity_verified": False}, sort_keys=True))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """C306: real emulator XWD visual gate for independently authored textures.
-This verifies only synthetic red/blue native draw differences, NOT Nintendo
-original texture, shader, UV provenance, animation or visual parity.
+This verifies authored source-indexed colors and mixed legacy material
+rendering. Original asset fidelity requires separate evidence.
 """
 import json
 from pathlib import Path
@@ -43,7 +43,7 @@ def count_dominant(frame, index, bounds=(55, 65, 215, 175)):
     x0, y0, x1, y1 = bounds
     if width != 256 or height != 384:
         raise ValueError("expected 256x384 dual-screen native frame")
-    other = (2, 1) if index == 0 else (0, 1)
+    other = [channel for channel in range(3) if channel != index]
     return sum(
         (rgb := color(x, y))[index] >= 75 and
         rgb[index] >= rgb[other[0]] + 35 and
@@ -76,6 +76,16 @@ def verify(home, red, blue, back, min_samples=12):
     return result
 
 
+def verify_legacy_mixed(path):
+    frame = frame_rgb(path)
+    upper = (0, 0, 256, 192)
+    green = count_dominant(frame, 1, upper)
+    red = count_dominant(frame, 0, upper)
+    if min(green, red) < 12:
+        raise ValueError(f"mixed legacy frame needs green texture and red face color: {green=}, {red=}")
+    return {"legacy_green_texture_samples": green, "legacy_red_face_samples": red}
+
+
 def png_chunk(tag, data):
     return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data))
 
@@ -94,18 +104,19 @@ def safe_png(xwd_path, png_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 5:
-        raise SystemExit("usage: c306_synthetic_texture_frame_gate.py HOME RED BLUE BACK")
-    paths = sys.argv[1:]
+    if len(sys.argv) != 6:
+        raise SystemExit("usage: c306_synthetic_texture_frame_gate.py HOME RED BLUE LEGACY BACK")
+    home, red, blue, legacy, back = sys.argv[1:]
     # Preserve only the authored synthetic captures even when the strict
     # color gate fails; no native ROM or private original bytes are uploaded.
-    for key, path in zip(("home", "red", "blue", "back"), paths):
+    for key, path in zip(("home", "red", "blue", "legacy", "back"), sys.argv[1:]):
         safe_png(path, f"c306-{key}.png")
-    for key, path in zip(("red", "blue"), paths[1:3]):
+    for key, path in (("red", red), ("blue", blue)):
         frame = frame_rgb(path)
         print("C306 diagnostic:", key,
               "top-screen red", count_dominant(frame, 0, (0, 0, 256, 192)),
               "blue", count_dominant(frame, 2, (0, 0, 256, 192)),
               flush=True)
-    result = verify(*paths)
+    result = verify(home, red, blue, back)
+    result.update(verify_legacy_mixed(legacy))
     print(json.dumps(result, sort_keys=True))
