@@ -42,17 +42,20 @@ int p3dAnimationLibraryLoad(P3DAnimationLibrary *library,
 int p3dAnimationLibraryStep(P3DAnimationLibrary *library,
                             P3DAnimationClip *clip,
                             const char *directory,int direction){
-    unsigned next;
+    unsigned next, step;
     if(!library||!clip||!library->ready||library->count<2||
-       library->count>P3D_ANIMATION_LIBRARY_MAX||!direction)return 0;
-    next=direction>0?(library->selected+1)%library->count:
-         (library->selected+library->count-1)%library->count;
-    if(!load_slot(clip,directory,library->resource_index,
-                  library->slots[next])){
-        library->ready=0;
-        clip->ready=0;
-        return 0;
+       library->count>P3D_ANIMATION_LIBRARY_MAX||
+       library->selected>=library->count||!direction)return 0;
+    next=library->selected;
+    step=direction>0?1:library->count-1;
+    for(unsigned tried=1;tried<library->count;tried++){
+        next=(next+step)%library->count;
+        if(load_slot(clip,directory,library->resource_index,library->slots[next])){
+            library->selected=next;
+            return 1;
+        }
     }
-    library->selected=next;
-    return 1;
+    library->ready=0;
+    clip->ready=0;
+    return 0;
 }
