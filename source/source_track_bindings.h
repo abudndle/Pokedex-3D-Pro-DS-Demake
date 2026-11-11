@@ -14,7 +14,8 @@ typedef struct {
 } P3DSourceTrackBindings;
 void p3dSourceTrackBindingsClear(P3DSourceTrackBindings *out);
 /* Fails closed on absent/mismatched source rig, model, node, exact name,
- * original string offset, duplicate node, CRC, record ordering or EOF. */
+ * original string offset, duplicate node, CRC, overlapping or unordered
+ * source channel groups, or EOF. */
 int p3dSourceTrackBindingsLoad(P3DSourceTrackBindings *out,
     const P3DOriginalSkeleton *rig,const char *path,unsigned expected_model_id);
 #endif

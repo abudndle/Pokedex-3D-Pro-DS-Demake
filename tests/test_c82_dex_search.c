@@ -122,6 +122,21 @@ int main(int argc,char **argv){
     menu.page=P3D_PAGE_DEX;
     assert(!p3dMenuOpenPokemonSearch(&menu,649));
     assert(menu.page==P3D_PAGE_DEX&&menu.selected_dex==62);
+    menu.page=P3D_PAGE_SEARCH;
+    menu.selected_dex=24;
+    menu.search_letter='B';
+    strcpy(menu.search_query,"electric");
+    int jump_field=P3D_DEX_SEARCH_DESCRIPTION;
+    assert(p3dDexJumpInitial(&menu,&jump_field,1,1,P3D_DEX_SCOPE_FAVORITES,&history));
+    assert(menu.selected_dex==0&&jump_field==P3D_DEX_SEARCH_NAME);
+    assert(!strcmp(menu.search_query,"B"));
+    assert(p3dDexSelectionMatches(menu.search_query,menu.selected_dex,jump_field,1,
+                                  P3D_DEX_SCOPE_FAVORITES,&history,&menu));
+    menu.search_letter='P';
+    assert(!p3dDexJumpInitial(&menu,&jump_field,1,1,P3D_DEX_SCOPE_FAVORITES,&history));
+    assert(menu.selected_dex==0&&jump_field==P3D_DEX_SEARCH_NAME&&!strcmp(menu.search_query,"B"));
+    assert(p3dDexJumpInitial(&menu,&jump_field,-1,1,P3D_DEX_SCOPE_VIEWED,&history));
+    assert(menu.selected_dex==24&&!strcmp(menu.search_query,"P"));
     p3dDexTextClose();
     assert(!p3dDexSelectionMatches("PIK",24,P3D_DEX_SEARCH_NAME,0,
                                    P3D_DEX_SCOPE_ALL,&history,&menu));

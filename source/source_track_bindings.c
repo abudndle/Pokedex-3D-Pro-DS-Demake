@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #define P3TB_HEADER_BYTES 20u
+#define P3TB_SOURCE_GROUP_RECORDS 3u
 static unsigned get16(const unsigned char *p){return (unsigned)p[0]|((unsigned)p[1]<<8);}
 static uint32_t get32(const unsigned char *p){return (uint32_t)get16(p)|((uint32_t)get16(p+2)<<16);}
 static uint32_t crc_update(uint32_t crc,const unsigned char *p,unsigned n){
@@ -45,7 +46,7 @@ int p3dSourceTrackBindingsLoad(P3DSourceTrackBindings *out,
         crc=crc_update(crc,record,sizeof(record));
         node=get16(record);offset=get16(record+2);first=get32(record+4);
         if(node>=rig->node_count||offset>=rig->string_bytes||
-           (i && first<=prev))goto fail;
+           (i && (first<=prev || first-prev<P3TB_SOURCE_GROUP_RECORDS)))goto fail;
         source_record=rig->records+node*P3D_SKELETON_NODE_BYTES;
         if(get32(source_record+52)!=offset)goto fail;
         original=p3dOriginalSkeletonName(rig,node);
