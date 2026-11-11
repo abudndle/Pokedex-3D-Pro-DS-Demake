@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "verified_geometry_pair.h"
 #include "verified_vertex_uv.h"
 #include "verified_primitive_uv_bridge.h"
@@ -55,6 +56,72 @@ static void denied(const char *path){
     for(size_t i=0;i<sizeof(uv);i++)assert(p[i]==0);
     assert(!p3dVerifiedVertexUvGet(&uv,0,0,&u,&v));
     assert(u==999&&v==999);
+}
+enum { LARGE_TRIANGLES=600, LARGE_VERTICES=P3D_VERTEX_MAX_VERTICES };
+static int large_sink(void *context,uint16_t mesh,
+    const P3DPrimitiveUvVertex *a,const P3DPrimitiveUvVertex *b,
+    const P3DPrimitiveUvVertex *c){
+    unsigned *seen=context;
+    unsigned i=(*seen)++*3u;
+    assert(mesh==7 && a->xyz==g.xyz+i*3u && b->xyz==a->xyz+3 && c->xyz==b->xyz+3);
+    assert(a->u==(int16_t)i && b->u==(int16_t)(i+1) && c->u==(int16_t)(i+2));
+    assert(a->v==4096-a->u && b->v==4096-b->u && c->v==4096-c->u);
+    return 1;
+}
+static int stop_sink(void *context,uint16_t mesh,
+    const P3DPrimitiveUvVertex *a,const P3DPrimitiveUvVertex *b,
+    const P3DPrimitiveUvVertex *c){
+    (void)large_sink(context,mesh,a,b,c);
+    return 0;
+}
+static void large_pair(char **paths){
+    static uint8_t vertices[24+LARGE_VERTICES*6u];
+    static uint8_t indices[16+LARGE_TRIANGLES*6u];
+    static uint8_t coords[28+LARGE_VERTICES*4u];
+    memcpy(vertices,vx,24);
+    wr16(vertices+18,LARGE_VERTICES);
+    wr32(vertices+12,crc(vertices+16,sizeof(vertices)-16));
+    memcpy(indices,ix,16);
+    wr32(indices+12,LARGE_TRIANGLES);
+    for(unsigned i=0;i<LARGE_TRIANGLES*3u;i++)wr16(indices+16+i*2u,i);
+    memcpy(coords,"P3VU",4);wr16(coords+4,1);wr16(coords+6,14);wr16(coords+8,1);
+    wr32(coords+12,crc(vertices,sizeof(vertices)));
+    wr16(coords+20,7);wr16(coords+22,LARGE_VERTICES);
+    for(unsigned i=0;i<LARGE_VERTICES;i++){
+        wr16(coords+28+i*4u,i%4097u);
+        wr16(coords+30+i*4u,4096u-i%4097u);
+    }
+    wr32(coords+16,crc(coords+20,sizeof(coords)-20));
+    write_file(paths[0],vertices,sizeof(vertices));
+    write_file(paths[1],indices,sizeof(indices));
+    write_file(paths[2],coords,sizeof(coords));
+    assert(p3dVerifiedGeometryPairLoad(&g,paths[0],paths[1],14));
+    assert(p3dVerifiedVertexUvLoad(&uv,paths[2],&g));
+    /* A generous CPU-time limit detects rehashing both source files for
+     * each vertex. A linear scan and both walks take a few milliseconds. */
+    clock_t start=clock();
+    for(unsigned frame=0;frame<2;frame++){
+        unsigned seen=0;
+        assert(p3dVerifiedPrimitiveUvBridge(&g,&uv,large_sink,&seen));
+        assert(seen==LARGE_TRIANGLES);
+    }
+    double elapsed=(double)(clock()-start)/CLOCKS_PER_SEC;
+    printf("C289 large paired preview (2 traversals): %.3f CPU seconds\n",elapsed);
+    fflush(stdout);
+    assert(elapsed<2.0);
+    unsigned seen=0;
+    assert(!p3dVerifiedPrimitiveUvBridge(&g,&uv,stop_sink,&seen));
+    assert(seen==1);
+    /* A stale geometry file or a late out-of-range index must reject the
+     * entire walk before the sink sees an otherwise valid first triangle. */
+    seen=0;
+    g.vx[24]^=1;
+    assert(!p3dVerifiedPrimitiveUvBridge(&g,&uv,large_sink,&seen));
+    assert(seen==0);
+    g.vx[24]^=1;
+    wr16(g.ix+g.ix_size-2,LARGE_VERTICES);
+    assert(!p3dVerifiedPrimitiveUvBridge(&g,&uv,large_sink,&seen));
+    assert(seen==0);
 }
 int main(int argc,char **argv){
     int16_t u=0,v=0;
@@ -186,6 +253,7 @@ int main(int argc,char **argv){
     denied(argv[3]);
     p3dVerifiedGeometryPairClear(&g);
     write_file(argv[3],vu,sizeof(vu));denied(argv[3]);
+    large_pair(argv+1);
     puts("C289: CRC-bound native per-vertex UV staging (synthetic): PASS");
     return 0;
 }

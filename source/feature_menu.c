@@ -24,8 +24,8 @@ size_t p3dMenuEntries(P3DCapabilities caps,P3DPage out[P3D_MENU_MAX]){
     return n;
 }
 int p3dMenuEnter(P3DMenu *s,P3DCapabilities caps,P3DPage page){if(!s||(unsigned)page>=(unsigned)P3D_PAGE_COUNT)return 0;if(page==P3D_PAGE_AR&&!p3dCanEnterFeature(caps,P3D_FEATURE_AR))return 0;s->page=page;s->cursor=0;return 1;}
-int p3dTypeChartOpenSearch(P3DMenu *s,int national_species){
-    if(!s||s->page!=P3D_PAGE_TYPES||
+int p3dMenuOpenPokemonSearch(P3DMenu *s,int national_species){
+    if(!s||(s->page!=P3D_PAGE_DEX&&s->page!=P3D_PAGE_FAVORITES&&s->page!=P3D_PAGE_TYPES)||
        national_species<0||national_species>=649)return 0;
     s->page=P3D_PAGE_SEARCH;
     s->selected_dex=national_species;
@@ -33,6 +33,9 @@ int p3dTypeChartOpenSearch(P3DMenu *s,int national_species){
     s->search_number_mode=0;
     s->cursor=0;
     return 1;
+}
+int p3dTypeChartOpenSearch(P3DMenu *s,int national_species){
+    return s&&s->page==P3D_PAGE_TYPES&&p3dMenuOpenPokemonSearch(s,national_species);
 }
 int p3dFavoriteContains(const P3DMenu *s,int model){if(!s||model<0||model>=738||s->favorites_count<0||s->favorites_count>P3D_FAVORITES_MAX)return 0;for(int i=0;i<s->favorites_count;i++)if(s->favorites[i]==model)return 1;return 0;}
 int p3dFavoriteToggle(P3DMenu *s,int model){if(!s||model<0||model>=738||s->favorites_count<0||s->favorites_count>P3D_FAVORITES_MAX)return 0;if(s->favorite_cursor<0||s->favorites_count==0)s->favorite_cursor=0;else if(s->favorite_cursor>=s->favorites_count)s->favorite_cursor=s->favorites_count-1;for(int i=0;i<s->favorites_count;i++)if(s->favorites[i]==model){for(int j=i;j+1<s->favorites_count;j++)s->favorites[j]=s->favorites[j+1];s->favorites[--s->favorites_count]=-1;if(s->favorites_count==0)s->favorite_cursor=0;else if(s->favorite_cursor>i)s->favorite_cursor--;else if(s->favorite_cursor>=s->favorites_count)s->favorite_cursor=s->favorites_count-1;return -1;}if(s->favorites_count>=P3D_FAVORITES_MAX)return 0;s->favorites[s->favorites_count++]=model;return 1;}

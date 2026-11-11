@@ -11,7 +11,7 @@ typedef int (*P3DPrimitiveUvTriangleSink)(void *context,uint16_t mesh_id,
     const P3DPrimitiveUvVertex *a,const P3DPrimitiveUvVertex *b,
     const P3DPrimitiveUvVertex *c);
 /* Transactionally preflight the complete index/geometry/UV pair before
- * invoking any sink. UVs are source-indexed; no topology remap is inferred. */
+ * invoking any sink. The sink must leave the input buffers unchanged. */
 int p3dVerifiedPrimitiveUvBridge(const P3DVerifiedGeometryPair *geometry,
     const P3DVerifiedVertexUv *uv,P3DPrimitiveUvTriangleSink sink,
     void *context);

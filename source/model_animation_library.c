@@ -55,6 +55,10 @@ int p3dAnimationLibraryStep(P3DAnimationLibrary *library,
             return 1;
         }
     }
+    /* Keep playing the current action if every alternative disappeared.
+     * Revalidate its file before exposing the pose again. */
+    if(load_slot(clip,directory,library->resource_index,
+                 library->slots[library->selected]))return 0;
     library->ready=0;
     clip->ready=0;
     return 0;
