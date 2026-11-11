@@ -107,6 +107,23 @@ class C136Tests(unittest.TestCase):
                         build(base, candidates, output, mode=mode, source_report=manifest)
                     self.assertFalse(output.exists())
 
+    def test_qa_rejects_conflicting_provenance_for_one_model(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            base, candidates, manifest = fixture(root)
+            report = json.loads(manifest.read_text())
+            # The existing row marks p045 as inferred. A duplicate must not
+            # overwrite that classification and activate its UV companion.
+            report["per_model"].append({
+                "model_id": "p045",
+                "source": "C62 complete source-derived candidate",
+            })
+            manifest.write_text(json.dumps(report))
+            output = root / "qa.zip"
+            with self.assertRaisesRegex(ValueError, "duplicate model.*p045"):
+                build(base, candidates, output, mode="unit-uv-qa", source_report=manifest)
+            self.assertFalse(output.exists())
+
     def test_requires_complete_original_roster_and_provenance(self):
         with tempfile.TemporaryDirectory() as folder:
             root=pathlib.Path(folder)

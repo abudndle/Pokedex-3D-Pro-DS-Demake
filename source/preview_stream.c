@@ -61,11 +61,7 @@ static int load_chunked(unsigned model){
     return 1;
 }
 
-int previewStreamLoad(int resource_index) {
-    unsigned char head[16];
-    char path[80];
-    FILE *f;
-    unsigned int tri_count, j, version;
+static void clear_model(void) {
     s_loaded=0;
     s_triangle_count=0;
     s_original_triangle_count=0;
@@ -77,15 +73,20 @@ int previewStreamLoad(int resource_index) {
     s_chunked=0;
     s_drawing_chunk=0;
     p3dChunkClose(&s_chunk_stream);
-    if (!s_fs_available || resource_index < 0 || resource_index >= 738) return 0;
+}
+
+static int load_legacy(int resource_index) {
+    unsigned char head[16];
+    char path[80];
+    FILE *f;
+    unsigned int tri_count, j, version;
 #ifdef C7_TEST_HOST
     snprintf(path,sizeof(path),"nitrofs/preview/p%03d.ds3m",resource_index);
 #else
     snprintf(path,sizeof(path),"nitro:/preview/p%03d.ds3m",resource_index);
 #endif
-    if(s_prefer_source_chunks&&load_chunked((unsigned)resource_index))return 1;
     f=fopen(path,"rb");
-    if (!f) goto chunk_fallback;
+    if (!f) return 0;
     if (fread(head,1,sizeof(head),f)!=sizeof(head)) goto invalid_legacy;
     version=get16(head+4);
     if (memcmp(head,"DS3M",4)!=0 || (version!=1 && version!=2)) goto invalid_legacy;
@@ -120,7 +121,14 @@ int previewStreamLoad(int resource_index) {
     return 1;
 invalid_legacy:
     fclose(f);
-chunk_fallback:
+    return 0;
+}
+
+int previewStreamLoad(int resource_index) {
+    clear_model();
+    if (!s_fs_available || resource_index < 0 || resource_index >= 738) return 0;
+    if(s_prefer_source_chunks&&load_chunked((unsigned)resource_index))return 1;
+    if(load_legacy(resource_index))return 1;
     /* Chunk-preferred mode already attempted this resource above. */
     return !s_prefer_source_chunks && load_chunked((unsigned)resource_index);
 }
@@ -178,18 +186,11 @@ void previewStreamDraw(void) {
     const int total=s_triangle_count;
     for(unsigned i=0;i<s_chunk_stream.chunk_count;i++){
         if(!p3dChunkRead(&s_chunk_stream,i,s_xyz,s_uv.uv,s_face_rgb)){
-            /* A previously checked private source chunk may become corrupt
-             * after open. Clear all source-model metadata, release the file,
-             * and prevent subsequent GL work with stale triangle counts. */
-            p3dChunkClose(&s_chunk_stream);
-            s_uv.ready=0;
-            s_uv.triangles=0;
-            s_has_face_colors=0;
-            s_loaded=0;
-            s_original_triangle_count=0;
-            s_chunked=0;
-            s_drawing_chunk=0;
-            s_triangle_count=0;
+            /* Earlier chunks may already be in the GL queue. Leave the
+             * validated legacy preview for the next draw. */
+            int resource_index=s_chunk_stream.model_id;
+            clear_model();
+            (void)load_legacy(resource_index);
             return;
         }
         s_uv.ready=1;

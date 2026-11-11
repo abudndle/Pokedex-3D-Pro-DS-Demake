@@ -1570,6 +1570,7 @@ int main(void) {
             attack_type=resume.type_attack;
             defend_type=resume.type_defend;
             defend_type2=(int)resume.type_defend2_plus_one-1;
+            if(defend_type2==defend_type)defend_type2=-1;
             favorite_index=resume.favorites_selected;
             if(favorite_index>=state.favorites_count)favorite_index=0;
             /* A saved form must exist in the actual recovered original
@@ -2234,12 +2235,12 @@ int main(void) {
                 }
                 if(down&KEY_UP){attack_type=(attack_type+16)%17;redraw=1;}
                 if(down&KEY_DOWN){attack_type=(attack_type+1)%17;redraw=1;}
-                if(down&KEY_LEFT){defend_type=(defend_type+16)%17;redraw=1;}
-                if(down&KEY_RIGHT){defend_type=(defend_type+1)%17;redraw=1;}
-                if(down&KEY_X){defend_type2=defend_type2<0?0:-1;redraw=1;}
+                if(down&KEY_LEFT){defend_type=p3dTypeStepDefender(defend_type,defend_type2,-1);redraw=1;}
+                if(down&KEY_RIGHT){defend_type=p3dTypeStepDefender(defend_type,defend_type2,1);redraw=1;}
+                if(down&KEY_X){defend_type2=defend_type2<0?p3dTypeStepDefender(16,defend_type,1):-1;redraw=1;}
                 if(defend_type2>=0){
-                    if(down&KEY_L){defend_type2=(defend_type2+16)%17;redraw=1;}
-                    if(down&KEY_R){defend_type2=(defend_type2+1)%17;redraw=1;}
+                    if(down&KEY_L){defend_type2=p3dTypeStepDefender(defend_type2,defend_type,-1);redraw=1;}
+                    if(down&KEY_R){defend_type2=p3dTypeStepDefender(defend_type2,defend_type,1);redraw=1;}
                 }
             }
             if(state.page==P3D_PAGE_FAVORITES){

@@ -102,8 +102,11 @@ def build(base_zip, candidates_zip, output_zip, *, mode="baseline",
         sources = {}
         if source_report is not None:
             report = json.loads(Path(source_report).read_text(encoding="utf-8"))
-            sources = {int(row["model_id"][1:]): row.get("source", "")
-                       for row in report["per_model"]}
+            for row in report["per_model"]:
+                model = int(row["model_id"][1:])
+                if model in sources:
+                    raise ValueError(f"duplicate model p{model:03d} in source provenance report")
+                sources[model] = row.get("source", "")
         substitutions = {}
         for model, dsname in sorted(ds3m.items()):
             source_ds = cand.read(dsname)

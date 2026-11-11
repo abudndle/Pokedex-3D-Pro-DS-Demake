@@ -11,6 +11,13 @@ void glColor3b(unsigned char r,unsigned char g,unsigned char b){if(r==255&&g==25
 void glBegin(int m){assert(m==1);}
 void glVertex3v16(short x,short y,short z){(void)x;(void)y;(void)z;emitted++;}
 void glEnd(void){}
+static void corrupt_last_chunk(const char *path){
+ FILE *mut=fopen(path,"r+b");
+ assert(mut);
+ assert(fseek(mut,-1,SEEK_END)==0);
+ assert(fputc(0,mut)!=EOF);
+ assert(fclose(mut)==0);
+}
 int main(void){
  assert(previewStreamInit());
  assert(previewStreamLoad(0));
@@ -127,15 +134,25 @@ int main(void){
  emitted=0;
  previewStreamDrawRange(0,1,8,8); /* no external range without matched source textures */
  assert(emitted==0);
- /* Recheck an original-derived chunk *after* load. Its last source
-  * byte changes after the open CRC check, requiring draw-time fail-close. */
- {
-     FILE *mut=fopen("nitrofs/preview/p005.p3cs","r+b");
-     assert(mut);
-     assert(fseek(mut,-1,SEEK_END)==0);
-     assert(fputc(0,mut)!=EOF);
-     assert(fclose(mut)==0);
- }
+ /* A chunk that becomes corrupt after open must give way to the
+  * same model's validated legacy preview on the next draw. */
+ corrupt_last_chunk("nitrofs/preview/p005.p3cs");
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==1200*3); /* Only the earlier valid chunks were submitted. */
+ assert(previewStreamHasModel());
+ assert(!previewStreamIsChunked());
+ assert(previewStreamTriangleCount()==1);
+ assert(previewStreamOriginalTriangleCount()==42);
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==3);
+ assert(previewStreamPrefersChunks());
+
+ /* When no legacy file exists, a draw-time CRC failure clears the model. */
+ assert(previewStreamLoad(13));
+ assert(previewStreamIsChunked());
+ corrupt_last_chunk("nitrofs/preview/p013.p3cs");
  emitted=0;
  previewStreamDraw();
  assert(!previewStreamHasModel());

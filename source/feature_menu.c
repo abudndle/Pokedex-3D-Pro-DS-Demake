@@ -77,9 +77,19 @@ static const Match table[]={
  X(ST,F,5),X(ST,W,5),X(ST,E,5),X(ST,I,20),X(ST,RO,20),X(ST,ST,5)
 };
 int p3dTypeEffect(int a,int d){if(a<0||a>=17||d<0||d>=17)return -1;for(size_t i=0;i<sizeof(table)/sizeof(table[0]);i++)if(table[i].a==a&&table[i].d==d)return table[i].m;return 10;}
-int p3dTypeEffectDual(int a,int d1,int d2){int p=p3dTypeEffect(a,d1);if(p<0)return -1;if(d2==-1)return p;if(d2< -1)return -1;
- int q=p3dTypeEffect(a,d2);
- return q<0?-1:p*q/10;}
+int p3dTypeEffectDual(int attack,int first,int second){
+    int primary=p3dTypeEffect(attack,first);
+    if(primary<0||second==-1||second==first)return primary;
+    int secondary=p3dTypeEffect(attack,second);
+    return secondary<0?-1:primary*secondary/10;
+}
+int p3dTypeStepDefender(int current,int excluded,int direction){
+    if(current<0||current>=17||!direction)return current;
+    int step=direction<0?16:1;
+    int next=(current+step)%17;
+    if(next==excluded)next=(next+step)%17;
+    return next;
+}
 int p3dSearchNext(const char *const labels[],size_t count,int from,char initial,int dir){
     if(!labels||!count||!dir||count>2147483647u)return -1;
     if(initial>='a'&&initial<='z')initial=(char)(initial-('a'-'A'));

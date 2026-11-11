@@ -85,6 +85,8 @@ with open(sys.argv[1].replace("p000","p012"),"wb") as f:
     f.write(struct.pack("<4sHHII",b"DS3M",1,1,0,42))
 with open(sys.argv[1].replace("p000.ds3m","p012.p3cs"),"wb") as f:
     f.write(full[:6]+struct.pack("<H",12)+full[8:])
+with open(sys.argv[1].replace("p000.ds3m","p013.p3cs"),"wb") as f:
+    f.write(full[:6]+struct.pack("<H",13)+full[8:])
 
 PY
 cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST -Itools/host_stub -Isource source/preview_stream.c source/preview_chunk_stream.c source/model_uv.c tests/test_preview_stream_fixture.c -o "$tmp/test_preview"
