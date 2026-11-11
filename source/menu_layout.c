@@ -3,7 +3,6 @@ int p3dMenuClampCursor(int cursor,size_t count){
  if(!count)return -1;
  if(cursor<0)return 0;
  if((size_t)cursor>=count)return (int)count-1;
- if(cursor>P3D_MENU_VISIBLE_ROWS-1)return (int)count-1;
  return cursor;
 }
 size_t p3dMenuVisibleStart(size_t count,int cursor){
