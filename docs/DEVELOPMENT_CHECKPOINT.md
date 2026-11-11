@@ -1,4 +1,10 @@
-# Development checkpoint - Search chords and validated native draw
+# Development checkpoint - mixed native materials and runtime asset identity
+
+The source-indexed renderer now keeps verified color textures in mixed-material models and draws unsupported ranges as plain geometry. It preflights the complete pair and uploads only approved textures. The complete material manifest still has to satisfy the existing DS budget. The authored melonDS fixture changed from two plain faces to one green textured face alongside one plain face. Its unsupported texture payload is deliberately absent. The host probe verifies both triangles, one upload and an untextured bind, and hosted visual CI now requires both faces.
+
+The optional Nitro Engine adapter supplies its already verified RAM buffers to the engine and keeps them alive through deletion. The host regression covers replacement bytes on a second open and verifies lifetime for static and animated paths. The Album confirmation shows and checks the exact requested filename before deletion, so a shifted row cannot delete a different photo. Same-name content replacement is outside this filename check. Skeleton ancestry rejects forward links before reporting a match.
+
+The branch integrates `main` at `5b95fc9` and stacks on #432. It preserves the existing DeSmuME CLI check and incorporates the upstream long-menu cursor fix. See the pull request for hosted and private build results. Original source mapping, UV/material and skeletal action inputs and physical hardware verification remain open.
 
 The Search name-initial shortcut now respects the active region and scope. A match updates the displayed query, field and selected species together. X is resolved as a standalone Favorites action on release so a direction can join it across input scans. An authored melonDS fixture reproduced the old accidental Favorites transition. The updated ROM displayed the expected initial match, and a separate X tap still opened Favorites.
 

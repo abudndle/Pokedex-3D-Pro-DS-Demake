@@ -34,11 +34,11 @@ class C306SyntheticTextureVisualTests(unittest.TestCase):
         stage_root = self.root / "fixture"
         stage_root.mkdir()
         out = stage(stage_root)
-        self.assertEqual(len(list(out.rglob("*.p3px"))), 3)
-        self.assertEqual(len(list(out.rglob("*.p3vu"))), 2)
-        self.assertEqual(len(list(out.rglob("*.p3mr"))), 3)
+        self.assertEqual(len(list(out.rglob("*.p3px"))), 4)
+        self.assertEqual(len(list(out.rglob("*.p3vu"))), 3)
+        self.assertEqual(len(list(out.rglob("*.p3mr"))), 4)
         mapping = (out / "models/species_map.p3sm").read_bytes()
-        self.assertEqual(struct.unpack_from("<3H", mapping, 8), (2, 3, 4))
+        self.assertEqual(struct.unpack_from("<4H", mapping, 8), (2, 3, 4, 5))
         for model, texture, pixel in ((2, 7, 0x801f), (3, 8, 0xfc00)):
             name = f"p{model:03d}"
             vx = (out / "geometry" / (name + ".p3vx")).read_bytes()

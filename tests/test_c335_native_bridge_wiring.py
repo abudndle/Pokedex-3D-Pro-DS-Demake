@@ -24,7 +24,7 @@ class NativeAdapterTests(unittest.TestCase):
         self.assertIn('!native_material_ready && p3dNitroBridgeDraw()',self.main)
 
     def test_nitro_engine_and_dsma_actually_called(self):
-        for method in ('NE_ModelLoadStaticMeshFAT','NE_ModelLoadDSMFAT',
+        for method in ('NE_ModelLoadStaticMesh(','NE_ModelLoadDSM(','NE_AnimationLoad(',
                        'NE_ModelSetAnimation','NE_ModelDraw',
                        'NE_ModelAnimateAll'):
             self.assertIn(method,self.bridge)
