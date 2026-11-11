@@ -656,9 +656,12 @@ static void render_model(void){
          * double-draw triangles if a private manifest has gaps/overlaps or
          * unordered ranges; preserve the complete untextured geometry. */
         unsigned covered=0;
-        int partition_valid=preview_materials.count>0;
         const unsigned triangle_total=(unsigned)previewStreamTriangleCount();
-        for(unsigned i=0;i<preview_materials.count;i++){
+        int partition_valid=preview_materials.count>0 && triangle_total>0;
+        /* Reject oversized or empty material tables before indexing them. */
+        if(preview_materials.count>triangle_total)
+            partition_valid=0;
+        for(unsigned i=0;partition_valid && i<preview_materials.count;i++){
             const P3DMaterialRange *range=&preview_materials.ranges[i];
             if(covered > triangle_total ||
                range->first_triangle != covered ||
