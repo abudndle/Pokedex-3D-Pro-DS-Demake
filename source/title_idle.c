@@ -37,10 +37,14 @@ unsigned p3dTitleIdleChooseSpecies(P3DTitleIdle *idle){
     if(!idle)return 0;
     /* 649 choices, excluding the previous one once a scene is showing.
      * The saved Pokédex entry is never read or modified by this selector. */
+    /* A malformed/restored previous scene cannot reserve a nonexistent
+     * species. With no valid previous entry, all 649 species are eligible. */
+    const int valid_previous=idle->has_species &&
+                             idle->species<P3D_TITLE_POKEDEX_COUNT;
     value=scene_random(idle);
     next=(unsigned)(value%(P3D_TITLE_POKEDEX_COUNT-
-                           (idle->has_species?1u:0u)));
-    if(idle->has_species && next>=idle->species)next++;
+                           (valid_previous?1u:0u)));
+    if(valid_previous && next>=idle->species)next++;
     idle->species=next;
     idle->has_species=1;
     idle->scene_ticks=0;
