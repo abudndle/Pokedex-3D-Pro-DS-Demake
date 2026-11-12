@@ -66,6 +66,24 @@ void NE_AnimationDelete(NE_Animation *a){
 #endif
 static void w16(unsigned char *b,unsigned n){b[0]=(unsigned char)n;b[1]=(unsigned char)(n>>8);}
 static void w32(unsigned char *b,uint32_t n){w16(b,n);w16(b+2,n>>16);}
+static size_t triangle_list(unsigned char *out,unsigned triangles,unsigned mode){
+    unsigned vertices=triangles*3;
+    size_t offset=4;
+    for(unsigned first=0;first<vertices+2;first+=4){
+        uint32_t command=0;
+        size_t header=offset;
+        offset+=4;
+        for(unsigned j=0;j<4;j++){
+            unsigned i=first+j;
+            if(i==0){command|=0x40u<<(8*j);w32(out+offset,mode);offset+=4;}
+            else if(i<=vertices){command|=0x24u<<(8*j);w32(out+offset,i);offset+=4;}
+            else if(i==vertices+1)command|=0x41u<<(8*j);
+        }
+        w32(out+header,command);
+    }
+    w32(out,(uint32_t)((offset-4)/4));
+    return offset;
+}
 static void manifest(unsigned char b[36],uint16_t model,int kind,
   const void *vx,size_t vx_len,const void *ix,size_t ix_len,
   const void *mesh,size_t mesh_len,const void *anim,size_t anim_len){
@@ -127,6 +145,21 @@ int main(void){
           joint_dl,12,dsa,sizeof dsa);
  assert(p3dNitroManifestValidate(b,36,25,vx,8,ix,8,&m));
  assert(!p3dNitroPayloadValidate(&m,joint_dl,12,dsa,sizeof dsa));
+ /* A valid packet stream still needs to fit the native polygon budget. */
+ static unsigned char many_triangles[28000];
+ size_t size=triangle_list(many_triangles,1800,0);
+ manifest(b,25,P3D_NITRO_ANIMATED,vx,8,ix,8,many_triangles,size,dsa,sizeof dsa);
+ assert(p3dNitroManifestValidate(b,36,25,vx,8,ix,8,&m));
+ assert(p3dNitroPayloadValidate(&m,many_triangles,size,dsa,sizeof dsa));
+ size=triangle_list(many_triangles,1801,0);
+ manifest(b,25,P3D_NITRO_ANIMATED,vx,8,ix,8,many_triangles,size,dsa,sizeof dsa);
+ assert(p3dNitroManifestValidate(b,36,25,vx,8,ix,8,&m));
+ assert(!p3dNitroPayloadValidate(&m,many_triangles,size,dsa,sizeof dsa));
+ /* The official converter emits independent triangles, not strips. */
+ size=triangle_list(many_triangles,1,2);
+ manifest(b,25,P3D_NITRO_ANIMATED,vx,8,ix,8,many_triangles,size,dsa,sizeof dsa);
+ assert(p3dNitroManifestValidate(b,36,25,vx,8,ix,8,&m));
+ assert(!p3dNitroPayloadValidate(&m,many_triangles,size,dsa,sizeof dsa));
  memcpy(changed,dsa,sizeof dsa);w32(changed+8,29); /* >28 stack-bounded bones */
  manifest(b,25,P3D_NITRO_ANIMATED,vx,8,ix,8,
           dl,sizeof dl,changed,sizeof changed);
