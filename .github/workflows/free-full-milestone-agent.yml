@@ -77,7 +77,7 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:11434/api/tags >/dev/null
-          ollama pull qwen2.5-coder:3b
+          ollama pull qwen2.5-coder:1.5b
 
       - name: Assemble public backlog context and create isolated branch
         if: steps.preflight.outputs.run_agent == 'true'
@@ -162,8 +162,14 @@ jobs:
           task="Implement this already-selected DS/DSi milestone in $target_source and $target_test.
           Required behavior: $objective.
           First inspect both files. Identify a real missing edge case matching that behavior. Add a regression that would fail against the old code, then implement the smallest correct source fix. Make actual code and test edits now. Do not ask which milestone, ask for permission, or merely describe a plan. If the requested edge case is already handled, find another real uncovered case in the same two files; do not make cosmetic edits or claim original 3DS parity. Preserve public source safety; never access proprietary assets, secrets, or workflows. Keep all changes within these two files."
-          timeout --signal=TERM --kill-after=30s 900s \
-            "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:3b \
+          # The hosted CPU runner repeatedly hit the former 900-second deadline
+          # with the 3B model before any source checks could run. Use the
+          # smaller coder model and fail explicitly if generation still stalls.
+          # Do not publish a PR unless the unchanged source and test gates pass.
+          echo "Agent target: $target_source and $target_test"
+          echo "Coder model: qwen2.5-coder:1.5b (600-second ceiling)"
+          timeout --signal=TERM --kill-after=30s 600s \
+            "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:1.5b \
               --yes-always --no-auto-commits --no-gitignore --no-show-model-warnings \
               --no-check-update --no-restore-chat-history --no-detect-urls \
               --edit-format whole --map-tokens 0 \
