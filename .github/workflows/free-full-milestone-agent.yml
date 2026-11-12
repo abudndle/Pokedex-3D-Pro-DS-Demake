@@ -148,8 +148,8 @@ jobs:
           # change gate below still fails closed if any extra path is modified.
           aider_scope="$RUNNER_TEMP/agent-aiderignore"
           {
-            printf '%s\\n' '/*' '!/source/' '!/tests/' '/source/*' '/tests/*'
-            printf '!/%s\\n' "$target_source" "$target_test"
+            printf '%s\n' '/*' '!/source/' '!/tests/' '/source/*' '/tests/*'
+            printf '!/%s\n' "$target_source" "$target_test"
           } > "$aider_scope"
           # The chosen source/test pair IS the milestone assignment; do not ask the user to select one.
           # Compact instructions avoid exhausting a small local model on unrelated GitHub issues.
