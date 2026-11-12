@@ -99,6 +99,20 @@ int main(int argc,char **argv){
             if(!seen[species]){seen[species]=1;covered++;}
         }
         assert(covered==P3D_TITLE_POKEDEX_COUNT);
+        /* Reproduce corrupt previous-scene state: with RNG seed 793 the
+         * full 649-species choice is 648, but the old implementation
+         * incorrectly excluded species 648 and returned 552. */
+        p3dTitleIdleReset(&first);
+        p3dTitleIdleSeed(&first,793u);
+        first.has_species=1;
+        first.species=P3D_TITLE_POKEDEX_COUNT;
+        assert(p3dTitleIdleChooseSpecies(&first)==648u);
+        assert(first.species==648u && first.has_species);
+        /* A valid prior scene must still never repeat. */
+        p3dTitleIdleSeed(&first,793u);
+        first.has_species=1;
+        first.species=648u;
+        assert(p3dTitleIdleChooseSpecies(&first)!=648u);
         p3dTitleIdleReset(&first);
         p3dTitleIdleReset(&second);
         p3dTitleIdleSeed(&first,0x12345678u);
