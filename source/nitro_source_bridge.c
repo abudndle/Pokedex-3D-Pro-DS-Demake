@@ -56,6 +56,7 @@ int p3dNitroManifestValidate(const void *raw,size_t size,uint16_t resource,
  * commands and make sure restore slots belong to the paired animation. */
 static int animated_list_valid(const unsigned char *data,size_t size,uint32_t bones){
     size_t pos=4;
+    unsigned vertices=0;
     while(pos<size){
         uint32_t commands=get32(data+pos);
         pos+=4;
@@ -79,6 +80,9 @@ static int animated_list_valid(const unsigned char *data,size_t size,uint32_t bo
                 return 0;
             }
             if(words>(size-pos)/4u)return 0;
+            /* The pinned exporter emits independent triangles only. */
+            if(opcode==0x40 && get32(data+pos)!=0)return 0;
+            if(opcode>=0x23 && opcode<=0x28 && ++vertices>1800u*3u)return 0;
             if(opcode==0x14){
                 uint32_t slot=get32(data+pos);
                 /* Slot 1 is used for the converter's optional normal overlay. */
