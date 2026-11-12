@@ -180,7 +180,8 @@ def audit(parts, decoder_zip, p3sk_zip, cross_stage_report, output_zip=None):
                         raise ValueError("missing model-matched P3SK sidecar")
                     sidecar, counts = _build_model(raw, model_id, sk.read(sk_path),
                                                    int(cross["named_animation_to_node_links"]))
-                    sidecars[f"bindings/{label}.p3tb"] = sidecar
+                    if counts["links"]:
+                        sidecars[f"track_bindings/{label}.p3tb"] = sidecar
                     summary["models"] += 1
                     for key in ("nodes","links","track_records","suffix_names"):
                         summary[key] += counts[key]

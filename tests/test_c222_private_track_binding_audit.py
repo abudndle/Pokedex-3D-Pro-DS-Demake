@@ -65,10 +65,15 @@ class C222PrivateTrackBindingAuditTests(unittest.TestCase):
                     for model in range(lo,hi+1):
                         if model not in roster: continue
                         raw,sk=fixture_model(model);label=f"p{model:03d}"
+                        links = 0 if model == 1 else 1
+                        if not links:
+                            raw = bytearray(raw)
+                            struct.pack_into("<I", raw, 0x4c, 0x80)
+                            raw = bytes(raw)
                         digest=hashlib.sha256(raw).hexdigest()
                         z.writestr(f"decoded_c5/{label}.c5",raw)
                         refs.append({"model":label,"decoded_bytes":str(len(raw)),"sha256":digest})
-                        checks.append({"model":label,"c56_sha256":digest,"named_animation_to_node_links":1})
+                        checks.append({"model":label,"c56_sha256":digest,"named_animation_to_node_links":links})
                 parts.append(path)
             decoder=root/"decoder.zip"
             with zipfile.ZipFile(decoder,"w") as z:
@@ -83,12 +88,14 @@ class C222PrivateTrackBindingAuditTests(unittest.TestCase):
             result=audit(parts,decoder,skzip,cross,output)
             self.assertEqual(result["models"],730)
             self.assertEqual(result["nodes"],1460)
-            self.assertEqual(result["links"],730)
-            self.assertEqual(result["track_records"],2190)
-            self.assertEqual(result["p3tb_private_sidecars_written"],730)
+            self.assertEqual(result["links"],729)
+            self.assertEqual(result["track_records"],2187)
             with zipfile.ZipFile(output) as z:
-                self.assertEqual(len(z.namelist()),730)
+                self.assertIn("track_bindings/p000.p3tb",z.namelist())
+                self.assertNotIn("track_bindings/p001.p3tb",z.namelist())
+                self.assertEqual(len(z.namelist()),729)
                 self.assertIsNone(z.testzip())
-                self.assertEqual(z.read("bindings/p000.p3tb")[:4],b"P3TB")
+                self.assertEqual(z.read("track_bindings/p000.p3tb")[:4],b"P3TB")
+            self.assertEqual(result["p3tb_private_sidecars_written"],729)
 
 if __name__=="__main__": unittest.main()
