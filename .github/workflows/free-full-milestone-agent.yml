@@ -142,6 +142,15 @@ jobs:
           test -s "$ca_file"
           export SSL_CERT_FILE="$ca_file" REQUESTS_CA_BUNDLE="$ca_file"
           python -c 'import ssl; ssl.create_default_context()'
+          # Aider can otherwise request and edit unrelated headers even when
+          # only the assigned source/test pair is passed on its command line.
+          # Restrict its visibility to those exact paths; the independent staged
+          # change gate below still fails closed if any extra path is modified.
+          aider_scope="$RUNNER_TEMP/agent-aiderignore"
+          {
+            printf '%s\n' '/*' '!/source/' '!/tests/' '/source/*' '/tests/*'
+            printf '!/%s\n' "$target_source" "$target_test"
+          } > "$aider_scope"
           # The chosen source/test pair IS the milestone assignment; do not ask the user to select one.
           # Compact instructions avoid exhausting a small local model on unrelated GitHub issues.
           case "$target_source" in
@@ -170,7 +179,8 @@ jobs:
           echo "Coder model: qwen2.5-coder:1.5b (600-second ceiling)"
           timeout --signal=TERM --kill-after=30s 600s \
             "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:1.5b \
-              --yes-always --no-auto-commits --no-gitignore --no-show-model-warnings \
+              --yes-always --no-auto-commits --no-gitignore --no-auto-lint --no-show-model-warnings \
+              --aiderignore "$aider_scope" \
               --no-check-update --no-restore-chat-history --no-detect-urls \
               --edit-format whole --map-tokens 0 \
               --chat-history-file "$RUNNER_TEMP/aider-chat-history.md" \
