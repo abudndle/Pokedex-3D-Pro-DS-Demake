@@ -30,15 +30,39 @@ int main(int argc,char **argv){
                                      &source,&candidate,&tex,25,3));
     assert(selected.ready && selected.count==2 && selected.approved==2);
     assert(selected.enabled[0] && selected.enabled[1]);
+    /* C447: verified source roles drive a complete per-face native
+     * texture/no-texture plan. Unknown shaders must retain geometry only. */
+    uint16_t faces[4]={99,99,99,99};
+    assert(p3dSourceColorRangesFacePlan(&selected,&candidate,3,faces,4));
+    assert(faces[0]==2 && faces[1]==2 && faces[2]==7);
+    assert(faces[3]==P3D_SOURCE_MATERIAL_NO_TEXTURE);
+
     shaders.materials[10].flags=P3D_SHADER_CAP_COLORMAP|P3D_SHADER_CAP_BUMPMAP;
     assert(p3dSourceColorRangesBuild(&selected,&words,&shaders,
                                      &source,&candidate,&tex,25,3));
     assert(selected.ready && selected.approved==1 &&
            !selected.enabled[0] && selected.enabled[1]);
+    assert(p3dSourceColorRangesFacePlan(&selected,&candidate,3,faces,4));
+    assert(faces[0]==P3D_SOURCE_MATERIAL_NO_TEXTURE &&
+           faces[1]==P3D_SOURCE_MATERIAL_NO_TEXTURE && faces[2]==7);
     shaders.materials[12].flags=P3D_SHADER_CAP_COLORMAP|P3D_SHADER_CAP_OTHER;
     assert(p3dSourceColorRangesBuild(&selected,&words,&shaders,
                                      &source,&candidate,&tex,25,3));
     assert(selected.ready && selected.approved==0);
+    assert(p3dSourceColorRangesFacePlan(&selected,&candidate,3,faces,4));
+    for(unsigned i=0;i<4;i++)assert(faces[i]==P3D_SOURCE_MATERIAL_NO_TEXTURE);
+    assert(!p3dSourceColorRangesFacePlan(&selected,&candidate,4,faces,4));
+    assert(!p3dSourceColorRangesFacePlan(&selected,&candidate,3,faces,2));
+    assert(!p3dSourceColorRangesFacePlan(&selected,&candidate,3,NULL,4));
+    assert(!p3dSourceColorRangesFacePlan(NULL,&candidate,3,faces,4));
+    /* Forged range maps or a mismatched approved count must not leak
+     * stale texture IDs when planning the next species. */
+    selected.approved=1;
+    faces[0]=2;
+    assert(!p3dSourceColorRangesFacePlan(&selected,&candidate,3,faces,4));
+    assert(faces[0]==P3D_SOURCE_MATERIAL_NO_TEXTURE);
+    selected.approved=0;
+
     shaders.materials[10].flags=P3D_SHADER_CAP_COLORMAP;
     shaders.materials[12].flags=P3D_SHADER_CAP_COLORMAP;
     candidate.ranges[0].texture_id=8;
