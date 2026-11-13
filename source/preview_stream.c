@@ -54,6 +54,12 @@ static int load_chunked(unsigned model){
     snprintf(chunk_path,sizeof(chunk_path),"nitro:/preview/p%03u.p3cs",model);
 #endif
     if(!p3dChunkOpen(&s_chunk_stream,chunk_path,model))return 0;
+    /* Preserve the signed preview-count API: never narrow an oversized
+     * original source triangle count into a negative value. */
+    if(s_chunk_stream.original_triangles>(uint32_t)INT_MAX){
+        p3dChunkClose(&s_chunk_stream);
+        return 0;
+    }
     s_chunked=1;
     s_triangle_count=(int)s_chunk_stream.total_triangles;
     s_original_triangle_count=(int)s_chunk_stream.original_triangles;
