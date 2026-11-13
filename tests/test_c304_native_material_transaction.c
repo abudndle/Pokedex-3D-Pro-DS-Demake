@@ -85,11 +85,27 @@ int main(void){
            &caps,&cache,scratch,&drawn));
     assert(preflight_calls==1 && !drawn && !cache.count && cache.ready);
     assert(!begin_calls && !draw_calls);
-    /* Missing second texture rolls back the first upload completely. */
+    /* C445: the current material map fits in isolation, but a full-bank
+     * resident texture leaves no space. Reject BEFORE uploading or GL draw.
+     * The resident slot here is a synthetic cache state, not real GPU data. */
     allow_source=1;
+    textures.count=3;
+    textures.entries[2].id=9;
+    textures.entries[2].width=256;
+    textures.entries[2].height=256;
+    textures.entries[2].format=1;
+    cache.ids[0]=9;
+    cache.count=1;
+    assert(!p3dDsMaterialUvPrepare(&g,&uv,&source,&materials,&textures,
+                                   &caps,&cache,scratch));
+    assert(preflight_calls==2 && cache.ready && cache.count==1);
+    assert(!begin_calls && !draw_calls && !vertices && !uv_calls);
+    cache.count=0;
+    textures.count=2;
+    /* Missing second texture rolls back the first upload completely. */
     assert(!p3dDsMaterialUvDraw(&g,&uv,&source,&materials,&textures,
            &caps,&cache,scratch,&drawn));
-    assert(preflight_calls==2 && !drawn && !cache.count && !cache.ready);
+    assert(preflight_calls==3 && !drawn && !cache.count && !cache.ready);
     assert(!begin_calls && !draw_calls);
     make_texture("t008.p3px");
     assert(p3dDsMaterialTextureCacheInit(&cache,&textures,resolve,NULL));
@@ -104,7 +120,7 @@ int main(void){
     assert(!rename("t008.p3px","t008.prepared"));
     assert(p3dDsMaterialUvDraw(&g,&uv,&source,&materials,&textures,
            &caps,&cache,scratch,&drawn));
-    assert(drawn==2 && preflight_calls==5 && begin_calls==2 &&
+    assert(drawn==2 && preflight_calls==6 && begin_calls==2 &&
            draw_calls==2 && uv_calls==6 && vertices==6 && cache.count==2);
     /* C305 independent synthetic draw trace: two distinct binds, and
      * exact ordered UV and XYZ events for both source-backed triangles. */
