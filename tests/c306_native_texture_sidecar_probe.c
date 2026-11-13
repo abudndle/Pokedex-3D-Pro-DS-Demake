@@ -22,13 +22,18 @@ static P3DSourceColorRanges ranges;
 static P3DDsMaterialTextureCache cache;
 static P3DTexturePixels pixels;
 static char dir[240],texture_path[280];
-static unsigned begins,verts,uvs,ends;
+static unsigned begins,verts,uvs,ends,colors;
 int p3dTestMaterialBegin(int id){ assert(id>0);begins++;return 1; }
 void p3dTestMaterialTexCoord(int16_t u,int16_t v){
     assert(u>=0&&u<=4096&&v>=0&&v<=4096);uvs++;
 }
 void p3dTestMaterialVertex(const int16_t *xyz){assert(xyz);verts++;}
 void p3dTestMaterialEnd(void){ends++;}
+void p3dTestMaterialColor(unsigned char r,unsigned char g,unsigned char b){
+    /* This fixture approves one simple source color texture per model. */
+    assert(r==255 && g==255 && b==255);
+    colors++;
+}
 static const char *resolve(void *opaque,unsigned id){
     (void)opaque;
     int n=snprintf(texture_path,sizeof(texture_path),"%s/t%03u.p3px",dir,id);
@@ -84,10 +89,10 @@ int main(int argc,char **argv){
         expect(p3dDsMaterialTextureCacheInit(&cache,&t,resolve,NULL),
                "cache initialize",model);
         uint32_t drawn=0;
-        begins=verts=uvs=ends=0;
+        begins=verts=uvs=ends=colors=0;
         expect(p3dDsMaterialUvDraw(&g,&uv,&source,&m,&t,&caps,
                                    &cache,&pixels,&drawn),"native draw",model);
-        expect(drawn==1&&begins==1&&verts==3&&uvs==3&&ends==1,
+        expect(drawn==1&&begins==1&&verts==3&&uvs==3&&ends==1&&colors==1,
                "draw trace",model);
         printf("C306 model %u: genuine C data gate and host material draw PASS\n",model);
         p3dDsMaterialTextureCacheDestroy(&cache);
