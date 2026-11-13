@@ -75,6 +75,20 @@ int p3dDsMaterialUvPrepare(const P3DVerifiedGeometryPair *geometry,
      * No hardware drawing is permitted in this model-loading phase. */
     if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
         shader_caps,preflight_triangle,NULL))return 0;
+    /* A valid model may still overrun VRAM when textures from a prior
+     * model remain resident. Validate the actual union before any uploads. */
+    unsigned needed[P3D_DS_TEXTURE_CACHE_MAX],needed_count=0;
+    if(cache->manifest!=textures)return 0;
+    for(unsigned i=0;i<materials->count;i++){
+        unsigned id=materials->ranges[i].texture_id;
+        int already_seen=0;
+        for(unsigned j=0;j<needed_count;j++)
+            if(needed[j]==id){already_seen=1;break;}
+        if(already_seen)continue;
+        if(needed_count>=P3D_DS_TEXTURE_CACHE_MAX)return 0;
+        needed[needed_count++]=id;
+    }
+    if(!p3dDsMaterialTextureCacheFits(cache,needed,needed_count))return 0;
     for(unsigned i=0;i<materials->count;i++){
         int hardware_id=0;
         if(!p3dDsMaterialTextureCacheGet(cache,
