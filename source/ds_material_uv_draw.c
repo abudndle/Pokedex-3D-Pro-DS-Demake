@@ -5,16 +5,19 @@ extern int p3dTestMaterialBegin(int texture_id);
 extern void p3dTestMaterialTexCoord(int16_t u,int16_t v);
 extern void p3dTestMaterialVertex(const int16_t *xyz);
 extern void p3dTestMaterialEnd(void);
+extern void p3dTestMaterialColor(unsigned char r,unsigned char g,unsigned char b);
 #define P3D_MATERIAL_BEGIN(id) p3dTestMaterialBegin(id)
 #define P3D_MATERIAL_UV(u,v) p3dTestMaterialTexCoord((u),(v))
 #define P3D_MATERIAL_VERTEX(p) p3dTestMaterialVertex(p)
 #define P3D_MATERIAL_END() p3dTestMaterialEnd()
+#define P3D_MATERIAL_COLOR(r,g,b) p3dTestMaterialColor((r),(g),(b))
 #else
 #include <nds.h>
 #define P3D_MATERIAL_BEGIN(id) do { glBindTexture(0,(id)); glBegin(GL_TRIANGLES); } while(0)
 #define P3D_MATERIAL_UV(u,v) glTexCoord2t16((u),(v))
 #define P3D_MATERIAL_VERTEX(p) glVertex3v16((v16)(p)[0],(v16)(p)[1],(v16)(p)[2])
 #define P3D_MATERIAL_END() glEnd()
+#define P3D_MATERIAL_COLOR(r,g,b) glColor3b((r),(g),(b))
 #endif
 typedef struct {
     P3DDsMaterialTextureCache *cache;
@@ -29,10 +32,24 @@ static int draw_material_triangle(void *opaque,uint16_t mesh,unsigned triangle,
     int hardware_id=0;
     (void)mesh;(void)triangle;
     if(!ctx||ctx->failed||!a||!b||!c||!a->xyz||!b->xyz||!c->xyz||
-       !p3dDsMaterialTextureCacheGet(ctx->cache,texture_id,ctx->scratch,
-          &hardware_id)){
+       (texture_id!=P3D_SOURCE_MATERIAL_NO_TEXTURE &&
+        !p3dDsMaterialTextureCacheGet(ctx->cache,texture_id,ctx->scratch,
+          &hardware_id))){
         if(ctx)ctx->failed=1;
         return 0;
+    }
+    /* Unapproved original shader/sampler roles are drawn as neutral
+     * geometry, never sampled as a guessed color texture. Bind texture
+     * zero so the previous material cannot bleed into this triangle. */
+    if(texture_id==P3D_SOURCE_MATERIAL_NO_TEXTURE){
+        P3D_MATERIAL_COLOR(192,224,232);
+        P3D_MATERIAL_BEGIN(0);
+        P3D_MATERIAL_VERTEX(a->xyz);
+        P3D_MATERIAL_VERTEX(b->xyz);
+        P3D_MATERIAL_VERTEX(c->xyz);
+        P3D_MATERIAL_END();
+        ctx->count++;
+        return 1;
     }
     /* P3VU stores normalized 4.12 UVs (0..4096), but libnds
      * glTexCoord2t16 accepts 12.4 TEXEL coordinates, not normalized
@@ -43,6 +60,8 @@ static int draw_material_triangle(void *opaque,uint16_t mesh,unsigned triangle,
         ctx->failed=1;
         return 0;
     }
+    /* A previous plain range must not tint a verified color texture. */
+    P3D_MATERIAL_COLOR(255,255,255);
     P3D_MATERIAL_BEGIN(hardware_id);
     P3D_MATERIAL_UV((int16_t)((int32_t)a->u*entry->width/256),
                     (int16_t)((int32_t)a->v*entry->height/256));P3D_MATERIAL_VERTEX(a->xyz);

@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int allow_source;
-static unsigned preflight_calls,draw_calls,begin_calls,uv_calls,vertices;
+static int allow_source,plain_second;
+static unsigned preflight_calls,draw_calls,begin_calls,uv_calls,vertices,plain_binds,color_calls;
+static unsigned char last_colors[2][3];
 static int kinds[32],vals_a[32],vals_b[32];
 static unsigned trace_count;
 static void trace(int kind,int a,int b){
@@ -32,9 +33,14 @@ int p3dVerifiedMaterialUvDraw(const P3DVerifiedGeometryPair *g,
     a.xyz=xyz; b.xyz=xyz+3; c.xyz=xyz+6;
     a.u=0; b.u=4096; c.v=4096;
     if(!sink(context,0,0,7,&a,&b,&c))return 0;
-    return sink(context,0,1,8,&a,&b,&c);
+    return sink(context,0,1,plain_second?P3D_SOURCE_MATERIAL_NO_TEXTURE:8,&a,&b,&c);
 }
-int p3dTestMaterialBegin(int id){assert(id>0);begin_calls++;trace(1,id,0);return 1;}
+int p3dTestMaterialBegin(int id){assert(id>=0);if(!id)plain_binds++;begin_calls++;trace(1,id,0);return 1;}
+void p3dTestMaterialColor(unsigned char r,unsigned char g,unsigned char b){
+    unsigned idx=color_calls%2;
+    last_colors[idx][0]=r;last_colors[idx][1]=g;last_colors[idx][2]=b;
+    color_calls++;
+}
 void p3dTestMaterialTexCoord(int16_t u,int16_t v){
     assert(u==0||u==128);assert(v==0||v==128);uv_calls++;trace(2,u,v);
 }
@@ -154,6 +160,22 @@ int main(void){
         assert(vals_a[0]==first&&vals_a[8]==second);
         for(unsigned i=0;i<16;i++)assert(kinds[i]==expected_kinds[i]);
     }
+    /* C446: an explicitly unresolved source-material range must emit
+     * its triangle with texture 0, no UV sampling, and a neutral tint.
+     * The first verified triangle stays white textured. No new uploads. */
+    plain_second=1;
+    trace_count=0;
+    unsigned old_vertices=vertices,old_uv=uv_calls,old_colors=color_calls;
+    assert(p3dDsMaterialUvDraw(&g,&uv,&source,&materials,&textures,
+          &caps,&cache,scratch,&drawn));
+    assert(drawn==2 && trace_count==13 && cache.count==2);
+    assert(kinds[0]==1 && vals_a[0]>0 && kinds[8]==1 && vals_a[8]==0);
+    assert(kinds[9]==3 && kinds[10]==3 && kinds[11]==3 && kinds[12]==4);
+    assert(plain_binds==1 && vertices==old_vertices+6 && uv_calls==old_uv+3);
+    assert(color_calls==old_colors+2);
+    assert(last_colors[old_colors%2][0]==255 && last_colors[old_colors%2][1]==255 && last_colors[old_colors%2][2]==255);
+    assert(last_colors[(old_colors+1)%2][0]==192 && last_colors[(old_colors+1)%2][1]==224 && last_colors[(old_colors+1)%2][2]==232);
+    plain_second=0;
     p3dDsMaterialTextureCacheDestroy(&cache);
     assert(!cache.count&&!cache.ready);
     assert(!remove("t007.prepared")); assert(!remove("t008.prepared"));
