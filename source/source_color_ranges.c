@@ -50,3 +50,41 @@ int p3dSourceColorRangesBuild(P3DSourceColorRanges *out,
     out->ready=1;
     return 1;
 }
+
+/* Expand verified original-source color roles into a complete triangle plan.
+ * The 65535 sentinel means draw neutral geometry WITHOUT an inferred sampler.
+ * Build in a temporary bounded map so malformed ranges never leak a partial
+ * plan or preserve stale texture IDs from a previous Pokémon. */
+int p3dSourceColorRangesFacePlan(const P3DSourceColorRanges *ranges,
+    const P3DMaterialMap *materials,unsigned triangle_count,
+    uint16_t *out,unsigned capacity){
+    unsigned cursor=0;
+    if(out && capacity && capacity<=600)
+        for(unsigned i=0;i<capacity;i++)out[i]=P3D_SOURCE_MATERIAL_NO_TEXTURE;
+    if(!ranges||!ranges->ready||!materials||!materials->ready||!out||
+       !triangle_count||triangle_count>600||capacity<triangle_count||
+       capacity>600||!materials->count||materials->count>P3D_MATERIAL_MAX||
+       ranges->count!=materials->count||ranges->approved>ranges->count)
+        return 0;
+    unsigned approved=0;
+    for(unsigned i=0;i<materials->count;i++){
+        const P3DMaterialRange *range=&materials->ranges[i];
+        if(!range->triangle_count||range->first_triangle!=cursor||
+           range->triangle_count>triangle_count-cursor||
+           ranges->enabled[i]>1)return 0;
+        if(ranges->enabled[i]){
+            if(range->texture_id==P3D_SOURCE_MATERIAL_NO_TEXTURE)return 0;
+            approved++;
+        }
+        cursor+=range->triangle_count;
+    }
+    if(cursor!=triangle_count||approved!=ranges->approved)return 0;
+    cursor=0;
+    for(unsigned i=0;i<materials->count;i++){
+        const P3DMaterialRange *range=&materials->ranges[i];
+        uint16_t id=ranges->enabled[i]?range->texture_id:
+                    P3D_SOURCE_MATERIAL_NO_TEXTURE;
+        for(unsigned j=0;j<range->triangle_count;j++)out[cursor++]=id;
+    }
+    return 1;
+}
