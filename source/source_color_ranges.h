@@ -17,4 +17,10 @@ int p3dSourceColorRangesBuild(P3DSourceColorRanges *out,
     const P3DMaterialMap *candidate,
     const P3DTextureManifest *textures,
     unsigned model_id,unsigned triangles);
+/* Emit a source-verified per-face sampler plan for the mixed renderer.
+ * All blocked ranges use P3D_SOURCE_MATERIAL_NO_TEXTURE; malformed plans
+ * fail closed with no approved texture IDs left in the supplied output. */
+int p3dSourceColorRangesFacePlan(const P3DSourceColorRanges *ranges,
+    const P3DMaterialMap *materials,unsigned triangle_count,
+    uint16_t *out,unsigned capacity);
 #endif
