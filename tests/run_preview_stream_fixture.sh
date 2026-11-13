@@ -70,16 +70,29 @@ full=struct.pack("<4s4H3I",b"P3CS",1,5,3,0,1202,5000,zlib.crc32(index))+index+b"
 with open(sys.argv[1].replace("p000.ds3m","p005.p3cs"),"wb") as f:f.write(full)
 with open(sys.argv[1].replace("p000.ds3m","p006.p3cs"),"wb") as f:f.write(full[:-1]+bytes([full[-1]^1]))
 # Valid p005 P3CS coexists with a legacy p005 DS3M.
-for model in (5,6):
+for model in (5,6,14):
     with open(sys.argv[1].replace("p000.ds3m","p%03d.ds3m"%model),"wb") as f:
         f.write(struct.pack("<4sHHII",b"DS3M",1,1,0,42))
         f.write(struct.pack("<9h",*range(9)))
-# p007 has ONLY a corrupt P3CS; must fail rather than render.
+# p007 has a corrupt P3CS as well as its invalid legacy header.
 bad=bytearray(full)
 bad[6:8]=struct.pack("<H",7)
 bad[-1]^=1
 with open(sys.argv[1].replace("p000.ds3m","p007.p3cs"),"wb") as f:f.write(bad)
+# A legacy preview with a valid header but truncated coordinates must
+# not hide a valid chunked preview for the same resource.
+with open(sys.argv[1].replace("p000","p012"),"wb") as f:
+    f.write(struct.pack("<4sHHII",b"DS3M",1,1,0,42))
+with open(sys.argv[1].replace("p000.ds3m","p012.p3cs"),"wb") as f:
+    f.write(full[:6]+struct.pack("<H",12)+full[8:])
+with open(sys.argv[1].replace("p000.ds3m","p013.p3cs"),"wb") as f:
+    f.write(full[:6]+struct.pack("<H",13)+full[8:])
+# Keep valid chunk records and CRCs while testing the signed preview API limit.
+for model, original in ((14, 0x80000000), (15, 0x7fffffff)):
+    with open(sys.argv[1].replace("p000.ds3m",f"p{model:03d}.p3cs"),"wb") as f:
+        f.write(full[:6]+struct.pack("<H",model)+full[8:16]
+                +struct.pack("<I",original)+full[20:])
 
 PY
-cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST -Itools/host_stub -Isource source/preview_stream.c source/preview_chunk_stream.c source/model_uv.c tests/test_preview_stream_fixture.c -o "$tmp/test_preview"
+cc -std=c11 -O2 -Wall -Wextra -Werror -DC7_TEST_HOST -Itools/host_stub -Isource source/preview_stream.c source/preview_chunk_stream.c source/model_uv.c tests/test_preview_stream_fixture.c -Wl,--wrap=fgetc -o "$tmp/test_preview"
 (cd "$tmp" && ./test_preview)

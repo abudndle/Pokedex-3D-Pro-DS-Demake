@@ -1,5 +1,16 @@
 #include <assert.h>
 #include <stdio.h>
+static int fail_eof_check;
+int __real_fgetc(FILE *stream);
+int __wrap_fgetc(FILE *stream){
+    int result=__real_fgetc(stream);
+    if(fail_eof_check && result==EOF){
+        fail_eof_check=0;
+        /* Set the real stream error flag without changing the fixture. */
+        assert(fputc(0,stream)==EOF && ferror(stream));
+    }
+    return result;
+}
 #include "preview_stream.h"
 static int emitted;
 static int red_seen,green_seen;
@@ -11,8 +22,19 @@ void glColor3b(unsigned char r,unsigned char g,unsigned char b){if(r==255&&g==25
 void glBegin(int m){assert(m==1);}
 void glVertex3v16(short x,short y,short z){(void)x;(void)y;(void)z;emitted++;}
 void glEnd(void){}
+static void corrupt_last_chunk(const char *path){
+ FILE *mut=fopen(path,"r+b");
+ assert(mut);
+ assert(fseek(mut,-1,SEEK_END)==0);
+ assert(fputc(0,mut)!=EOF);
+ assert(fclose(mut)==0);
+}
 int main(void){
  assert(previewStreamInit());
+ fail_eof_check=1;
+ assert(previewStreamLoad(5));
+ assert(previewStreamIsChunked());
+ assert(!fail_eof_check);
  assert(previewStreamLoad(0));
  assert(previewStreamHasModel());
  assert(previewStreamTriangleCount()==1);
@@ -127,15 +149,25 @@ int main(void){
  emitted=0;
  previewStreamDrawRange(0,1,8,8); /* no external range without matched source textures */
  assert(emitted==0);
- /* Recheck an original-derived chunk *after* load. Its last source
-  * byte changes after the open CRC check, requiring draw-time fail-close. */
- {
-     FILE *mut=fopen("nitrofs/preview/p005.p3cs","r+b");
-     assert(mut);
-     assert(fseek(mut,-1,SEEK_END)==0);
-     assert(fputc(0,mut)!=EOF);
-     assert(fclose(mut)==0);
- }
+ /* A chunk that becomes corrupt after open must give way to the
+  * same model's validated legacy preview on the next draw. */
+ corrupt_last_chunk("nitrofs/preview/p005.p3cs");
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==1200*3); /* Only the earlier valid chunks were submitted. */
+ assert(previewStreamHasModel());
+ assert(!previewStreamIsChunked());
+ assert(previewStreamTriangleCount()==1);
+ assert(previewStreamOriginalTriangleCount()==42);
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==3);
+ assert(previewStreamPrefersChunks());
+
+ /* When no legacy file exists, a draw-time CRC failure clears the model. */
+ assert(previewStreamLoad(13));
+ assert(previewStreamIsChunked());
+ corrupt_last_chunk("nitrofs/preview/p013.p3cs");
  emitted=0;
  previewStreamDraw();
  assert(!previewStreamHasModel());
@@ -149,13 +181,28 @@ int main(void){
  assert(previewStreamLoad(6)); /* invalid P3CS falls back to legacy DS3M */
  assert(!previewStreamIsChunked());
  assert(previewStreamTriangleCount()==1);
- assert(!previewStreamLoad(7)); /* P3CS-only corrupt source cannot render */
+ assert(previewStreamLoad(14)); /* Overflowing P3CS count must use valid DS3M. */
+ assert(!previewStreamIsChunked());
+ assert(previewStreamOriginalTriangleCount()==42);
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==3);
+ assert(previewStreamLoad(15)); /* Largest representable source count. */
+ assert(previewStreamIsChunked());
+ assert(previewStreamOriginalTriangleCount()==2147483647);
+ assert(!previewStreamLoad(7)); /* Both source files are invalid. */
  assert(!previewStreamHasModel());
  previewStreamPreferChunks(0);
  assert(!previewStreamPrefersChunks());
  assert(previewStreamLoad(5)); /* reverting to original 600-face setting */
  assert(!previewStreamIsChunked());
  assert(previewStreamTriangleCount()==1);
+ assert(previewStreamLoad(12)); /* Truncated DS3M must not hide valid P3CS. */
+ assert(previewStreamIsChunked());
+ assert(previewStreamTriangleCount()==1202);
+ emitted=0;
+ previewStreamDraw();
+ assert(emitted==1202*3);
  assert(!previewStreamLoad(4)); /* v2 colors truncated */
  assert(!previewStreamLoad(2)); /* 601 triangles must not overflow the buffer. */
  /* C103: invalid reserved header bytes, implausible source face
