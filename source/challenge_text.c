@@ -2,6 +2,16 @@
 #include "dex_text.h"
 #include <string.h>
 
+static int clean_display_text(char *text,size_t capacity){
+ int visible=0;
+ for(size_t i=0;i<capacity && text[i];i++){
+  unsigned char byte=(unsigned char)text[i];
+  if(byte<32 || byte==127)text[i]=' ';
+  if(text[i]!=' ')visible=1;
+ }
+ return visible;
+}
+
 /* C331 uses only recovered P3DX text records at runtime. No catalog,
  * missing description/option name, corrupt question, or stale selection
  * may silently turn the unlocked text Challenge into numbered guesswork. */
@@ -25,6 +35,7 @@ int p3dChallengeTextLoad(P3DChallengeText *out,const P3DChallenge *quiz){
     return 0;
  memset(&candidate,0,sizeof candidate);
  memcpy(candidate.clue,entry.description,sizeof candidate.clue);
+ if(!clean_display_text(candidate.clue,sizeof candidate.clue))return 0;
  candidate.pages=p3dChallengeCluePages(candidate.clue);
  if(candidate.pages<1 || quiz->clue_page<0 || quiz->clue_page>=candidate.pages)
     return 0;
@@ -32,6 +43,7 @@ int p3dChallengeTextLoad(P3DChallengeText *out,const P3DChallenge *quiz){
   if(!p3dDexTextRead(quiz->choices[i],&entry)||!entry.name[0])
     return 0;
   memcpy(candidate.names[i],entry.name,sizeof candidate.names[i]);
+  if(!clean_display_text(candidate.names[i],sizeof candidate.names[i]))return 0;
   candidate.choices[i]=quiz->choices[i];
  }
  candidate.pokemon=quiz->pokemon;
