@@ -35,6 +35,18 @@ int p3dVerifiedMaterialUvDraw(const P3DVerifiedGeometryPair *g,
     if(!sink(context,0,0,7,&a,&b,&c))return 0;
     return sink(context,0,1,plain_second?P3D_SOURCE_MATERIAL_NO_TEXTURE:8,&a,&b,&c);
 }
+int p3dVerifiedMaterialUvDrawWithWords(
+    const P3DVerifiedGeometryPair *g,const P3DVerifiedVertexUv *uv,
+    const P3DSourceMaterialMap *source,const P3DMaterialMap *materials,
+    const P3DTextureManifest *textures,const P3DSourceShaderCaps *caps,
+    const P3DSourceMaterialWords *words,
+    P3DVerifiedMaterialTriangleSink sink,void *context){
+    /* The verified source-word/classifier walker is tested independently.
+     * This fixture only checks the native upload and draw transaction. */
+    if(!words||!words->ready)return 0;
+    return p3dVerifiedMaterialUvDraw(g,uv,source,materials,textures,
+                                      caps,sink,context);
+}
 int p3dTestMaterialBegin(int id){assert(id>=0);if(!id)plain_binds++;begin_calls++;trace(1,id,0);return 1;}
 void p3dTestMaterialColor(unsigned char r,unsigned char g,unsigned char b){
     unsigned idx=color_calls%2;
@@ -91,6 +103,31 @@ int main(void){
            &caps,&cache,scratch,&drawn));
     assert(preflight_calls==1 && !drawn && !cache.count && cache.ready);
     assert(!begin_calls && !draw_calls);
+    /* C448: source evidence marks the second face untextured. Its P3PX
+     * file is deliberately absent; preparation must upload ONLY texture 7,
+     * with no polygons, then render both source triangles safely. */
+    P3DSourceMaterialWords words={0};
+    words.ready=1;
+    allow_source=1;
+    plain_second=1;
+    assert(p3dDsMaterialUvPrepareWithWords(&g,&uv,&source,&materials,
+        &textures,&caps,&words,&cache,scratch));
+    assert(cache.count==1 && cache.ids[0]==7 && cache.ready);
+    assert(!begin_calls && !draw_calls && !vertices && !uv_calls);
+    trace_count=0;
+    assert(p3dDsMaterialUvDrawWithWords(&g,&uv,&source,&materials,
+        &textures,&caps,&words,&cache,scratch,&drawn));
+    assert(drawn==2 && cache.count==1 && plain_binds==1);
+    assert(begin_calls==2 && draw_calls==2 && vertices==6 && uv_calls==3);
+    assert(trace_count==13 && vals_a[0]>0 && vals_a[8]==0);
+    assert(color_calls==2 && last_colors[0][0]==255 &&
+           last_colors[1][0]==192);
+    p3dDsMaterialTextureCacheDestroy(&cache);
+    assert(p3dDsMaterialTextureCacheInit(&cache,&textures,resolve,NULL));
+    plain_second=0;
+    /* Preserve the old strict-mode transaction assertions below. */
+    preflight_calls=1;
+    begin_calls=draw_calls=vertices=uv_calls=plain_binds=color_calls=trace_count=0;
     /* C445: the current material map fits in isolation, but a full-bank
      * resident texture leaves no space. Reject BEFORE uploading or GL draw.
      * The resident slot here is a synthetic cache state, not real GPU data. */
