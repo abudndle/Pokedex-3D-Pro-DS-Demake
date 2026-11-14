@@ -58,7 +58,7 @@ static void run_complete_quiz(void){
 int main(int argc,char **argv){
  P3DChallenge quiz,before;
  P3DChallengeText text;
- assert(argc==4);
+ assert(argc==7);
  assert(p3dChallengeBegin(&quiz,P3D_CHALLENGE_TEXT_MODE,123,50));
  /* Without an original catalog, a player cannot submit a fake text answer. */
  before=quiz;
@@ -95,6 +95,22 @@ int main(int argc,char **argv){
  assert(!p3dChallengeTextLoad(&text,&quiz));
  assert(p3dChallengeTextAnswer(&quiz,quiz.correct)==-1);
  assert(!memcmp(&quiz,&before,sizeof quiz));
+ /* Nonempty bytes do not make a readable question or choice. */
+ for(int i=4;i<=5;i++){
+  assert(p3dDexTextInit(argv[i]));
+  assert(!p3dChallengeTextLoad(&text,&quiz));
+  assert(!text.ready&&!text.clue[0]&&!text.names[0][0]);
+  assert(p3dChallengeTextAnswer(&quiz,quiz.correct)==-1);
+  assert(!memcmp(&quiz,&before,sizeof quiz));
+ }
+ assert(p3dDexTextInit(argv[6]));
+ assert(p3dChallengeTextLoad(&text,&quiz));
+ assert(!strcmp(text.clue,"Source clue with controls"));
+ for(int i=0;i<P3D_CHALLENGE_OPTIONS;i++){
+  char expected[32];
+  snprintf(expected,sizeof(expected),"Name %03d ",quiz.choices[i]);
+  assert(!strcmp(text.names[i],expected));
+ }
  assert(p3dChallengeBegin(&quiz,0,1,0));
  assert(!p3dChallengeTextLoad(&text,&quiz));
  p3dDexTextClose();
