@@ -22,8 +22,13 @@ static P3DSourceColorRanges ranges;
 static P3DDsMaterialTextureCache cache;
 static P3DTexturePixels pixels;
 static char dir[240],texture_path[280];
-static unsigned begins,verts,uvs,ends,colors;
-int p3dTestMaterialBegin(int id){ assert(id>0);begins++;return 1; }
+static unsigned begins,verts,uvs,ends,colors,neutral_binds,neutral_colors;
+static int expect_neutral;
+int p3dTestMaterialBegin(int id){
+    assert(id>=0);
+    if(id==0)neutral_binds++;
+    begins++;return 1;
+}
 void p3dTestMaterialTexCoord(int16_t u,int16_t v){
     assert(u>=0&&u<=4096&&v>=0&&v<=4096);uvs++;
 }
@@ -31,7 +36,8 @@ void p3dTestMaterialVertex(const int16_t *xyz){assert(xyz);verts++;}
 void p3dTestMaterialEnd(void){ends++;}
 void p3dTestMaterialColor(unsigned char r,unsigned char g,unsigned char b){
     /* This fixture approves one simple source color texture per model. */
-    assert(r==255 && g==255 && b==255);
+    if(expect_neutral){assert(r==192 && g==224 && b==232);neutral_colors++;}
+    else assert(r==255 && g==255 && b==255);
     colors++;
 }
 static const char *resolve(void *opaque,unsigned id){
@@ -51,7 +57,9 @@ static int sink(void *opaque,uint16_t mesh,unsigned triangle,
                 unsigned tex,const P3DPrimitiveUvVertex *a,
                 const P3DPrimitiveUvVertex *b,const P3DPrimitiveUvVertex *c){
     unsigned *count=(unsigned *)opaque;
-    assert(mesh==0&&triangle==0&&tex>0&&a&&b&&c);
+    assert(mesh==0&&triangle==0&&a&&b&&c);
+    if(expect_neutral)assert(tex==P3D_SOURCE_MATERIAL_NO_TEXTURE);
+    else assert(tex>0&&tex!=P3D_SOURCE_MATERIAL_NO_TEXTURE);
     (*count)++;return 1;
 }
 int main(int argc,char **argv){
@@ -81,7 +89,8 @@ int main(int argc,char **argv){
                "color range coverage",model);
         expect(p3dDsMaterialTextureBudgetValid(&m,&t,1),"VRAM budget",model);
         unsigned count=0;
-        expect(p3dVerifiedMaterialUvDraw(&g,&uv,&source,&m,&t,&caps,sink,&count),
+        expect(p3dVerifiedMaterialUvDrawWithWords(&g,&uv,&source,&m,&t,
+               &caps,&words,sink,&count),
                "material UV preflight",model);
         expect(count==1,"triangle count",model);
         int n=snprintf(dir,sizeof(dir),"%s/textures/p%03u",argv[1],model);
@@ -89,13 +98,43 @@ int main(int argc,char **argv){
         expect(p3dDsMaterialTextureCacheInit(&cache,&t,resolve,NULL),
                "cache initialize",model);
         uint32_t drawn=0;
-        begins=verts=uvs=ends=colors=0;
-        expect(p3dDsMaterialUvDraw(&g,&uv,&source,&m,&t,&caps,
-                                   &cache,&pixels,&drawn),"native draw",model);
+        begins=verts=uvs=ends=colors=neutral_binds=neutral_colors=0;
+        expect(p3dDsMaterialUvDrawWithWords(&g,&uv,&source,&m,&t,&caps,
+               &words,&cache,&pixels,&drawn),"source-word native draw",model);
         expect(drawn==1&&begins==1&&verts==3&&uvs==3&&ends==1&&colors==1,
                "draw trace",model);
         printf("C306 model %u: genuine C data gate and host material draw PASS\n",model);
         p3dDsMaterialTextureCacheDestroy(&cache);
+        /* Deliberately classify a real synthetic model as unsupported
+         * bump-map shader. Its source triangles must still draw, but no
+         * backed texture payload may be uploaded or sampled. */
+        if(model==3){
+            unsigned idx=source.ranges[0].material_index;
+            caps.materials[idx].flags|=P3D_SHADER_CAP_BUMPMAP;
+            expect(p3dSourceColorRangesBuild(&ranges,&words,&caps,&source,
+                   &m,&t,model,1) && ranges.approved==0,
+                   "source shader neutral fallback",model);
+            expect_neutral=1;
+            count=0;
+            expect(p3dVerifiedMaterialUvDrawWithWords(&g,&uv,&source,&m,&t,
+                   &caps,&words,sink,&count) && count==1,
+                   "neutral source triangle stream",model);
+            expect(p3dDsMaterialTextureCacheInit(&cache,&t,resolve,NULL),
+                   "neutral cache initialize",model);
+            begins=verts=uvs=ends=colors=neutral_binds=neutral_colors=0;
+            expect(p3dDsMaterialUvPrepareWithWords(&g,&uv,&source,&m,&t,
+                   &caps,&words,&cache,&pixels) && cache.count==0,
+                   "no unapproved texture upload",model);
+            drawn=0;
+            expect(p3dDsMaterialUvDrawWithWords(&g,&uv,&source,&m,&t,
+                   &caps,&words,&cache,&pixels,&drawn) &&
+                   drawn==1 && cache.count==0 && begins==1 && ends==1 &&
+                   verts==3 && uvs==0 && neutral_binds==1 &&
+                   neutral_colors==1 && colors==1,
+                   "neutral geometry without UV and texture",model);
+            p3dDsMaterialTextureCacheDestroy(&cache);
+            expect_neutral=0;
+        }
     }
     return 0;
 }

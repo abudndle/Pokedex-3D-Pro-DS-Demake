@@ -75,43 +75,50 @@ static int draw_material_triangle(void *opaque,uint16_t mesh,unsigned triangle,
 }
 /* A separate dry run must accept the complete source/UV stream before
  * any libnds GL state is changed or a triangle is emitted. */
-static int preflight_triangle(void *unused,uint16_t mesh,unsigned triangle,
+typedef struct {
+    unsigned ids[P3D_DS_TEXTURE_CACHE_MAX];
+    unsigned count;
+} MaterialTextureNeeds;
+static int preflight_triangle(void *opaque,uint16_t mesh,unsigned triangle,
     unsigned texture_id,const P3DPrimitiveUvVertex *a,
     const P3DPrimitiveUvVertex *b,const P3DPrimitiveUvVertex *c){
-    (void)unused;(void)mesh;(void)triangle;(void)texture_id;
-    return a&&b&&c&&a->xyz&&b->xyz&&c->xyz;
+    MaterialTextureNeeds *needed=(MaterialTextureNeeds *)opaque;
+    (void)mesh;(void)triangle;
+    if(!needed||!a||!b||!c||!a->xyz||!b->xyz||!c->xyz)return 0;
+    if(texture_id==P3D_SOURCE_MATERIAL_NO_TEXTURE)return 1;
+    if(texture_id>65534u)return 0;
+    for(unsigned i=0;i<needed->count;i++)
+        if(needed->ids[i]==texture_id)return 1;
+    if(needed->count>=P3D_DS_TEXTURE_CACHE_MAX)return 0;
+    needed->ids[needed->count++]=texture_id;
+    return 1;
 }
-int p3dDsMaterialUvPrepare(const P3DVerifiedGeometryPair *geometry,
+static int material_prepare_internal(const P3DVerifiedGeometryPair *geometry,
     const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
     const P3DMaterialMap *materials,const P3DTextureManifest *textures,
-    const P3DSourceShaderCaps *shader_caps,
+    const P3DSourceShaderCaps *shader_caps,const P3DSourceMaterialWords *words,
     P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch){
+    MaterialTextureNeeds needed={0};
     if(!geometry||!uv||!source||!materials||!textures||!shader_caps||
-       !cache||!cache->ready||!scratch)return 0;
-    if(!p3dDsMaterialTextureBudgetValid(materials,textures,
+       !cache||!cache->ready||cache->manifest!=textures||!scratch)return 0;
+    /* Historical strict callers require every candidate material to fit.
+     * Source-word callers count only materials actually approved for color. */
+    if(!words && !p3dDsMaterialTextureBudgetValid(materials,textures,
           (unsigned)geometry->triangles))return 0;
-    /* Reuse the same strict no-side-effects source walk as the native drawer.
-     * No hardware drawing is permitted in this model-loading phase. */
-    if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
-        shader_caps,preflight_triangle,NULL))return 0;
-    /* A valid model may still overrun VRAM when textures from a prior
-     * model remain resident. Validate the actual union before any uploads. */
-    unsigned needed[P3D_DS_TEXTURE_CACHE_MAX],needed_count=0;
-    if(cache->manifest!=textures)return 0;
-    for(unsigned i=0;i<materials->count;i++){
-        unsigned id=materials->ranges[i].texture_id;
-        int already_seen=0;
-        for(unsigned j=0;j<needed_count;j++)
-            if(needed[j]==id){already_seen=1;break;}
-        if(already_seen)continue;
-        if(needed_count>=P3D_DS_TEXTURE_CACHE_MAX)return 0;
-        needed[needed_count++]=id;
-    }
-    if(!p3dDsMaterialTextureCacheFits(cache,needed,needed_count))return 0;
-    for(unsigned i=0;i<materials->count;i++){
+    /* Validate the entire original triangle/UV walk before any upload. */
+    if(words){
+        if(!p3dVerifiedMaterialUvDrawWithWords(geometry,uv,source,materials,
+           textures,shader_caps,words,preflight_triangle,&needed))return 0;
+    }else if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,
+               textures,shader_caps,preflight_triangle,&needed))return 0;
+    /* This also checks pre-existing GPU allocations for each unique ID;
+     * an all-neutral original model needs no texture VRAM at all. */
+    if(needed.count && !p3dDsMaterialTextureCacheFits(cache,
+                                      needed.ids,needed.count))return 0;
+    for(unsigned i=0;i<needed.count;i++){
         int hardware_id=0;
         if(!p3dDsMaterialTextureCacheGet(cache,
-             materials->ranges[i].texture_id,scratch,&hardware_id)){
+             needed.ids[i],scratch,&hardware_id)){
             /* Atomically release the entire partially uploaded set. */
             p3dDsMaterialTextureCacheDestroy(cache);
             return 0;
@@ -119,10 +126,10 @@ int p3dDsMaterialUvPrepare(const P3DVerifiedGeometryPair *geometry,
     }
     return 1;
 }
-int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
+static int material_draw_internal(const P3DVerifiedGeometryPair *geometry,
     const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
     const P3DMaterialMap *materials,const P3DTextureManifest *textures,
-    const P3DSourceShaderCaps *shader_caps,
+    const P3DSourceShaderCaps *shader_caps,const P3DSourceMaterialWords *words,
     P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch,
     uint32_t *drawn_triangles){
     MaterialUvDraw ctx;
@@ -132,11 +139,53 @@ int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
     /* Legacy callers still perform guarded preparation here. Native
      * reload_preview() calls Prepare in advance, so every cache hit in the
      * actual frame is read-only and never writes texture VRAM. */
-    if(!p3dDsMaterialUvPrepare(geometry,uv,source,materials,textures,
-                               shader_caps,cache,scratch))return 0;
+    if(!material_prepare_internal(geometry,uv,source,materials,textures,
+                                  shader_caps,words,cache,scratch))return 0;
     ctx.cache=cache;ctx.scratch=scratch;ctx.count=0;ctx.failed=0;
-    if(!p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
-       shader_caps,draw_material_triangle,&ctx)||ctx.failed)return 0;
+    int complete=words
+        ? p3dVerifiedMaterialUvDrawWithWords(geometry,uv,source,materials,
+            textures,shader_caps,words,draw_material_triangle,&ctx)
+        : p3dVerifiedMaterialUvDraw(geometry,uv,source,materials,textures,
+            shader_caps,draw_material_triangle,&ctx);
+    if(!complete||ctx.failed)return 0;
     if(drawn_triangles)*drawn_triangles=ctx.count;
     return ctx.count==geometry->triangles;
+}
+
+/* Keep existing strict host and caller interfaces unchanged. */
+int p3dDsMaterialUvPrepare(const P3DVerifiedGeometryPair *geometry,
+    const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
+    const P3DMaterialMap *materials,const P3DTextureManifest *textures,
+    const P3DSourceShaderCaps *shader_caps,
+    P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch){
+    return material_prepare_internal(geometry,uv,source,materials,textures,
+                                     shader_caps,NULL,cache,scratch);
+}
+int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
+    const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
+    const P3DMaterialMap *materials,const P3DTextureManifest *textures,
+    const P3DSourceShaderCaps *shader_caps,
+    P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch,
+    uint32_t *drawn_triangles){
+    return material_draw_internal(geometry,uv,source,materials,textures,
+                                  shader_caps,NULL,cache,scratch,drawn_triangles);
+}
+int p3dDsMaterialUvPrepareWithWords(const P3DVerifiedGeometryPair *geometry,
+    const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
+    const P3DMaterialMap *materials,const P3DTextureManifest *textures,
+    const P3DSourceShaderCaps *shader_caps,const P3DSourceMaterialWords *words,
+    P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch){
+    if(!words)return 0;
+    return material_prepare_internal(geometry,uv,source,materials,textures,
+                                     shader_caps,words,cache,scratch);
+}
+int p3dDsMaterialUvDrawWithWords(const P3DVerifiedGeometryPair *geometry,
+    const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
+    const P3DMaterialMap *materials,const P3DTextureManifest *textures,
+    const P3DSourceShaderCaps *shader_caps,const P3DSourceMaterialWords *words,
+    P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch,
+    uint32_t *drawn_triangles){
+    if(!words){if(drawn_triangles)*drawn_triangles=0;return 0;}
+    return material_draw_internal(geometry,uv,source,materials,textures,
+                                  shader_caps,words,cache,scratch,drawn_triangles);
 }

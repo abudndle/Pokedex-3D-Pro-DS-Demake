@@ -18,4 +18,17 @@ int p3dDsMaterialUvDraw(const P3DVerifiedGeometryPair *geometry,
     const P3DSourceShaderCaps *shader_caps,
     P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch,
     uint32_t *drawn_triangles);
+/* Source-word-backed mixed material path. Unsupported shaders are drawn
+ * untextured and only eligible color textures are loaded into DS VRAM. */
+int p3dDsMaterialUvPrepareWithWords(const P3DVerifiedGeometryPair *geometry,
+    const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
+    const P3DMaterialMap *materials,const P3DTextureManifest *textures,
+    const P3DSourceShaderCaps *shader_caps,const P3DSourceMaterialWords *words,
+    P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch);
+int p3dDsMaterialUvDrawWithWords(const P3DVerifiedGeometryPair *geometry,
+    const P3DVerifiedVertexUv *uv,const P3DSourceMaterialMap *source,
+    const P3DMaterialMap *materials,const P3DTextureManifest *textures,
+    const P3DSourceShaderCaps *shader_caps,const P3DSourceMaterialWords *words,
+    P3DDsMaterialTextureCache *cache,P3DTexturePixels *scratch,
+    uint32_t *drawn_triangles);
 #endif

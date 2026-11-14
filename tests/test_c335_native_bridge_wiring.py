@@ -20,7 +20,9 @@ class NativeAdapterTests(unittest.TestCase):
     def test_existing_source_geometry_renderer_preserved(self):
         self.assertIn('p3dVerifiedGeometryPairLoad(',self.main)
         self.assertIn('p3dVerifiedPrimitiveDraw(',self.main)
-        self.assertIn('p3dDsMaterialUvDraw(',self.main)
+        self.assertIn('p3dDsMaterialUvDrawWithWords(',self.main)
+        self.assertIn('p3dDsMaterialUvPrepareWithWords(',self.main)
+        self.assertIn('&native_shader_caps,&native_source_words,',self.main)
         self.assertIn('!native_material_ready && p3dNitroBridgeDraw()',self.main)
 
     def test_nitro_engine_and_dsma_actually_called(self):

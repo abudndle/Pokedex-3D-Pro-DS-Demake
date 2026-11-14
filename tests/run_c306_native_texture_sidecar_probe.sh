@@ -9,6 +9,7 @@ cc -std=c11 -Wall -Wextra -Werror -O2 -DC7_TEST_HOST -Isource \
   source/verified_primitive_bridge.c \
   source/verified_geometry_pair.c source/verified_vertex_uv.c \
   source/verified_primitive_uv_bridge.c source/verified_material_uv_draw.c \
+  source/verified_material_uv_planned.c \
   source/model_materials.c source/model_textures.c source/model_material_texture.c \
   source/source_material_map.c source/source_shader_caps.c \
   source/source_material_words.c source/source_material_texture_match.c \
