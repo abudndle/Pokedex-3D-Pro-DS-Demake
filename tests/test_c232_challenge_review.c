@@ -21,15 +21,36 @@ static void run_mode(int mode){
   seen[pokemon]=1;
   memcpy(choices,q.choices,sizeof choices);
   before=q;
+  /* Invalid choice and corrupted checkpoint state must not mutate the quiz. */
   assert(p3dChallengeAnswer(&q,-1)==-1);
   assert(p3dChallengeAnswer(&q,P3D_CHALLENGE_OPTIONS)==-1);
   assert(memcmp(&q,&before,sizeof q)==0);
+  for(int bad=0;bad<4;bad++){
+   P3DChallenge broken=before,old;
+   if(bad==0)broken.question=-1;
+   if(bad==1)broken.question=P3D_CHALLENGE_QUESTIONS;
+   if(bad==2)broken.score=-1;
+   if(bad==3)broken.score=n+1;
+   old=broken;
+   assert(p3dChallengeAnswer(&broken,chosen)==-1);
+   assert(memcmp(&broken,&old,sizeof broken)==0);
+  }
   assert(p3dChallengeAnswer(&q,chosen)==(n%2==0));
   assert(q.stage==P3D_CHALLENGE_REVIEW && q.question==n);
   assert(q.selected==chosen && q.pokemon==pokemon && q.correct==correct);
   assert(memcmp(choices,q.choices,sizeof choices)==0);
   assert(q.score==score+(n%2==0));
   before=q;
+  for(int bad=0;bad<4;bad++){
+   P3DChallenge broken=before,old;
+   if(bad==0)broken.question=-1;
+   if(bad==1)broken.question=P3D_CHALLENGE_QUESTIONS;
+   if(bad==2)broken.score=-1;
+   if(bad==3)broken.score=n+2;
+   old=broken;
+   assert(!p3dChallengeContinue(&broken));
+   assert(memcmp(&broken,&old,sizeof broken)==0);
+  }
   assert(p3dChallengeAnswer(&q,correct)==-1);
   assert(p3dChallengeAnswer(&q,chosen)==-1);
   assert(memcmp(&q,&before,sizeof q)==0);
