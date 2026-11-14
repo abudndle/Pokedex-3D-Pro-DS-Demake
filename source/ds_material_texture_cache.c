@@ -79,6 +79,10 @@ int p3dDsMaterialTextureCacheGet(P3DDsMaterialTextureCache *cache,
     entry=p3dTextureFind(cache->manifest,texture_id);
     if(!entry||entry->format!=1||
        cache->count>=P3D_DS_TEXTURE_CACHE_MAX)return 0;
+    /* Callers outside the full renderer preflight must not bypass VRAM
+     * accounting. Check resident uploads + this new ID before loading
+     * pixels or modifying the GL texture cache. */
+    if(!p3dDsMaterialTextureCacheFits(cache,&texture_id,1))return 0;
     path=cache->resolve_path(cache->resolver_context,texture_id);
     if(!path||!p3dTextureAssetLoad(scratch,cache->manifest,texture_id,path)||
        !p3dDsTextureUpload(scratch,&uploaded)||uploaded<=0)return 0;
