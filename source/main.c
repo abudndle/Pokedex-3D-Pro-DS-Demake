@@ -362,7 +362,7 @@ static void reload_preview(void){
                                &native_color_ranges,words,&native_shader_caps,
                                &native_source_materials,&native_materials,
                                &native_textures,(unsigned)resource,count)
-                           && native_color_ranges.approved==native_materials.count
+                           && native_color_ranges.ready
                            && native_color_ranges.count==native_materials.count
                            && p3dModelMaterialTexturesMatchMesh(
                                &native_materials,&native_textures,count)){
@@ -376,10 +376,11 @@ static void reload_preview(void){
                              * during model loading rather than while GX
                              * rasterizes its first textured model frame. */
                             if(native_material_ready &&
-                               !p3dDsMaterialUvPrepare(
+                               !p3dDsMaterialUvPrepareWithWords(
                                    &source_geometry_pair,&source_geometry_uv,
                                    &native_source_materials,&native_materials,
                                    &native_textures,&native_shader_caps,
+                                   &native_source_words,
                                    &native_texture_cache,&preview_pixels)){
                                 p3dDsMaterialTextureCacheDestroy(
                                     &native_texture_cache);
@@ -611,10 +612,11 @@ static void render_model(void){
         if(native_material_ready){
             glEnable(GL_TEXTURE_2D);
             glColor3b(255,255,255);
-            native_draw_ok=p3dDsMaterialUvDraw(
+            native_draw_ok=p3dDsMaterialUvDrawWithWords(
                 &source_geometry_pair,&source_geometry_uv,
                 &native_source_materials,&native_materials,&native_textures,
-                &native_shader_caps,&native_texture_cache,&preview_pixels,&drawn);
+                &native_shader_caps,&native_source_words,
+                &native_texture_cache,&preview_pixels,&drawn);
             if(!native_draw_ok){
                 /* C306: texturing is a GPU-wide display control. Turning
                  * it off immediately after submitting polygon commands
