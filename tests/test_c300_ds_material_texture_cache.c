@@ -20,8 +20,23 @@ int main(void){
     manifest.ready=1;manifest.count=1;
     manifest.entries[0].id=7;manifest.entries[0].width=8;
     manifest.entries[0].height=8;manifest.entries[0].format=1;
+    /* C449: a direct cache Get cannot bypass the resident 128-KiB
+     * bank guard, even when its own requested texture is only 8x8.
+     * The fake resident slot models an already-allocated GPU texture. */
+    manifest.count=2;
+    manifest.entries[1].id=8;
+    manifest.entries[1].width=256;
+    manifest.entries[1].height=256;
+    manifest.entries[1].format=1;
     scratch=(P3DTexturePixels *)malloc(sizeof(*scratch));assert(scratch);
     assert(p3dDsMaterialTextureCacheInit(&cache,&manifest,resolve,NULL));
+    cache.ids[0]=8;cache.texture_ids[0]=101;cache.count=1;
+    first=99;
+    assert(!p3dDsMaterialTextureCacheGet(&cache,7,scratch,&first));
+    assert(first==0 && cache.ready && cache.count==1 &&
+           cache.ids[0]==8 && cache.texture_ids[0]==101);
+    cache.count=0;
+    manifest.count=1;
     assert(p3dDsMaterialTextureCacheGet(&cache,7,scratch,&first));
     assert(first>0&&cache.count==1);
     assert(p3dDsMaterialTextureCacheGet(&cache,7,scratch,&second));
