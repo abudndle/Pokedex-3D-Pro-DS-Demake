@@ -61,7 +61,9 @@ int p3dChallengeBeginSession(P3DChallenge *q,int mode,uint32_t *next_seed,int cu
 int p3dChallengeAnswer(P3DChallenge *q,int choice){
  int success;
  if(!q||q->stage!=P3D_CHALLENGE_QUESTION||choice<0||
-    choice>=P3D_CHALLENGE_OPTIONS)return -1;
+    choice>=P3D_CHALLENGE_OPTIONS||q->question<0||
+    q->question>=P3D_CHALLENGE_QUESTIONS||q->score<0||
+    q->score>q->question)return -1;
  success=(choice==q->correct);
  q->selected=choice;
  if(success)q->score++;
@@ -72,7 +74,8 @@ int p3dChallengeAnswer(P3DChallenge *q,int choice){
 }
 int p3dChallengeContinue(P3DChallenge *q){
  if(!q||q->stage!=P3D_CHALLENGE_REVIEW||
-    q->question<0||q->question>=P3D_CHALLENGE_QUESTIONS)return 0;
+    q->question<0||q->question>=P3D_CHALLENGE_QUESTIONS||
+    q->score<0||q->score>q->question+1)return 0;
  q->question++;
  if(q->question==P3D_CHALLENGE_QUESTIONS)
     q->stage=P3D_CHALLENGE_RESULTS;
