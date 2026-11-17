@@ -94,7 +94,50 @@ int main(int argc,char **argv){
                                    P3D_DEX_SCOPE_VIEWED,NULL,&menu));
     assert(!p3dDexSelectionMatches("",24,P3D_DEX_SEARCH_NAME,0,
                                    P3D_DEX_SCOPE_FAVORITES,&history,NULL));
+    /* C452: arrows in filtered Search must never select unrelated
+     * Pokémon; numeric +/-1/10 stays available when unfiltered. */
+    assert(p3dDexKeypadSelection("",24,10,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==34);
+    assert(p3dDexKeypadSelection("",646,10,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==648);
+    assert(p3dDexKeypadSelection("",2,-10,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==0);
+    assert(p3dDexKeypadSelection("",INT_MAX,INT_MAX,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==648);
+    assert(p3dDexKeypadSelection("",INT_MIN,INT_MIN,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==0);
+    assert(p3dDexKeypadSelection("PIK",24,1,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==24);
+    assert(p3dDexKeypadSelection("seed",24,-10,P3D_DEX_SEARCH_DESCRIPTION,1,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==0);
+    assert(p3dDexKeypadSelection("",150,1,P3D_DEX_SEARCH_NAME,1,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==0);
+    assert(p3dDexKeypadSelection("ZZZ",24,1,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==24);
+    assert(p3dDexKeypadSelection(NULL,24,1,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==24);
+    assert(p3dDexKeypadSelection("PIK",24,0,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==24);
+    /* Only original Viewed/Favorite records are reachable. */
+    assert(p3dDexKeypadSelection("",0,1,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_VIEWED,&history,&menu)==24);
+    assert(p3dDexKeypadSelection("",24,1,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_FAVORITES,&history,&menu)==24);
+    assert(p3dFavoriteToggle(&menu,0)==1);
+    assert(p3dFavoriteToggle(&menu,62)==1);
+    assert(p3dDexKeypadSelection("",0,10,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_FAVORITES,&history,&menu)==62);
+    assert(p3dDexKeypadSelection("",62,-10,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_FAVORITES,&history,&menu)==0);
+    assert(p3dDexKeypadSelection("PIK",0,1,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_FAVORITES,&history,&menu)==0);
+    assert(p3dDexKeypadSelection("PIK",0,1,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_VIEWED,NULL,&menu)==0);
+    assert(p3dDexKeypadSelection("",0,1,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_FAVORITES,&history,NULL)==0);
     p3dDexTextClose();
+    assert(p3dDexKeypadSelection("PIK",24,1,P3D_DEX_SEARCH_NAME,0,
+           P3D_DEX_SCOPE_ALL,&history,&menu)==24);
     assert(!p3dDexSelectionMatches("PIK",24,P3D_DEX_SEARCH_NAME,0,
                                    P3D_DEX_SCOPE_ALL,&history,&menu));
     assert(!p3dDexRefreshSelection("PIK",&selection,P3D_DEX_SEARCH_NAME,0,

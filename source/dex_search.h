@@ -29,4 +29,10 @@ int p3dDexSelectionMatches(const char *query,int index,int field,int region,int 
  * no match, leave the numeric cursor alone and return 0. */
 int p3dDexRefreshSelection(const char *query,int *selection,int field,int region,int scope,
                            const P3DRecords *records,const P3DMenu *menu);
+/* Search-page arrows: unfiltered National browsing uses numeric +/-1/10;
+ * filtered browsing moves only between matching original records.
+ * No valid matching record means no change. */
+int p3dDexKeypadSelection(const char *query,int selection,int delta,int field,
+                          int region,int scope,const P3DRecords *records,
+                          const P3DMenu *menu);
 #endif

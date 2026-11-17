@@ -1832,10 +1832,21 @@ int main(void) {
                                 if(hit>=0)next=hit;
                             }
                         }else{
-                            if(down&KEY_LEFT)next--;
-                            if(down&KEY_RIGHT)next++;
-                            if(down&KEY_UP)next-=10;
-                            if(down&KEY_DOWN)next+=10;
+                            int delta=0;
+                            if(down&KEY_LEFT)delta--;
+                            if(down&KEY_RIGHT)delta++;
+                            if(down&KEY_UP)delta-=10;
+                            if(down&KEY_DOWN)delta+=10;
+                            /* When filtering, never move to an arbitrary
+                             * numeric species or a stale nonmatching row.
+                             * Without original text, leave filtered search
+                             * unchanged; unfiltered numeric browsing works
+                             * without private source assets. */
+                            if(delta && (!search_filtered()||dex_text_ready))
+                                next=p3dDexKeypadSelection(
+                                    state.search_query,state.selected_dex,delta,
+                                    search_field,search_region,search_scope,
+                                    &records,&state);
                         }
                         if(next<0)next=0;
                         if(next>648)next=648;

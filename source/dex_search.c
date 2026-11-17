@@ -114,3 +114,26 @@ int p3dDexRefreshSelection(const char *query,int *selection,int field,
  *selection=hit;
  return 1;
 }
+
+/* C452: a keypad step is a numeric offset only in unfiltered National
+ * name browsing. Every active query, region, scope or description field
+ * must navigate original-source entries matching those exact filters.
+ * A missing/private text catalog yields no movement rather than a fake hit. */
+int p3dDexKeypadSelection(const char *query,int selection,int delta,int field,
+                          int region,int scope,const P3DRecords *records,
+                          const P3DMenu *menu){
+    int hit;
+    if(!query||!delta)return selection;
+    if(!*query&&field==P3D_DEX_SEARCH_NAME&&region==0&&
+       scope==P3D_DEX_SCOPE_ALL){
+        /* Saved cursor and keypad delta can be any signed int. */
+        long long candidate=(long long)selection+(long long)delta;
+        if(candidate<0)return 0;
+        if(candidate>=P3D_NATIONAL_SPECIES_COUNT)
+            return P3D_NATIONAL_SPECIES_COUNT-1;
+        return (int)candidate;
+    }
+    hit=p3dDexFindScoped(query,selection,delta>0?1:-1,field,
+                         region,scope,records,menu);
+    return hit<0?selection:hit;
+}
