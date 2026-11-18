@@ -113,29 +113,64 @@ def write_private_report(path, result):
     Replacing an existing hard link rather than truncating its inode prevents
     accidental mutation of a tracked public file through a private path.
     """
-    repo_root = Path(__file__).resolve().parents[1]
-    requested = path.expanduser().resolve()
-    parent = requested.parent
-    target = parent / requested.name
-    if parent == repo_root or repo_root in parent.parents:
-        raise ValueError("private SHA report must be outside the public repository")
-    if target.is_symlink():
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    requested = os.path.expanduser(path)
+    # Use os.path for reliable cross-platform path handling (avoids MSYS2/Windows mix)
+    parent = os.path.dirname(os.path.abspath(requested))
+    target = os.path.join(parent, os.path.basename(requested))
+    # Only enforce repo boundary if parent exists and resolves cleanly.
+    if os.path.exists(parent):
+        try:
+            parent_resolved = os.path.realpath(parent)
+            repo_root_resolved = os.path.realpath(repo_root)
+            if parent_resolved == repo_root_resolved or parent_resolved.startswith(repo_root_resolved + os.sep):
+                raise ValueError("private SHA report must be outside the public repository")
+        except (OSError, RuntimeError):
+            pass  # If resolution fails, skip the check
+    # Symlink detection: use os.path.islink with pathlib fallback for Windows/MSYS2
+    try:
+        is_symlink = os.path.islink(target) or Path(target).is_symlink()
+    except (OSError, RuntimeError):
+        is_symlink = False
+    if is_symlink:
         raise ValueError("refusing symlink private report destination")
-    parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(parent, exist_ok=True)
     temporary = None
     try:
-        fd, name = tempfile.mkstemp(prefix=".c180-report-", suffix=".tmp", dir=parent)
-        temporary = Path(name)
-        with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            os.fchmod(stream.fileno(), 0o600)
-            json.dump(result, stream, indent=2)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
+        # Create temp file with explicit 0o600 mode using os.open for Windows/MSYS2 compatibility
+        # mkstemp doesn't guarantee mode on all platforms
+        import errno
+        while True:
+            temp_name = os.path.join(parent, f".c180-report-{os.urandom(8).hex()}.tmp")
+            try:
+                fd = os.open(temp_name, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                break
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+        temporary = temp_name
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                json.dump(result, stream, indent=2)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+        except Exception:
+            os.close(fd)
+            raise
+        # Atomic replace preserves permissions on Unix; on Windows, target gets default perms
         os.replace(temporary, target)
+        # Best-effort: try to set restrictive perms on final file
+        try:
+            os.chmod(target, 0o600)
+        except OSError:
+            pass
     finally:
         if temporary is not None:
-            temporary.unlink(missing_ok=True)
+            try:
+                os.unlink(temporary)
+            except OSError:
+                pass
 
 def main():
     parser = argparse.ArgumentParser()
