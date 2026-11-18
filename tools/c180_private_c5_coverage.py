@@ -114,8 +114,8 @@ def write_private_report(path, result):
     accidental mutation of a tracked public file through a private path.
     """
     repo_root = Path(__file__).resolve().parents[1]
-    requested = path.expanduser().absolute()
-    parent = requested.parent.resolve()
+    requested = path.expanduser().resolve()
+    parent = requested.parent
     target = parent / requested.name
     if parent == repo_root or repo_root in parent.parents:
         raise ValueError("private SHA report must be outside the public repository")
