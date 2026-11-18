@@ -43,9 +43,22 @@ int main(int argc,char **argv){
   * Real FAT does not expose POSIX symlinks, but can contain directories. */
  snprintf(path,sizeof(path),"%s/AR_0010.png",argv[1]);assert(mkdir(path,0700)==0);
  assert(!p3dPhotoAlbumDelete(&a,"AR_0010.png"));
- snprintf(path,sizeof(path),"%s/AR_0011.png",argv[1]);assert(symlink("AR_0001.png",path)==0);
- assert(!p3dPhotoAlbumDelete(&a,"AR_0011.png"));
- assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==9);
+ snprintf(path,sizeof(path),"%s/AR_0011.png",argv[1]);
+ if(symlink("AR_0001.png",path)==0){
+     struct stat st;
+     if(lstat(path,&st)==0 && S_ISLNK(st.st_mode)){
+         assert(!p3dPhotoAlbumDelete(&a,"AR_0011.png"));
+         assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==9);
+     }else{
+         /* Windows: symlink created a regular file copy; it gets counted then deleted. */
+         assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==10);
+         assert(p3dPhotoAlbumDelete(&a,"AR_0011.png"));
+         assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==9);
+     }
+ }else{
+     /* Symlink not supported (e.g., no admin on Windows); skip this check. */
+     assert(p3dPhotoAlbumPage(&a,names,2,0,&total)==2&&total==9);
+ }
 #endif
  /* Delete the only photo on page two and keep the nearest surviving row. */
  assert(p3dPhotoAlbumDelete(&a,"AR_0002.png"));
